@@ -25,18 +25,11 @@ struct PassengerWaiting {
 }
 
 impl PassengerWaiting {
-    fn enter_bus<'a, T: Iterator<Item = &'a Location> + std::fmt::Debug>(
-        &self,
-        bus: &mut Bus<'a, T>,
-    ) -> PassengerOnBus {
-        let new_passenger = PassengerOnBus {
+    fn convert_to_onboarded_passenger(&self) -> PassengerOnBus {
+        PassengerOnBus {
             id: self.id,
             end_location: self.end_location,
-        };
-
-        bus.add_passenger(&new_passenger);
-
-        new_passenger
+        }
     }
 }
 
@@ -115,17 +108,25 @@ where
         self.passengers.push(passenger.clone());
     }
 
-    fn take_passengers(&mut self, passenger_list: Vec<PassengerWaiting>)
+    fn take_passengers(&mut self, passenger_list: &mut Vec<PassengerWaiting>)
     where
         T: Iterator<Item = &'a Location> + std::fmt::Debug,
     {
-        for passenger in passenger_list {
+        let mut new_passengers = vec![];
+        for passenger in &mut *passenger_list {
             self.current_location.map_or((), |loc| {
                 if loc == passenger.current_location {
-                    let onboard_passenger = passenger.enter_bus(self);
-                    println!("Passenger {passenger:?} entered the bus");
+                    let onboard_passenger = passenger.convert_to_onboarded_passenger();
+                    self.add_passenger(&onboard_passenger);
+                    new_passengers.push(passenger.clone());
+                    // println!("Passenger {passenger:?} entered the bus");
                 }
             })
+        }
+
+        for passenger in new_passengers {
+            // remove_from_list(passenger_list, passenger);
+            passenger_list.retain(|pass| pass.clone() != passenger);
         }
     }
 }
@@ -166,24 +167,6 @@ fn generate_passenger_list(count: u32) -> Vec<PassengerWaiting> {
     passenger_list
 }
 
-fn loop_through_passenger_list<'a, T>(bus: &mut Bus<'a, T>, passenger_list: Vec<PassengerWaiting>)
-where
-    T: Iterator<Item = &'a Location> + std::fmt::Debug,
-{
-    for passenger in passenger_list {
-        // if let Some(loc) = bus.current_location && loc == passenger.current_location {
-        //     passenger.enter_bus(bus);
-        // }
-        if bus.status == BusStatus::Moving && bus.unloading == false {
-            bus.current_location.map_or((), |loc| {
-                if loc == passenger.current_location {
-                    passenger.enter_bus(bus);
-                    println!("Passenger {passenger:?} entered the bus");
-                }
-            })
-        }
-    }
-}
 fn main() {
     let location_vector = vec![
         Location::Loc1,
@@ -194,10 +177,10 @@ fn main() {
 
     let iter = location_vector.iter().cycle().take(10);
     let mut bus = Bus::new(iter);
-    let passenger_list = generate_passenger_list(10);
-    // loop_through_passenger_list(&mut bus, passenger_list);
+    let mut passenger_list = generate_passenger_list(10);
 
-    bus.stop_at_location().take_passengers(passenger_list);
+    bus.stop_at_location().take_passengers(&mut passenger_list);
 
     dbg!(bus.passengers);
+    dbg!(passenger_list);
 }
