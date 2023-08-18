@@ -159,6 +159,7 @@ where
             bus.current_location.map_or((), |loc| {
                 if loc == passenger.current_location {
                     passenger.enter_bus(bus);
+                    println!("Passenger {passenger:?} entered the bus");
                 }
             })
         }
@@ -173,6 +174,7 @@ fn main() {
     ];
 
     let iter = location_vector.iter().cycle().take(10);
-    let bus = Bus::new(iter);
+    let mut bus = Bus::new(iter);
     let passenger_list = generate_passenger_list(10);
+    loop_through_passenger_list(&mut bus, passenger_list);
 }
