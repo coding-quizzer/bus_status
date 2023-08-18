@@ -28,13 +28,15 @@ impl PassengerWaiting {
     fn enter_bus<'a, T: Iterator<Item = &'a Location> + std::fmt::Debug>(
         &self,
         bus: &mut Bus<'a, T>,
-    ) {
+    ) -> PassengerOnBus {
         let new_passenger = PassengerOnBus {
             id: self.id,
             end_location: self.end_location,
         };
 
-        bus.add_passenger(new_passenger)
+        bus.add_passenger(&new_passenger);
+
+        new_passenger
     }
 }
 
@@ -68,7 +70,6 @@ where
     unloading: bool,
     status: BusStatus,
     passengers: Vec<PassengerOnBus>,
-    next_location: Location,
     current_location: Option<Location>,
     location_list: T,
 }
@@ -92,22 +93,40 @@ where
         Bus {
             unloading: false,
             status: BusStatus::Moving,
+            // TODO: change passenger_list into an fixed-size array, acting as a max bus capacity
             passengers: vec![],
-            next_location: Location::Loc1,
             current_location: None,
             location_list: iter,
         }
     }
 
-    fn stop_at_location(&mut self, loc: Location) -> &mut Self {
+    fn stop_at_location(&mut self) -> &mut Self {
+        self.current_location = self.location_list.next().copied();
+
         self.status = BusStatus::Stopped {
-            location: self.next_location,
+            location: self
+                .current_location
+                .expect("No more locations left to stop at"),
         };
         self
     }
 
-    fn add_passenger(&mut self, passenger: PassengerOnBus) {
-        self.passengers.push(passenger);
+    fn add_passenger(&mut self, passenger: &PassengerOnBus) {
+        self.passengers.push(passenger.clone());
+    }
+
+    fn take_passengers(&mut self, passenger_list: Vec<PassengerWaiting>)
+    where
+        T: Iterator<Item = &'a Location> + std::fmt::Debug,
+    {
+        for passenger in passenger_list {
+            self.current_location.map_or((), |loc| {
+                if loc == passenger.current_location {
+                    let onboard_passenger = passenger.enter_bus(self);
+                    println!("Passenger {passenger:?} entered the bus");
+                }
+            })
+        }
     }
 }
 
@@ -176,5 +195,9 @@ fn main() {
     let iter = location_vector.iter().cycle().take(10);
     let mut bus = Bus::new(iter);
     let passenger_list = generate_passenger_list(10);
-    loop_through_passenger_list(&mut bus, passenger_list);
+    // loop_through_passenger_list(&mut bus, passenger_list);
+
+    bus.stop_at_location().take_passengers(passenger_list);
+
+    dbg!(bus.passengers);
 }
