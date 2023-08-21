@@ -11,7 +11,7 @@ enum Location {
     Loc4,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct PassengerOnBus {
     id: Uuid,
     end_location: Location,
@@ -34,7 +34,6 @@ impl PassengerWaiting {
 }
 
 struct Passenger;
-
 impl Passenger {
     fn new(current_location: Location, end_location: Location) -> PassengerWaiting {
         PassengerWaiting {
@@ -93,15 +92,13 @@ where
         }
     }
 
-    fn stop_at_location(&mut self) -> &mut Self {
+    fn stop_at_location(&mut self) -> Option<()> {
         self.current_location = self.location_list.next().copied();
 
         self.status = BusStatus::Stopped {
-            location: self
-                .current_location
-                .expect("No more locations left to stop at"),
+            location: self.current_location?,
         };
-        self
+        Some(())
     }
 
     fn add_passenger(&mut self, passenger: &PassengerOnBus) {
@@ -128,6 +125,12 @@ where
             // remove_from_list(passenger_list, passenger);
             passenger_list.retain(|pass| pass.clone() != passenger);
         }
+    }
+    fn drop_off_passengers(&mut self) -> Option<()> {
+        let current_location = self.current_location?;
+        self.passengers
+            .retain(|pass| pass.end_location != (current_location));
+        Some(())
     }
 }
 
@@ -179,8 +182,17 @@ fn main() {
     let mut bus = Bus::new(iter);
     let mut passenger_list = generate_passenger_list(10);
 
-    bus.stop_at_location().take_passengers(&mut passenger_list);
-
-    dbg!(bus.passengers);
-    dbg!(passenger_list);
+    dbg!(&passenger_list);
+    loop {
+        println!("____________________Next Stop________________");
+        match bus.stop_at_location() {
+            Some(_) => {}
+            None => break,
+        }
+    }
+    bus.take_passengers(&mut passenger_list);
+    dbg!(&bus.current_location);
+    dbg!(&passenger_list);
+    dbg!(&bus.passengers);
+    bus.drop_off_passengers();
 }
