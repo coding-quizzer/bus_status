@@ -58,15 +58,13 @@ struct BusStatus {
 }
 
 #[derive(Debug, Clone)]
-struct Bus<'a, T>
-where
-    T: Iterator<Item = &'a Location> + std::fmt::Debug,
-{
+struct Bus<'a> {
     // unloading: bool,
     status: BusStatus,
     passengers: Vec<PassengerOnBus>,
     current_location: Option<Location>,
-    location_list: T,
+    location_iter: std::iter::Take<std::iter::Cycle<std::slice::Iter<'a, Location>>>,
+    location_vec: Vec<Location>,
 }
 
 // enum BusState {
@@ -76,15 +74,11 @@ where
 //     MovingUnloading,
 // }
 
-impl<'a, T> Bus<'a, T>
-where
-    T: Iterator<Item = &'a Location> + std::fmt::Debug,
-{
-    fn new(iter: T) -> Bus<'a, T>
-    where
-        T: Iterator<Item = &'a Location>,
-    {
+impl<'a> Bus<'a> {
+    fn new(location_vector: &'a Vec<Location>) -> Bus<'a> {
+        let location_vec = location_vector.clone();
         // Bus::default()
+        let iterator = location_vector.iter().cycle().take(10);
         Bus {
             status: BusStatus {
                 unloading: false,
@@ -93,12 +87,13 @@ where
             // TODO: change passenger_list into an fixed-size array, acting as a max bus capacity
             passengers: vec![],
             current_location: None,
-            location_list: iter,
+            location_iter: iterator,
+            location_vec,
         }
     }
 
     fn stop_at_next_location(&mut self) -> Option<()> {
-        self.current_location = self.location_list.next().copied();
+        self.current_location = self.location_iter.next().copied();
         // if let None = self.current_location {
         //     return None;
         // }
@@ -129,10 +124,7 @@ where
         Some(())
     }
 
-    fn take_passengers(&mut self, waiting_passengers: &mut Vec<PassengerWaiting>)
-    where
-        T: Iterator<Item = &'a Location> + std::fmt::Debug,
-    {
+    fn take_passengers(&mut self, waiting_passengers: &mut Vec<PassengerWaiting>) {
         let mut new_passengers = vec![];
         for passenger in &mut *waiting_passengers {
             self.current_location.map_or((), |loc| {
@@ -197,8 +189,7 @@ fn main() {
         Location::Loc4,
     ];
 
-    let iter = location_vector.iter().cycle().take(10);
-    let mut simulated_bus = Bus::new(iter);
+    let mut simulated_bus = Bus::new(&location_vector);
     let mut passenger_list = generate_passenger_list(10, &location_vector);
 
     dbg!(&passenger_list);
