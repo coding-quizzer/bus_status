@@ -97,11 +97,13 @@ where
         }
     }
 
-    fn stop_at_location(&mut self) -> Option<()> {
+    fn stop_at_next_location(&mut self) -> Option<()> {
         self.current_location = self.location_list.next().copied();
-        if let None = self.current_location {
-            return None;
-        }
+        // if let None = self.current_location {
+        //     return None;
+        // }
+
+        self.current_location?;
 
         self.status.movement = MovementState::Stopped;
         Some(())
@@ -111,7 +113,21 @@ where
         self.passengers.push(*passenger);
     }
 
-    fn update(&mut self) {}
+    fn update(&mut self, waiting_passengers: &mut Vec<PassengerWaiting>) -> Option<()> {
+        if self.status.movement == MovementState::Moving {
+            self.stop_at_next_location()?;
+        } else {
+            if self.status.unloading == false {
+                self.take_passengers(waiting_passengers);
+            }
+            dbg!(self.current_location);
+            dbg!(waiting_passengers);
+            dbg!(&self.passengers);
+            self.drop_off_passengers();
+            self.status.movement = MovementState::Moving;
+        }
+        Some(())
+    }
 
     fn take_passengers(&mut self, waiting_passengers: &mut Vec<PassengerWaiting>)
     where
@@ -188,14 +204,10 @@ fn main() {
     dbg!(&passenger_list);
     loop {
         println!("____________________Next Stop________________");
-        match simulated_bus.stop_at_location() {
-            Some(()) => {}
+        let update_option = simulated_bus.update(&mut passenger_list);
+        match update_option {
             None => break,
+            Some(_) => {}
         }
-        simulated_bus.take_passengers(&mut passenger_list);
-        dbg!(&simulated_bus.current_location);
-        dbg!(&passenger_list);
-        dbg!(&simulated_bus.passengers);
-        simulated_bus.drop_off_passengers();
     }
 }
