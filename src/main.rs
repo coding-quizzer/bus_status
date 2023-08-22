@@ -45,13 +45,16 @@ impl Passenger {
 }
 
 #[derive(Default, Clone, PartialEq, Eq, Debug)]
-enum BusStatus {
+enum MovementState {
     #[default]
     Moving,
+    Stopped,
+}
 
-    Stopped {
-        location: Location,
-    },
+#[derive(Debug, Clone)]
+struct BusStatus {
+    unloading: bool,
+    movement: MovementState,
 }
 
 #[derive(Debug, Clone)]
@@ -59,7 +62,7 @@ struct Bus<'a, T>
 where
     T: Iterator<Item = &'a Location> + std::fmt::Debug,
 {
-    unloading: bool,
+    // unloading: bool,
     status: BusStatus,
     passengers: Vec<PassengerOnBus>,
     current_location: Option<Location>,
@@ -83,8 +86,10 @@ where
     {
         // Bus::default()
         Bus {
-            unloading: false,
-            status: BusStatus::Moving,
+            status: BusStatus {
+                unloading: false,
+                movement: MovementState::Moving,
+            },
             // TODO: change passenger_list into an fixed-size array, acting as a max bus capacity
             passengers: vec![],
             current_location: None,
@@ -94,23 +99,29 @@ where
 
     fn stop_at_location(&mut self) -> Option<()> {
         self.current_location = self.location_list.next().copied();
+        if let None = self.current_location {
+            return None;
+        }
 
-        self.status = BusStatus::Stopped {
-            location: self.current_location?,
+        self.status = BusStatus {
+            unloading: self.status.unloading,
+            movement: MovementState::Stopped,
         };
         Some(())
     }
 
     fn add_passenger(&mut self, passenger: &PassengerOnBus) {
-        self.passengers.push(passenger.clone());
+        self.passengers.push(*passenger);
     }
 
-    fn take_passengers(&mut self, passenger_list: &mut Vec<PassengerWaiting>)
+    fn update(&mut self) {}
+
+    fn take_passengers(&mut self, waiting_passengers: &mut Vec<PassengerWaiting>)
     where
         T: Iterator<Item = &'a Location> + std::fmt::Debug,
     {
         let mut new_passengers = vec![];
-        for passenger in &mut *passenger_list {
+        for passenger in &mut *waiting_passengers {
             self.current_location.map_or((), |loc| {
                 if loc == passenger.current_location {
                     let onboard_passenger = passenger.convert_to_onboarded_passenger();
@@ -123,7 +134,7 @@ where
 
         for passenger in new_passengers {
             // remove_from_list(passenger_list, passenger);
-            passenger_list.retain(|pass| pass.clone() != passenger);
+            waiting_passengers.retain(|pass| pass.clone() != passenger);
         }
     }
     fn drop_off_passengers(&mut self) -> Option<()> {
@@ -134,37 +145,32 @@ where
     }
 }
 
-fn location_from_index(index: u32) -> Option<Location> {
-    match index {
-        1 => Some(Location::Loc1),
-        2 => Some(Location::Loc2),
-        3 => Some(Location::Loc3),
-        4 => Some(Location::Loc4),
-        _ => None,
-    }
-}
-
-fn generate_passenger() -> PassengerWaiting {
+fn generate_passenger(location_list: &Vec<Location>) -> PassengerWaiting {
     use rand::Rng;
     let mut rng = rand::thread_rng();
-    let rand_value: u32 = rng.gen_range(1..=4);
-    let old_location = location_from_index(rand_value).expect("Invalid index for old_location");
+    let max_range = location_list.len();
+    let rand_value = rng.gen_range(1..max_range);
+    let old_location = location_list
+        .get(rand_value)
+        .expect(format!("Invalid index for old_location: {rand_value}").as_str());
 
-    let mut rand_value_2 = rng.gen_range(1..=4);
+    let mut rand_value_2 = rng.gen_range(0..4);
 
     while rand_value == rand_value_2 {
-        rand_value_2 = rng.gen_range(1..=4);
+        rand_value_2 = rng.gen_range(0..4);
     }
 
-    let new_location = location_from_index(rand_value_2).expect("Invalid index for new_location");
+    let new_location = location_list
+        .get(rand_value_2)
+        .expect(format!("Invalid index for new_location: {rand_value_2}").as_str());
 
-    Passenger::new(old_location, new_location)
+    Passenger::new(*old_location, *new_location)
 }
 
-fn generate_passenger_list(count: u32) -> Vec<PassengerWaiting> {
+fn generate_passenger_list(count: u32, location_list: &Vec<Location>) -> Vec<PassengerWaiting> {
     let mut passenger_list = vec![];
     for _num in 0..count {
-        passenger_list.push(generate_passenger())
+        passenger_list.push(generate_passenger(location_list))
     }
 
     passenger_list
@@ -179,20 +185,20 @@ fn main() {
     ];
 
     let iter = location_vector.iter().cycle().take(10);
-    let mut bus = Bus::new(iter);
-    let mut passenger_list = generate_passenger_list(10);
+    let mut simulated_bus = Bus::new(iter);
+    let mut passenger_list = generate_passenger_list(10, &location_vector);
 
     dbg!(&passenger_list);
     loop {
         println!("____________________Next Stop________________");
-        match bus.stop_at_location() {
-            Some(_) => {}
+        match simulated_bus.stop_at_location() {
+            Some(()) => {}
             None => break,
         }
+        simulated_bus.take_passengers(&mut passenger_list);
+        dbg!(&simulated_bus.current_location);
+        dbg!(&passenger_list);
+        dbg!(&simulated_bus.passengers);
+        simulated_bus.drop_off_passengers();
     }
-    bus.take_passengers(&mut passenger_list);
-    dbg!(&bus.current_location);
-    dbg!(&passenger_list);
-    dbg!(&bus.passengers);
-    bus.drop_off_passengers();
 }
