@@ -103,10 +103,7 @@ where
             return None;
         }
 
-        self.status = BusStatus {
-            unloading: self.status.unloading,
-            movement: MovementState::Stopped,
-        };
+        self.status.movement = MovementState::Stopped;
         Some(())
     }
 
