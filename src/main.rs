@@ -49,6 +49,7 @@ enum MovementState {
     #[default]
     Moving,
     Stopped,
+    Finished,
 }
 
 #[derive(Debug, Clone)]
@@ -57,28 +58,32 @@ struct BusStatus {
     movement: MovementState,
 }
 
-#[derive(Debug, Clone)]
-struct Bus<'a> {
+struct Bus {
     // unloading: bool,
     status: BusStatus,
     passengers: Vec<PassengerOnBus>,
     current_location: Option<Location>,
-    location_iter: std::iter::Take<std::iter::Cycle<std::slice::Iter<'a, Location>>>,
+    location_iter: Box<dyn Iterator<Item = Location>>,
     location_vec: Vec<Location>,
 }
 
-// enum BusState {
-//     Moving,
-//     Stopped,
-//     Unloading,
-//     MovingUnloading,
-// }
-
-impl<'a> Bus<'a> {
-    fn new(location_vector: &'a Vec<Location>) -> Bus<'a> {
+// manually impliment Debug, so that the iterator field can be skipped, eliminating the complicaiton of requiring
+// the iterator to impliment Debug
+impl std::fmt::Debug for Bus {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        f.debug_struct("Bus")
+            .field("status", &self.status)
+            .field("passengers", &self.passengers)
+            .field("current_location", &self.current_location)
+            .field("location_vec", &&self.location_vec)
+            .finish()
+    }
+}
+impl Bus {
+    fn new(location_vector: Vec<Location>) -> Bus {
         let location_vec = location_vector.clone();
         // Bus::default()
-        let iterator = location_vector.iter().cycle().take(10);
+        let iterator = location_vector.into_iter().cycle().take(10);
         Bus {
             status: BusStatus {
                 unloading: false,
@@ -87,18 +92,24 @@ impl<'a> Bus<'a> {
             // TODO: change passenger_list into an fixed-size array, acting as a max bus capacity
             passengers: vec![],
             current_location: None,
-            location_iter: iterator,
+            location_iter: Box::new(iterator),
             location_vec,
         }
     }
 
+    fn reset_locations(&mut self) {
+        let location_vec = self.location_vec.clone();
+
+        let iterator = location_vec.into_iter();
+
+        self.location_iter = Box::new(iterator);
+    }
+
     fn stop_at_next_location(&mut self) -> Option<()> {
-        self.current_location = self.location_iter.next().copied();
+        self.current_location = self.location_iter.next();
         // if let None = self.current_location {
         //     return None;
         // }
-
-        self.current_location?;
 
         self.status.movement = MovementState::Stopped;
         Some(())
@@ -109,8 +120,17 @@ impl<'a> Bus<'a> {
     }
 
     fn update(&mut self, waiting_passengers: &mut Vec<PassengerWaiting>) -> Option<()> {
+        dbg!(&self);
         if self.status.movement == MovementState::Moving {
-            self.stop_at_next_location()?;
+            self.stop_at_next_location();
+            if let Some(_) = self.current_location {
+                return Some(());
+            }
+            if self.status.unloading == true {
+                return None;
+            }
+            self.status.unloading = true;
+            self.reset_locations();
         } else {
             if self.status.unloading == false {
                 self.take_passengers(waiting_passengers);
@@ -189,7 +209,9 @@ fn main() {
         Location::Loc4,
     ];
 
-    let mut simulated_bus = Bus::new(&location_vector);
+    let bus_location_vector = location_vector.clone();
+
+    let mut simulated_bus = Bus::new(bus_location_vector);
     let mut passenger_list = generate_passenger_list(10, &location_vector);
 
     dbg!(&passenger_list);
