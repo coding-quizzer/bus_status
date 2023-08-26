@@ -81,7 +81,7 @@ impl std::fmt::Debug for Bus {
     }
 }
 impl Bus {
-    fn new(location_vector: Vec<Location>) -> Bus {
+    fn new(location_vector: Vec<Location>, capacity: usize) -> Bus {
         let location_vec = location_vector.clone();
         // Bus::default()
         let iterator = location_vector.into_iter().cycle().take(10);
@@ -94,7 +94,7 @@ impl Bus {
             current_location: None,
             location_iter: Box::new(iterator),
             location_vec,
-            capacity: 10,
+            capacity,
         }
     }
 
@@ -205,6 +205,7 @@ fn generate_passenger_list(count: u32, location_list: &Vec<Location>) -> Vec<Pas
 }
 
 const GLOBAL_PASSENGER_COUNT: u32 = 30;
+const BUS_CAPACITY: usize = 20;
 fn main() {
     let location_vector = vec![
         Location::Loc1,
@@ -215,7 +216,7 @@ fn main() {
 
     let bus_location_vector = location_vector.clone();
 
-    let mut simulated_bus = Bus::new(bus_location_vector);
+    let mut simulated_bus = Bus::new(bus_location_vector, BUS_CAPACITY);
     let mut passenger_list = generate_passenger_list(GLOBAL_PASSENGER_COUNT, &location_vector);
 
     dbg!(&passenger_list);
