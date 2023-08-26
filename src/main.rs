@@ -65,6 +65,7 @@ struct Bus {
     current_location: Option<Location>,
     location_iter: Box<dyn Iterator<Item = Location>>,
     location_vec: Vec<Location>,
+    capacity: usize,
 }
 
 // manually impliment Debug, so that the iterator field can be skipped, eliminating the complicaiton of requiring
@@ -89,11 +90,11 @@ impl Bus {
                 unloading: false,
                 movement: MovementState::Moving,
             },
-            // TODO: change passenger_list into an fixed-size array, acting as a max bus capacity
             passengers: vec![],
             current_location: None,
             location_iter: Box::new(iterator),
             location_vec,
+            capacity: 10,
         }
     }
 
@@ -147,12 +148,14 @@ impl Bus {
     fn take_passengers(&mut self, waiting_passengers: &mut Vec<PassengerWaiting>) {
         let mut new_passengers = vec![];
         for passenger in &mut *waiting_passengers {
+            if &self.passengers.len() == &self.capacity {
+                break;
+            }
             self.current_location.map_or((), |loc| {
                 if loc == passenger.current_location {
                     let onboard_passenger = passenger.convert_to_onboarded_passenger();
                     self.add_passenger(&onboard_passenger);
                     new_passengers.push(passenger.clone());
-                    // println!("Passenger {passenger:?} entered the bus");
                 }
             })
         }
@@ -201,7 +204,7 @@ fn generate_passenger_list(count: u32, location_list: &Vec<Location>) -> Vec<Pas
     passenger_list
 }
 
-const GLOBAL_PASSENGER_COUNT: u32 = 10;
+const GLOBAL_PASSENGER_COUNT: u32 = 30;
 fn main() {
     let location_vector = vec![
         Location::Loc1,
