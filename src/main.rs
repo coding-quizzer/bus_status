@@ -213,7 +213,7 @@ fn main() {
     let bus_location_vector = location_vector.clone();
 
     let mut simulated_bus = Bus::new(bus_location_vector);
-    let mut passenger_list = generate_passenger_list(TOTAL_PASSENGER_COUNT, &location_vector);
+    let mut passenger_list = generate_passenger_list(GLOBAL_PASSENGER_COUNT, &location_vector);
 
     dbg!(&passenger_list);
     loop {
