@@ -128,6 +128,7 @@ impl Bus {
                 return Some(());
             }
             if self.status.unloading == true {
+                self.status.movement = MovementState::Finished;
                 return None;
             }
             self.status.unloading = true;
