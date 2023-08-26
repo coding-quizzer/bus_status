@@ -201,6 +201,7 @@ fn generate_passenger_list(count: u32, location_list: &Vec<Location>) -> Vec<Pas
     passenger_list
 }
 
+const GLOBAL_PASSENGER_COUNT: u32 = 10;
 fn main() {
     let location_vector = vec![
         Location::Loc1,
@@ -212,7 +213,7 @@ fn main() {
     let bus_location_vector = location_vector.clone();
 
     let mut simulated_bus = Bus::new(bus_location_vector);
-    let mut passenger_list = generate_passenger_list(10, &location_vector);
+    let mut passenger_list = generate_passenger_list(TOTAL_PASSENGER_COUNT, &location_vector);
 
     dbg!(&passenger_list);
     loop {
