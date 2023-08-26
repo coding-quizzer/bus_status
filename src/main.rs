@@ -1,4 +1,3 @@
-#[allow(unused_imports)]
 use std::{sync::mpsc, thread};
 use uuid::Uuid;
 
@@ -215,18 +214,22 @@ fn main() {
         Location::Loc4,
     ];
 
-    let bus_location_vector = location_vector.clone();
-
-    let mut simulated_bus = Bus::new(bus_location_vector, BUS_CAPACITY);
     let mut passenger_list = generate_passenger_list(GLOBAL_PASSENGER_COUNT, &location_vector);
 
-    dbg!(&passenger_list);
-    loop {
-        println!("____________________Next Stop________________");
-        let update_option = simulated_bus.update(&mut passenger_list);
-        match update_option {
-            None => break,
-            Some(_) => {}
+    let bus_location_vector = location_vector.clone();
+    let handle = thread::spawn(move || {
+        let mut simulated_bus = Bus::new(bus_location_vector, BUS_CAPACITY);
+
+        dbg!(&passenger_list);
+        loop {
+            println!("____________________Next Stop________________");
+            let update_option = simulated_bus.update(&mut passenger_list);
+            match update_option {
+                None => break,
+                Some(_) => {}
+            }
         }
-    }
+    });
+
+    handle.join().unwrap();
 }
