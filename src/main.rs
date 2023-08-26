@@ -1,4 +1,7 @@
-use std::{sync::mpsc, thread};
+use std::{
+    sync::{mpsc, Arc, Mutex},
+    thread,
+};
 use uuid::Uuid;
 
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
@@ -204,8 +207,8 @@ fn generate_passenger_list(count: u32, location_list: &Vec<Location>) -> Vec<Pas
     passenger_list
 }
 
-const GLOBAL_PASSENGER_COUNT: u32 = 30;
-const BUS_CAPACITY: usize = 20;
+const GLOBAL_PASSENGER_COUNT: u32 = 50;
+const BUS_CAPACITY: usize = 10;
 fn main() {
     let location_vector = vec![
         Location::Loc1,
@@ -213,23 +216,33 @@ fn main() {
         Location::Loc3,
         Location::Loc4,
     ];
+    let passenger_list_pointer = Arc::new(Mutex::new(generate_passenger_list(
+        GLOBAL_PASSENGER_COUNT,
+        &location_vector,
+    )));
 
-    let mut passenger_list = generate_passenger_list(GLOBAL_PASSENGER_COUNT, &location_vector);
+    let location_vector_arc = Arc::new(location_vector);
 
-    let bus_location_vector = location_vector.clone();
-    let handle = thread::spawn(move || {
-        let mut simulated_bus = Bus::new(bus_location_vector, BUS_CAPACITY);
+    for _ in 1..=2 {
+        let bus_location_arc = location_vector_arc.clone();
+        let passenger_list_pointer_clone = passenger_list_pointer.clone();
+        let handle = thread::spawn(move || {
+            let bus_location_vector = bus_location_arc.as_ref();
+            let mut passenger_list = passenger_list_pointer_clone.lock().unwrap();
+            // let bus_location_vector = Arc::into_inner(bus_location_arc).unwrap();
+            let mut simulated_bus = Bus::new((bus_location_vector).clone(), BUS_CAPACITY);
 
-        dbg!(&passenger_list);
-        loop {
-            println!("____________________Next Stop________________");
-            let update_option = simulated_bus.update(&mut passenger_list);
-            match update_option {
-                None => break,
-                Some(_) => {}
+            dbg!(&passenger_list);
+            loop {
+                println!("____________________Next Stop________________");
+                let update_option = simulated_bus.update(&mut passenger_list);
+                match update_option {
+                    None => break,
+                    Some(_) => {}
+                }
             }
-        }
-    });
+        });
 
-    handle.join().unwrap();
+        handle.join().unwrap();
+    }
 }
