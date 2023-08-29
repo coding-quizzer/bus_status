@@ -17,6 +17,7 @@ enum Location {
 struct PassengerOnBus {
     id: Uuid,
     end_location: Location,
+    passed_stops: u32,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -31,6 +32,7 @@ impl PassengerWaiting {
         PassengerOnBus {
             id: self.id,
             end_location: self.end_location,
+            passed_stops: 0,
         }
     }
 }
@@ -170,8 +172,10 @@ impl Bus {
     }
     fn drop_off_passengers(&mut self) -> Option<()> {
         let current_location = self.current_location?;
-        self.passengers
-            .retain(|pass| pass.end_location != (current_location));
+        self.passengers.retain_mut(|pass| {
+            pass.passed_stops += 1;
+            pass.end_location != (current_location)
+        });
         Some(())
     }
 }
