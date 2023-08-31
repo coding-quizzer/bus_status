@@ -176,35 +176,44 @@ impl Bus {
     }
 }
 
-fn generate_passenger(location_list: &Vec<Location>) -> PassengerWaiting {
+fn generate_passenger(location_list: &Vec<Location>) -> Result<PassengerWaiting, String> {
     use rand::Rng;
     let mut rng = rand::thread_rng();
     let max_range = location_list.len();
+    if max_range < 2 {
+        return Err(format!(
+            "Invalid Vec Length: {}. Length must be at least 2",
+            max_range
+        ));
+    }
     let rand_value = rng.gen_range(1..max_range);
     let old_location = location_list
         .get(rand_value)
         .expect(format!("Invalid index for old_location: {rand_value}").as_str());
 
-    let mut rand_value_2 = rng.gen_range(0..4);
+    let mut rand_value_2 = rng.gen_range(0..max_range);
 
     while rand_value == rand_value_2 {
-        rand_value_2 = rng.gen_range(0..4);
+        rand_value_2 = rng.gen_range(0..max_range);
     }
 
     let new_location = location_list
         .get(rand_value_2)
         .expect(format!("Invalid index for new_location: {rand_value_2}").as_str());
 
-    Passenger::new(*old_location, *new_location)
+    Ok(Passenger::new(*old_location, *new_location))
 }
 
-fn generate_passenger_list(count: u32, location_list: &Vec<Location>) -> Vec<PassengerWaiting> {
+fn generate_passenger_list(
+    count: u32,
+    location_list: &Vec<Location>,
+) -> Result<Vec<PassengerWaiting>, String> {
     let mut passenger_list = vec![];
     for _num in 0..count {
-        passenger_list.push(generate_passenger(location_list))
+        passenger_list.push(generate_passenger(location_list)?)
     }
 
-    passenger_list
+    Ok(passenger_list)
 }
 
 const GLOBAL_PASSENGER_COUNT: u32 = 50;
@@ -216,10 +225,9 @@ fn main() {
         Location::Loc3,
         Location::Loc4,
     ];
-    let passenger_list_pointer = Arc::new(Mutex::new(generate_passenger_list(
-        GLOBAL_PASSENGER_COUNT,
-        &location_vector,
-    )));
+    let passenger_list_pointer = Arc::new(Mutex::new(
+        generate_passenger_list(GLOBAL_PASSENGER_COUNT, &location_vector).unwrap(),
+    ));
 
     let location_vector_arc = Arc::new(location_vector);
 
