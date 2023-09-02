@@ -124,8 +124,12 @@ impl Bus {
         self.passengers.push(*passenger);
     }
 
-    fn update(&mut self, waiting_passengers: &mut Vec<PassengerWaiting>) -> Option<()> {
-        dbg!(&self);
+    fn update(
+        &mut self,
+        waiting_passengers: &mut Vec<PassengerWaiting>,
+        passenger_wait_list: &mut Vec<u32>,
+    ) -> Option<()> {
+        println!("Bus: {:#?}", &self);
         if self.status.movement == MovementState::Moving {
             self.stop_at_next_location();
             if let Some(_) = self.current_location {
@@ -138,13 +142,14 @@ impl Bus {
             self.status.unloading = true;
             self.reset_locations();
         } else {
+            self.drop_off_passengers(passenger_wait_list);
+
             if self.status.unloading == false {
                 self.take_passengers(waiting_passengers);
             }
-            dbg!(self.current_location);
-            dbg!(waiting_passengers);
+            println!("Bus Current Location: {:?}", self.current_location);
+            // dbg!(&waiting_passengers);
             dbg!(&self.passengers);
-            self.drop_off_passengers();
             self.status.movement = MovementState::Moving;
         }
         Some(())
@@ -170,12 +175,19 @@ impl Bus {
             waiting_passengers.retain(|pass| pass.clone() != passenger);
         }
     }
-    fn drop_off_passengers(&mut self) -> Option<()> {
+    fn drop_off_passengers(&mut self, passenger_passed_stops: &mut Vec<u32>) -> Option<()> {
         let current_location = self.current_location?;
-        self.passengers.retain_mut(|pass| {
-            pass.passed_stops += 1;
-            pass.end_location != (current_location)
-        });
+        let bus_passengers = &mut *self.passengers;
+        let mut new_bus_passengers = vec![];
+        for pass in bus_passengers {
+            if pass.end_location == current_location {
+                passenger_passed_stops.push(pass.passed_stops)
+            } else {
+                pass.passed_stops += 1;
+                new_bus_passengers.push(pass.clone());
+            }
+        }
+        self.passengers = new_bus_passengers;
         Some(())
     }
 }
@@ -190,7 +202,7 @@ fn generate_passenger(location_list: &Vec<Location>) -> Result<PassengerWaiting,
             max_range
         ));
     }
-    let rand_value = rng.gen_range(1..max_range);
+    let rand_value = rng.gen_range(0..max_range);
     let old_location = location_list
         .get(rand_value)
         .expect(format!("Invalid index for old_location: {rand_value}").as_str());
@@ -220,7 +232,7 @@ fn generate_passenger_list(
     Ok(passenger_list)
 }
 
-const GLOBAL_PASSENGER_COUNT: u32 = 50;
+const GLOBAL_PASSENGER_COUNT: u32 = 10;
 const BUS_CAPACITY: usize = 10;
 fn main() {
     let location_vector = vec![
@@ -235,19 +247,35 @@ fn main() {
 
     let location_vector_arc = Arc::new(location_vector);
 
-    for _ in 1..=2 {
+    let passenger_wait_pointer = Arc::new(Mutex::new(Vec::<u32>::new()));
+
+    for _ in 1..=1 {
         let bus_location_arc = location_vector_arc.clone();
         let passenger_list_pointer_clone = passenger_list_pointer.clone();
+        let passenger_wait_pointer_clone = passenger_wait_pointer.clone();
         let handle = thread::spawn(move || {
             let bus_location_vector = bus_location_arc.as_ref();
             let mut passenger_list = passenger_list_pointer_clone.lock().unwrap();
             // let bus_location_vector = Arc::into_inner(bus_location_arc).unwrap();
             let mut simulated_bus = Bus::new((bus_location_vector).clone(), BUS_CAPACITY);
+            let mut passenger_wait_list = passenger_wait_pointer_clone.lock().unwrap();
 
-            dbg!(&passenger_list);
+            println!("Passenger List: {:#?}", &passenger_list);
             loop {
                 println!("____________________Next Stop________________");
-                let update_option = simulated_bus.update(&mut passenger_list);
+                let update_option =
+                    simulated_bus.update(&mut *passenger_list, &mut *passenger_wait_list);
+                println!("Passenger wait list: {:?}", &*passenger_wait_list);
+                if !passenger_wait_list.is_empty() {
+                    let passenger_count = passenger_wait_list.len();
+                    dbg!(passenger_count);
+                    println!(
+                        "Passenger wait average: {:?}",
+                        &(*passenger_wait_list).iter().sum::<u32>().into() / passenger_count as f64
+                    );
+                }
+                dbg!(passenger_wait_list.len());
+
                 match update_option {
                     None => break,
                     Some(_) => {}

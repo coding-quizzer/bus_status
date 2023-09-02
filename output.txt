@@ -1,0 +1,877 @@
+Passenger List: [
+    PassengerWaiting {
+        id: 3df17783-6882-4242-a58e-e2be5cd679d5,
+        current_location: Loc1,
+        end_location: Loc4,
+    },
+    PassengerWaiting {
+        id: b9427012-8e89-41d8-90ca-a00097a9d222,
+        current_location: Loc4,
+        end_location: Loc3,
+    },
+    PassengerWaiting {
+        id: 98aacd32-12f6-4089-9000-58d62ce57ebf,
+        current_location: Loc4,
+        end_location: Loc2,
+    },
+    PassengerWaiting {
+        id: 34f39943-0db2-47ab-a4dc-3a84168fcdb0,
+        current_location: Loc3,
+        end_location: Loc1,
+    },
+    PassengerWaiting {
+        id: c0c8a6bc-b2fe-4cd8-92d4-088ee8325331,
+        current_location: Loc4,
+        end_location: Loc2,
+    },
+    PassengerWaiting {
+        id: 3541d5c2-c7f3-4217-8bcc-98d1cd896665,
+        current_location: Loc2,
+        end_location: Loc4,
+    },
+    PassengerWaiting {
+        id: f61104aa-bae8-4e60-a66e-06261bc8eb3f,
+        current_location: Loc3,
+        end_location: Loc1,
+    },
+    PassengerWaiting {
+        id: cc45efc6-30de-42e5-b8d7-22eb602e6edb,
+        current_location: Loc3,
+        end_location: Loc1,
+    },
+    PassengerWaiting {
+        id: 0f98c24c-702d-4665-8859-9dee08544cec,
+        current_location: Loc2,
+        end_location: Loc3,
+    },
+    PassengerWaiting {
+        id: f1410cc6-fe8c-4f28-ab13-7b6f73bc3690,
+        current_location: Loc3,
+        end_location: Loc2,
+    },
+]
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Moving,
+    },
+    passengers: [],
+    current_location: None,
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Passenger wait list: []
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Stopped,
+    },
+    passengers: [],
+    current_location: Some(
+        Loc1,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Bus Current Location: Some(Loc1)
+Passenger wait list: []
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Moving,
+    },
+    passengers: [
+        PassengerOnBus {
+            id: 3df17783-6882-4242-a58e-e2be5cd679d5,
+            end_location: Loc4,
+            passed_stops: 0,
+        },
+    ],
+    current_location: Some(
+        Loc1,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Passenger wait list: []
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Stopped,
+    },
+    passengers: [
+        PassengerOnBus {
+            id: 3df17783-6882-4242-a58e-e2be5cd679d5,
+            end_location: Loc4,
+            passed_stops: 0,
+        },
+    ],
+    current_location: Some(
+        Loc2,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Bus Current Location: Some(Loc2)
+Passenger wait list: []
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Moving,
+    },
+    passengers: [
+        PassengerOnBus {
+            id: 3df17783-6882-4242-a58e-e2be5cd679d5,
+            end_location: Loc4,
+            passed_stops: 1,
+        },
+        PassengerOnBus {
+            id: 3541d5c2-c7f3-4217-8bcc-98d1cd896665,
+            end_location: Loc4,
+            passed_stops: 0,
+        },
+        PassengerOnBus {
+            id: 0f98c24c-702d-4665-8859-9dee08544cec,
+            end_location: Loc3,
+            passed_stops: 0,
+        },
+    ],
+    current_location: Some(
+        Loc2,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Passenger wait list: []
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Stopped,
+    },
+    passengers: [
+        PassengerOnBus {
+            id: 3df17783-6882-4242-a58e-e2be5cd679d5,
+            end_location: Loc4,
+            passed_stops: 1,
+        },
+        PassengerOnBus {
+            id: 3541d5c2-c7f3-4217-8bcc-98d1cd896665,
+            end_location: Loc4,
+            passed_stops: 0,
+        },
+        PassengerOnBus {
+            id: 0f98c24c-702d-4665-8859-9dee08544cec,
+            end_location: Loc3,
+            passed_stops: 0,
+        },
+    ],
+    current_location: Some(
+        Loc3,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Bus Current Location: Some(Loc3)
+Passenger wait list: [0]
+Passenger wait average: 0.0
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Moving,
+    },
+    passengers: [
+        PassengerOnBus {
+            id: 3df17783-6882-4242-a58e-e2be5cd679d5,
+            end_location: Loc4,
+            passed_stops: 2,
+        },
+        PassengerOnBus {
+            id: 3541d5c2-c7f3-4217-8bcc-98d1cd896665,
+            end_location: Loc4,
+            passed_stops: 1,
+        },
+        PassengerOnBus {
+            id: 34f39943-0db2-47ab-a4dc-3a84168fcdb0,
+            end_location: Loc1,
+            passed_stops: 0,
+        },
+        PassengerOnBus {
+            id: f61104aa-bae8-4e60-a66e-06261bc8eb3f,
+            end_location: Loc1,
+            passed_stops: 0,
+        },
+        PassengerOnBus {
+            id: cc45efc6-30de-42e5-b8d7-22eb602e6edb,
+            end_location: Loc1,
+            passed_stops: 0,
+        },
+        PassengerOnBus {
+            id: f1410cc6-fe8c-4f28-ab13-7b6f73bc3690,
+            end_location: Loc2,
+            passed_stops: 0,
+        },
+    ],
+    current_location: Some(
+        Loc3,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Passenger wait list: [0]
+Passenger wait average: 0.0
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Stopped,
+    },
+    passengers: [
+        PassengerOnBus {
+            id: 3df17783-6882-4242-a58e-e2be5cd679d5,
+            end_location: Loc4,
+            passed_stops: 2,
+        },
+        PassengerOnBus {
+            id: 3541d5c2-c7f3-4217-8bcc-98d1cd896665,
+            end_location: Loc4,
+            passed_stops: 1,
+        },
+        PassengerOnBus {
+            id: 34f39943-0db2-47ab-a4dc-3a84168fcdb0,
+            end_location: Loc1,
+            passed_stops: 0,
+        },
+        PassengerOnBus {
+            id: f61104aa-bae8-4e60-a66e-06261bc8eb3f,
+            end_location: Loc1,
+            passed_stops: 0,
+        },
+        PassengerOnBus {
+            id: cc45efc6-30de-42e5-b8d7-22eb602e6edb,
+            end_location: Loc1,
+            passed_stops: 0,
+        },
+        PassengerOnBus {
+            id: f1410cc6-fe8c-4f28-ab13-7b6f73bc3690,
+            end_location: Loc2,
+            passed_stops: 0,
+        },
+    ],
+    current_location: Some(
+        Loc4,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Bus Current Location: Some(Loc4)
+Passenger wait list: [0, 2, 1]
+Passenger wait average: 1.0
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Moving,
+    },
+    passengers: [
+        PassengerOnBus {
+            id: 34f39943-0db2-47ab-a4dc-3a84168fcdb0,
+            end_location: Loc1,
+            passed_stops: 1,
+        },
+        PassengerOnBus {
+            id: f61104aa-bae8-4e60-a66e-06261bc8eb3f,
+            end_location: Loc1,
+            passed_stops: 1,
+        },
+        PassengerOnBus {
+            id: cc45efc6-30de-42e5-b8d7-22eb602e6edb,
+            end_location: Loc1,
+            passed_stops: 1,
+        },
+        PassengerOnBus {
+            id: f1410cc6-fe8c-4f28-ab13-7b6f73bc3690,
+            end_location: Loc2,
+            passed_stops: 1,
+        },
+        PassengerOnBus {
+            id: b9427012-8e89-41d8-90ca-a00097a9d222,
+            end_location: Loc3,
+            passed_stops: 0,
+        },
+        PassengerOnBus {
+            id: 98aacd32-12f6-4089-9000-58d62ce57ebf,
+            end_location: Loc2,
+            passed_stops: 0,
+        },
+        PassengerOnBus {
+            id: c0c8a6bc-b2fe-4cd8-92d4-088ee8325331,
+            end_location: Loc2,
+            passed_stops: 0,
+        },
+    ],
+    current_location: Some(
+        Loc4,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Passenger wait list: [0, 2, 1]
+Passenger wait average: 1.0
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Stopped,
+    },
+    passengers: [
+        PassengerOnBus {
+            id: 34f39943-0db2-47ab-a4dc-3a84168fcdb0,
+            end_location: Loc1,
+            passed_stops: 1,
+        },
+        PassengerOnBus {
+            id: f61104aa-bae8-4e60-a66e-06261bc8eb3f,
+            end_location: Loc1,
+            passed_stops: 1,
+        },
+        PassengerOnBus {
+            id: cc45efc6-30de-42e5-b8d7-22eb602e6edb,
+            end_location: Loc1,
+            passed_stops: 1,
+        },
+        PassengerOnBus {
+            id: f1410cc6-fe8c-4f28-ab13-7b6f73bc3690,
+            end_location: Loc2,
+            passed_stops: 1,
+        },
+        PassengerOnBus {
+            id: b9427012-8e89-41d8-90ca-a00097a9d222,
+            end_location: Loc3,
+            passed_stops: 0,
+        },
+        PassengerOnBus {
+            id: 98aacd32-12f6-4089-9000-58d62ce57ebf,
+            end_location: Loc2,
+            passed_stops: 0,
+        },
+        PassengerOnBus {
+            id: c0c8a6bc-b2fe-4cd8-92d4-088ee8325331,
+            end_location: Loc2,
+            passed_stops: 0,
+        },
+    ],
+    current_location: Some(
+        Loc1,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Bus Current Location: Some(Loc1)
+Passenger wait list: [0, 2, 1, 1, 1, 1]
+Passenger wait average: 1.0
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Moving,
+    },
+    passengers: [
+        PassengerOnBus {
+            id: f1410cc6-fe8c-4f28-ab13-7b6f73bc3690,
+            end_location: Loc2,
+            passed_stops: 2,
+        },
+        PassengerOnBus {
+            id: b9427012-8e89-41d8-90ca-a00097a9d222,
+            end_location: Loc3,
+            passed_stops: 1,
+        },
+        PassengerOnBus {
+            id: 98aacd32-12f6-4089-9000-58d62ce57ebf,
+            end_location: Loc2,
+            passed_stops: 1,
+        },
+        PassengerOnBus {
+            id: c0c8a6bc-b2fe-4cd8-92d4-088ee8325331,
+            end_location: Loc2,
+            passed_stops: 1,
+        },
+    ],
+    current_location: Some(
+        Loc1,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Passenger wait list: [0, 2, 1, 1, 1, 1]
+Passenger wait average: 1.0
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Stopped,
+    },
+    passengers: [
+        PassengerOnBus {
+            id: f1410cc6-fe8c-4f28-ab13-7b6f73bc3690,
+            end_location: Loc2,
+            passed_stops: 2,
+        },
+        PassengerOnBus {
+            id: b9427012-8e89-41d8-90ca-a00097a9d222,
+            end_location: Loc3,
+            passed_stops: 1,
+        },
+        PassengerOnBus {
+            id: 98aacd32-12f6-4089-9000-58d62ce57ebf,
+            end_location: Loc2,
+            passed_stops: 1,
+        },
+        PassengerOnBus {
+            id: c0c8a6bc-b2fe-4cd8-92d4-088ee8325331,
+            end_location: Loc2,
+            passed_stops: 1,
+        },
+    ],
+    current_location: Some(
+        Loc2,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Bus Current Location: Some(Loc2)
+Passenger wait list: [0, 2, 1, 1, 1, 1, 2, 1, 1]
+Passenger wait average: 1.1111111111111112
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Moving,
+    },
+    passengers: [
+        PassengerOnBus {
+            id: b9427012-8e89-41d8-90ca-a00097a9d222,
+            end_location: Loc3,
+            passed_stops: 2,
+        },
+    ],
+    current_location: Some(
+        Loc2,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Passenger wait list: [0, 2, 1, 1, 1, 1, 2, 1, 1]
+Passenger wait average: 1.1111111111111112
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Stopped,
+    },
+    passengers: [
+        PassengerOnBus {
+            id: b9427012-8e89-41d8-90ca-a00097a9d222,
+            end_location: Loc3,
+            passed_stops: 2,
+        },
+    ],
+    current_location: Some(
+        Loc3,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Bus Current Location: Some(Loc3)
+Passenger wait list: [0, 2, 1, 1, 1, 1, 2, 1, 1, 2]
+Passenger wait average: 1.2
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Moving,
+    },
+    passengers: [],
+    current_location: Some(
+        Loc3,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Passenger wait list: [0, 2, 1, 1, 1, 1, 2, 1, 1, 2]
+Passenger wait average: 1.2
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Stopped,
+    },
+    passengers: [],
+    current_location: Some(
+        Loc4,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Bus Current Location: Some(Loc4)
+Passenger wait list: [0, 2, 1, 1, 1, 1, 2, 1, 1, 2]
+Passenger wait average: 1.2
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Moving,
+    },
+    passengers: [],
+    current_location: Some(
+        Loc4,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Passenger wait list: [0, 2, 1, 1, 1, 1, 2, 1, 1, 2]
+Passenger wait average: 1.2
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Stopped,
+    },
+    passengers: [],
+    current_location: Some(
+        Loc1,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Bus Current Location: Some(Loc1)
+Passenger wait list: [0, 2, 1, 1, 1, 1, 2, 1, 1, 2]
+Passenger wait average: 1.2
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Moving,
+    },
+    passengers: [],
+    current_location: Some(
+        Loc1,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Passenger wait list: [0, 2, 1, 1, 1, 1, 2, 1, 1, 2]
+Passenger wait average: 1.2
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Stopped,
+    },
+    passengers: [],
+    current_location: Some(
+        Loc2,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Bus Current Location: Some(Loc2)
+Passenger wait list: [0, 2, 1, 1, 1, 1, 2, 1, 1, 2]
+Passenger wait average: 1.2
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: false,
+        movement: Moving,
+    },
+    passengers: [],
+    current_location: Some(
+        Loc2,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Passenger wait list: [0, 2, 1, 1, 1, 1, 2, 1, 1, 2]
+Passenger wait average: 1.2
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: true,
+        movement: Stopped,
+    },
+    passengers: [],
+    current_location: None,
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Bus Current Location: None
+Passenger wait list: [0, 2, 1, 1, 1, 1, 2, 1, 1, 2]
+Passenger wait average: 1.2
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: true,
+        movement: Moving,
+    },
+    passengers: [],
+    current_location: None,
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Passenger wait list: [0, 2, 1, 1, 1, 1, 2, 1, 1, 2]
+Passenger wait average: 1.2
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: true,
+        movement: Stopped,
+    },
+    passengers: [],
+    current_location: Some(
+        Loc1,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Bus Current Location: Some(Loc1)
+Passenger wait list: [0, 2, 1, 1, 1, 1, 2, 1, 1, 2]
+Passenger wait average: 1.2
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: true,
+        movement: Moving,
+    },
+    passengers: [],
+    current_location: Some(
+        Loc1,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Passenger wait list: [0, 2, 1, 1, 1, 1, 2, 1, 1, 2]
+Passenger wait average: 1.2
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: true,
+        movement: Stopped,
+    },
+    passengers: [],
+    current_location: Some(
+        Loc2,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Bus Current Location: Some(Loc2)
+Passenger wait list: [0, 2, 1, 1, 1, 1, 2, 1, 1, 2]
+Passenger wait average: 1.2
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: true,
+        movement: Moving,
+    },
+    passengers: [],
+    current_location: Some(
+        Loc2,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Passenger wait list: [0, 2, 1, 1, 1, 1, 2, 1, 1, 2]
+Passenger wait average: 1.2
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: true,
+        movement: Stopped,
+    },
+    passengers: [],
+    current_location: Some(
+        Loc3,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Bus Current Location: Some(Loc3)
+Passenger wait list: [0, 2, 1, 1, 1, 1, 2, 1, 1, 2]
+Passenger wait average: 1.2
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: true,
+        movement: Moving,
+    },
+    passengers: [],
+    current_location: Some(
+        Loc3,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Passenger wait list: [0, 2, 1, 1, 1, 1, 2, 1, 1, 2]
+Passenger wait average: 1.2
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: true,
+        movement: Stopped,
+    },
+    passengers: [],
+    current_location: Some(
+        Loc4,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Bus Current Location: Some(Loc4)
+Passenger wait list: [0, 2, 1, 1, 1, 1, 2, 1, 1, 2]
+Passenger wait average: 1.2
+____________________Next Stop________________
+Bus: Bus {
+    status: BusStatus {
+        unloading: true,
+        movement: Moving,
+    },
+    passengers: [],
+    current_location: Some(
+        Loc4,
+    ),
+    location_vec: [
+        Loc1,
+        Loc2,
+        Loc3,
+        Loc4,
+    ],
+}
+Passenger wait list: [0, 2, 1, 1, 1, 1, 2, 1, 1, 2]
+Passenger wait average: 1.2
