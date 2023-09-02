@@ -230,6 +230,7 @@ fn generate_passenger_list(
 
 const GLOBAL_PASSENGER_COUNT: u32 = 500;
 const BUS_CAPACITY: usize = 10;
+const NUM_OF_BUSES: u32 = 4;
 fn main() {
     let location_vector = vec![
         Location::Loc1,
@@ -245,7 +246,7 @@ fn main() {
 
     let passenger_wait_pointer = Arc::new(Mutex::new(Vec::<u32>::new()));
 
-    for _ in 1..=4 {
+    for _ in 1..=NUM_OF_BUSES {
         let bus_location_arc = location_vector_arc.clone();
         let passenger_list_pointer_clone = passenger_list_pointer.clone();
         let passenger_wait_pointer_clone = passenger_wait_pointer.clone();
