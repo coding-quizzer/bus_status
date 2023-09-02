@@ -129,7 +129,6 @@ impl Bus {
         waiting_passengers: &mut Vec<PassengerWaiting>,
         passenger_wait_list: &mut Vec<u32>,
     ) -> Option<()> {
-        println!("Bus: {:#?}", &self);
         if self.status.movement == MovementState::Moving {
             self.stop_at_next_location();
             if let Some(_) = self.current_location {
@@ -147,9 +146,6 @@ impl Bus {
             if self.status.unloading == false {
                 self.take_passengers(waiting_passengers);
             }
-            println!("Bus Current Location: {:?}", self.current_location);
-            // dbg!(&waiting_passengers);
-            dbg!(&self.passengers);
             self.status.movement = MovementState::Moving;
         }
         Some(())
@@ -260,21 +256,16 @@ fn main() {
             let mut simulated_bus = Bus::new((bus_location_vector).clone(), BUS_CAPACITY);
             let mut passenger_wait_list = passenger_wait_pointer_clone.lock().unwrap();
 
-            println!("Passenger List: {:#?}", &passenger_list);
             loop {
-                println!("____________________Next Stop________________");
                 let update_option =
                     simulated_bus.update(&mut *passenger_list, &mut *passenger_wait_list);
-                println!("Passenger wait list: {:?}", &*passenger_wait_list);
                 if !passenger_wait_list.is_empty() {
                     let passenger_count = passenger_wait_list.len();
-                    dbg!(passenger_count);
                     println!(
                         "Passenger wait average: {:?}",
                         &(*passenger_wait_list).iter().sum::<u32>().into() / passenger_count as f64
                     );
                 }
-                dbg!(passenger_wait_list.len());
 
                 match update_option {
                     None => break,
