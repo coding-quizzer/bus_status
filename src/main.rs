@@ -228,7 +228,7 @@ fn generate_passenger_list(
     Ok(passenger_list)
 }
 
-const GLOBAL_PASSENGER_COUNT: u32 = 10;
+const GLOBAL_PASSENGER_COUNT: u32 = 500;
 const BUS_CAPACITY: usize = 10;
 fn main() {
     let location_vector = vec![
@@ -245,7 +245,7 @@ fn main() {
 
     let passenger_wait_pointer = Arc::new(Mutex::new(Vec::<u32>::new()));
 
-    for _ in 1..=1 {
+    for _ in 1..=4 {
         let bus_location_arc = location_vector_arc.clone();
         let passenger_list_pointer_clone = passenger_list_pointer.clone();
         let passenger_wait_pointer_clone = passenger_wait_pointer.clone();
@@ -259,18 +259,18 @@ fn main() {
             loop {
                 let update_option =
                     simulated_bus.update(&mut *passenger_list, &mut *passenger_wait_list);
-                if !passenger_wait_list.is_empty() {
-                    let passenger_count = passenger_wait_list.len();
-                    println!(
-                        "Passenger wait average: {:?}",
-                        &(*passenger_wait_list).iter().sum::<u32>().into() / passenger_count as f64
-                    );
-                }
 
                 match update_option {
                     None => break,
                     Some(_) => {}
                 }
+            }
+            if !passenger_wait_list.is_empty() {
+                let passenger_count = passenger_wait_list.len();
+                println!(
+                    "Passenger wait average: {:?}",
+                    &(*passenger_wait_list).iter().sum::<u32>().into() / passenger_count as f64
+                );
             }
         });
 
