@@ -11,6 +11,12 @@ enum Location {
     Loc2,
     Loc3,
     Loc4,
+    Loc5,
+    Loc6,
+    Loc7,
+    Loc8,
+    Loc9,
+    Loc10,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -58,7 +64,7 @@ enum MovementState {
 
 #[derive(Debug, Clone)]
 struct BusStatus {
-    unloading: bool,
+    only_unloading: bool,
     movement: MovementState,
 }
 
@@ -85,13 +91,13 @@ impl std::fmt::Debug for Bus {
     }
 }
 impl Bus {
-    fn new(location_vector: Vec<Location>, capacity: usize) -> Bus {
+    fn new(location_vector: Vec<Location>, capacity: usize, num_stops: usize) -> Bus {
         let location_vec = location_vector.clone();
         // Bus::default()
-        let iterator = location_vector.into_iter().cycle().take(10);
+        let iterator = location_vector.into_iter().cycle().take(num_stops);
         Bus {
             status: BusStatus {
-                unloading: false,
+                only_unloading: false,
                 movement: MovementState::Moving,
             },
             passengers: vec![],
@@ -102,7 +108,7 @@ impl Bus {
         }
     }
 
-    fn reset_locations(&mut self) {
+    fn set_offboarding_locations(&mut self) {
         let location_vec = self.location_vec.clone();
 
         let iterator = location_vec.into_iter();
@@ -112,9 +118,9 @@ impl Bus {
 
     fn stop_at_next_location(&mut self) -> Option<()> {
         self.current_location = self.location_iter.next();
-        // if let None = self.current_location {
-        //     return None;
-        // }
+        if let None = self.current_location {
+            return None;
+        }
 
         self.status.movement = MovementState::Stopped;
         Some(())
@@ -130,20 +136,19 @@ impl Bus {
         passenger_wait_list: &mut Vec<u32>,
     ) -> Option<()> {
         if self.status.movement == MovementState::Moving {
-            self.stop_at_next_location();
             if let Some(_) = self.current_location {
                 return Some(());
             }
-            if self.status.unloading == true {
+            if self.status.only_unloading == true {
                 self.status.movement = MovementState::Finished;
                 return None;
             }
-            self.status.unloading = true;
-            self.reset_locations();
+            self.status.only_unloading = true;
+            self.set_offboarding_locations();
         } else {
             self.drop_off_passengers(passenger_wait_list);
 
-            if self.status.unloading == false {
+            if self.status.only_unloading == false {
                 self.take_passengers(waiting_passengers);
             }
             self.status.movement = MovementState::Moving;
@@ -157,6 +162,7 @@ impl Bus {
             if &self.passengers.len() == &self.capacity {
                 break;
             }
+            // TODO: rewrite to check if future
             self.current_location.map_or((), |loc| {
                 if loc == passenger.current_location {
                     let onboard_passenger = passenger.convert_to_onboarded_passenger();
@@ -231,12 +237,19 @@ fn generate_passenger_list(
 const GLOBAL_PASSENGER_COUNT: u32 = 500;
 const BUS_CAPACITY: usize = 10;
 const NUM_OF_BUSES: u32 = 4;
+const NUM_STOPS_PER_BUS: usize = 10;
 fn main() {
     let location_vector = vec![
         Location::Loc1,
         Location::Loc2,
         Location::Loc3,
         Location::Loc4,
+        Location::Loc5,
+        Location::Loc6,
+        Location::Loc7,
+        Location::Loc8,
+        Location::Loc9,
+        Location::Loc10,
     ];
     let passenger_list_pointer = Arc::new(Mutex::new(
         generate_passenger_list(GLOBAL_PASSENGER_COUNT, &location_vector).unwrap(),
@@ -254,7 +267,8 @@ fn main() {
             let bus_location_vector = bus_location_arc.as_ref();
             let mut passenger_list = passenger_list_pointer_clone.lock().unwrap();
             // let bus_location_vector = Arc::into_inner(bus_location_arc).unwrap();
-            let mut simulated_bus = Bus::new((bus_location_vector).clone(), BUS_CAPACITY);
+            let mut simulated_bus =
+                Bus::new(bus_location_vector.clone(), BUS_CAPACITY, NUM_STOPS_PER_BUS);
             let mut passenger_wait_list = passenger_wait_pointer_clone.lock().unwrap();
 
             loop {
