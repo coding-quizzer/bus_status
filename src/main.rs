@@ -136,9 +136,11 @@ impl Bus {
         passenger_wait_list: &mut Vec<u32>,
     ) -> Option<()> {
         if self.status.movement == MovementState::Moving {
-            if let Some(_) = self.current_location {
+            let stop_output_option = self.stop_at_next_location();
+            if let Some(_) = stop_output_option {
                 return Some(());
-            }
+            };
+
             if self.status.only_unloading == true {
                 self.status.movement = MovementState::Finished;
                 return None;
