@@ -68,12 +68,25 @@ struct BusStatus {
     movement: MovementState,
 }
 
+// clone iterator from: https://stackoverflow.com/questions/49594732/how-to-return-a-boxed-clonable-iterator-in-rust/49599226#49599226
+trait CloneIterator: Iterator {
+    fn clone_box(&self) -> Box<dyn CloneIterator<Item = Self::Item>>;
+}
+
+impl<T> CloneIterator for T
+where
+    T: 'static + Iterator + Clone,
+{
+    fn clone_box(&self) -> Box<dyn CloneIterator<Item = Self::Item>> {
+        Box::new(self.clone())
+    }
+}
 struct Bus {
     // unloading: bool,
     status: BusStatus,
     passengers: Vec<PassengerOnBus>,
     current_location: Option<Location>,
-    location_iter: Box<dyn Iterator<Item = Location>>,
+    location_iter: Box<dyn CloneIterator<Item = Location>>,
     location_vec: Vec<Location>,
     capacity: usize,
 }
@@ -165,6 +178,9 @@ impl Bus {
                 break;
             }
             // TODO: rewrite to check if future
+
+            let cloned_locations = self.location_iter.clone_box();
+
             self.current_location.map_or((), |loc| {
                 if loc == passenger.current_location {
                     let onboard_passenger = passenger.convert_to_onboarded_passenger();
