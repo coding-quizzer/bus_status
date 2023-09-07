@@ -64,7 +64,6 @@ enum MovementState {
 
 #[derive(Debug, Clone)]
 struct BusStatus {
-    only_unloading: bool,
     movement: MovementState,
 }
 
@@ -110,7 +109,6 @@ impl Bus {
         let iterator = location_vector.into_iter().cycle().take(num_stops);
         Bus {
             status: BusStatus {
-                only_unloading: false,
                 movement: MovementState::Moving,
             },
             passengers: vec![],
@@ -119,14 +117,6 @@ impl Bus {
             location_vec,
             capacity,
         }
-    }
-
-    fn set_offboarding_locations(&mut self) {
-        let location_vec = self.location_vec.clone();
-
-        let iterator = location_vec.into_iter();
-
-        self.location_iter = Box::new(iterator);
     }
 
     fn stop_at_next_location(&mut self) -> Option<()> {
@@ -153,18 +143,11 @@ impl Bus {
                 return Some(());
             };
             assert_eq!(self.passengers.len(), 0);
-            if self.status.only_unloading {
-                self.status.movement = MovementState::Finished;
-                return None;
-            }
-            self.status.only_unloading = true;
-            self.set_offboarding_locations();
+            self.status.movement = MovementState::Finished;
+            return None;
         } else {
             self.drop_off_passengers(passenger_wait_list);
-
-            if !self.status.only_unloading {
-                self.take_passengers(waiting_passengers);
-            }
+            self.take_passengers(waiting_passengers);
             self.status.movement = MovementState::Moving;
         }
         Some(())
