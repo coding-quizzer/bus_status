@@ -152,7 +152,7 @@ impl Bus {
             if stop_output_option.is_some() {
                 return Some(());
             };
-
+            assert_eq!(self.passengers.len(), 0);
             if self.status.only_unloading {
                 self.status.movement = MovementState::Finished;
                 return None;
@@ -192,7 +192,7 @@ impl Bus {
                     }
                 })
             } else {
-                println!("Passenger's destination will not be reached by bus. Passenger did not get on bus");
+                println!("Passenger's destination: {:?} will not be reached by bus. Passenger did not get on bus", passenger.end_location);
             }
         }
 
