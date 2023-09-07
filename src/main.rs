@@ -85,8 +85,8 @@ struct Bus {
     status: BusStatus,
     passengers: Vec<PassengerOnBus>,
     current_location: Option<Location>,
-    location_iter: Box<dyn CloneIterator<Item = Location>>,
-    location_vec: Vec<Location>,
+    bus_route_iter: Box<dyn CloneIterator<Item = Location>>,
+    bus_route_vec: Vec<Location>,
     capacity: usize,
 }
 
@@ -98,7 +98,7 @@ impl std::fmt::Debug for Bus {
             .field("status", &self.status)
             .field("passengers", &self.passengers)
             .field("current_location", &self.current_location)
-            .field("location_vec", &&self.location_vec)
+            .field("location_vec", &&self.bus_route_vec)
             .finish()
     }
 }
@@ -113,14 +113,14 @@ impl Bus {
             },
             passengers: vec![],
             current_location: None,
-            location_iter: Box::new(iterator),
-            location_vec,
+            bus_route_iter: Box::new(iterator),
+            bus_route_vec: location_vec,
             capacity,
         }
     }
 
     fn stop_at_next_location(&mut self) -> Option<()> {
-        self.current_location = self.location_iter.next();
+        self.current_location = self.bus_route_iter.next();
         // Return None if the bus does not have a current location
         self.current_location?;
 
@@ -161,7 +161,7 @@ impl Bus {
             }
             // TODO: rewrite to check if future
 
-            let mut cloned_locations = self.location_iter.clone_box();
+            let mut cloned_locations = self.bus_route_iter.clone_box();
 
             let bus_will_stop_at_passengers_location =
                 cloned_locations.any(|location| location == passenger.end_location);
