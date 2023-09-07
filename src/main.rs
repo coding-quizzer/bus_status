@@ -244,7 +244,7 @@ fn generate_passenger_list(
 const GLOBAL_PASSENGER_COUNT: u32 = 500;
 const BUS_CAPACITY: usize = 10;
 const NUM_OF_BUSES: u32 = 4;
-const NUM_STOPS_PER_BUS: usize = 10;
+const NUM_STOPS_PER_BUS: usize = 25;
 fn main() {
     let location_vector = vec![
         Location::Loc1,
@@ -295,6 +295,7 @@ fn main() {
                         / passenger_count as f64
                 );
             }
+            println!("passenger list length: {}", passenger_list.len())
         });
 
         handle.join().unwrap();
