@@ -179,15 +179,22 @@ impl Bus {
             }
             // TODO: rewrite to check if future
 
-            let cloned_locations = self.location_iter.clone_box();
+            let mut cloned_locations = self.location_iter.clone_box();
 
-            self.current_location.map_or((), |loc| {
-                if loc == passenger.current_location {
-                    let onboard_passenger = passenger.convert_to_onboarded_passenger();
-                    self.add_passenger(&onboard_passenger);
-                    new_passengers.push(passenger.clone());
-                }
-            })
+            let bus_will_stop_at_passengers_location =
+                cloned_locations.any(|location| location == passenger.end_location);
+
+            if bus_will_stop_at_passengers_location {
+                self.current_location.map_or((), |loc| {
+                    if loc == passenger.current_location {
+                        let onboard_passenger = passenger.convert_to_onboarded_passenger();
+                        self.add_passenger(&onboard_passenger);
+                        new_passengers.push(passenger.clone());
+                    }
+                })
+            } else {
+                println!("Passenger's destination will not be reached by bus. Passenger did not get on bus");
+            }
         }
 
         for passenger in new_passengers {
