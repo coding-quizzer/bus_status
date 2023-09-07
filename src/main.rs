@@ -45,7 +45,7 @@ impl PassengerWaiting {
 
 struct Passenger;
 impl Passenger {
-    fn new(current_location: Location, end_location: Location) -> PassengerWaiting {
+    fn init(current_location: Location, end_location: Location) -> PassengerWaiting {
         PassengerWaiting {
             id: Uuid::new_v4(),
             current_location,
@@ -131,9 +131,8 @@ impl Bus {
 
     fn stop_at_next_location(&mut self) -> Option<()> {
         self.current_location = self.location_iter.next();
-        if let None = self.current_location {
-            return None;
-        }
+        // Return None if the bus does not have a current location
+        self.current_location?;
 
         self.status.movement = MovementState::Stopped;
         Some(())
@@ -150,11 +149,11 @@ impl Bus {
     ) -> Option<()> {
         if self.status.movement == MovementState::Moving {
             let stop_output_option = self.stop_at_next_location();
-            if let Some(_) = stop_output_option {
+            if stop_output_option.is_some() {
                 return Some(());
             };
 
-            if self.status.only_unloading == true {
+            if self.status.only_unloading {
                 self.status.movement = MovementState::Finished;
                 return None;
             }
@@ -163,7 +162,7 @@ impl Bus {
         } else {
             self.drop_off_passengers(passenger_wait_list);
 
-            if self.status.only_unloading == false {
+            if !self.status.only_unloading {
                 self.take_passengers(waiting_passengers);
             }
             self.status.movement = MovementState::Moving;
@@ -174,7 +173,7 @@ impl Bus {
     fn take_passengers(&mut self, waiting_passengers: &mut Vec<PassengerWaiting>) {
         let mut new_passengers = vec![];
         for passenger in &mut *waiting_passengers {
-            if &self.passengers.len() == &self.capacity {
+            if self.passengers.len() == self.capacity {
                 break;
             }
             // TODO: rewrite to check if future
@@ -211,7 +210,7 @@ impl Bus {
                 passenger_passed_stops.push(pass.passed_stops)
             } else {
                 pass.passed_stops += 1;
-                new_bus_passengers.push(pass.clone());
+                new_bus_passengers.push(*pass);
             }
         }
         self.passengers = new_bus_passengers;
@@ -232,7 +231,7 @@ fn generate_passenger(location_list: &Vec<Location>) -> Result<PassengerWaiting,
     let rand_value = rng.gen_range(0..max_range);
     let old_location = location_list
         .get(rand_value)
-        .expect(format!("Invalid index for old_location: {rand_value}").as_str());
+        .unwrap_or_else(|| panic!("Invalid index for old_location: {rand_value}"));
 
     let mut rand_value_2 = rng.gen_range(0..max_range);
 
@@ -242,9 +241,9 @@ fn generate_passenger(location_list: &Vec<Location>) -> Result<PassengerWaiting,
 
     let new_location = location_list
         .get(rand_value_2)
-        .expect(format!("Invalid index for new_location: {rand_value_2}").as_str());
+        .unwrap_or_else(|| panic!("Invalid index for new_location: {rand_value_2}"));
 
-    Ok(Passenger::new(*old_location, *new_location))
+    Ok(Passenger::init(*old_location, *new_location))
 }
 
 fn generate_passenger_list(
@@ -298,7 +297,7 @@ fn main() {
 
             loop {
                 let update_option =
-                    simulated_bus.update(&mut *passenger_list, &mut *passenger_wait_list);
+                    simulated_bus.update(&mut passenger_list, &mut passenger_wait_list);
 
                 match update_option {
                     None => break,
@@ -309,7 +308,8 @@ fn main() {
                 let passenger_count = passenger_wait_list.len();
                 println!(
                     "Passenger wait average: {:?}",
-                    &(*passenger_wait_list).iter().sum::<u32>().into() / passenger_count as f64
+                    Into::<f64>::into((*passenger_wait_list).iter().sum::<u32>())
+                        / passenger_count as f64
                 );
             }
         });
