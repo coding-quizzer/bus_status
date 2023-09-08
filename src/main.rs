@@ -171,9 +171,9 @@ impl Bus {
                         new_passengers.push(passenger.clone());
                     }
                 })
-            } else {
-                println!("Passenger's destination: {:?} will not be reached by bus. Passenger did not get on bus", passenger.end_location);
-            }
+            } /* else {
+                  println!("Passenger's destination: {:?} will not be reached by bus. Passenger did not get on bus", passenger.end_location);
+              } */
         }
 
         for passenger in new_passengers {
