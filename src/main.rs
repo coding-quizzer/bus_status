@@ -256,7 +256,7 @@ fn generate_bus_route(location_list: &Vec<Location>, length: usize) -> Vec<Locat
     for _ in 1..length {
         let mut new_location_index;
         new_location_index = rng.gen_range(0..location_count);
-        while (old_location_index == new_location_index) {
+        while old_location_index == new_location_index {
             new_location_index = rng.gen_range(0..location_count);
         }
         bus_route.push(location_list[new_location_index]);
@@ -283,7 +283,7 @@ fn main() {
         Location::Loc9,
         Location::Loc10,
     ];
-    println!("{:?}", generate_bus_route(&location_vector, 10));
+
     let passenger_list_pointer = Arc::new(Mutex::new(
         generate_passenger_list(GLOBAL_PASSENGER_COUNT, &location_vector).unwrap(),
     ));
@@ -293,15 +293,13 @@ fn main() {
     let passenger_wait_pointer = Arc::new(Mutex::new(Vec::<u32>::new()));
 
     for _ in 1..=NUM_OF_BUSES {
-        let bus_location_arc = location_vector_arc.clone();
+        let bus_route = generate_bus_route(location_vector_arc.clone().as_ref(), NUM_STOPS_PER_BUS);
         let passenger_list_pointer_clone = passenger_list_pointer.clone();
         let passenger_wait_pointer_clone = passenger_wait_pointer.clone();
         let handle = thread::spawn(move || {
-            let bus_location_vector = bus_location_arc.as_ref();
             let mut passenger_list = passenger_list_pointer_clone.lock().unwrap();
             // let bus_location_vector = Arc::into_inner(bus_location_arc).unwrap();
-            let mut simulated_bus =
-                Bus::new(bus_location_vector.clone(), BUS_CAPACITY, NUM_STOPS_PER_BUS);
+            let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY, NUM_STOPS_PER_BUS);
             let mut passenger_wait_list = passenger_wait_pointer_clone.lock().unwrap();
 
             loop {
