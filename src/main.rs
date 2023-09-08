@@ -241,6 +241,31 @@ fn generate_passenger_list(
     Ok(passenger_list)
 }
 
+fn generate_bus_route(location_list: &Vec<Location>, length: usize) -> Vec<Location> {
+    use rand::Rng;
+    assert!(location_list.len() > 1);
+
+    let mut bus_route = vec![];
+    let mut rng = rand::thread_rng();
+    let location_count = location_list.len();
+
+    let mut old_location_index = rng.gen_range(0..location_count);
+    bus_route.push(location_list[old_location_index]);
+
+    // Atart at one because the first location was pushed before the for loop
+    for _ in 1..length {
+        let mut new_location_index;
+        new_location_index = rng.gen_range(0..location_count);
+        while (old_location_index == new_location_index) {
+            new_location_index = rng.gen_range(0..location_count);
+        }
+        bus_route.push(location_list[new_location_index]);
+        old_location_index = new_location_index;
+    }
+
+    bus_route
+}
+
 const GLOBAL_PASSENGER_COUNT: u32 = 500;
 const BUS_CAPACITY: usize = 10;
 const NUM_OF_BUSES: u32 = 4;
@@ -258,6 +283,7 @@ fn main() {
         Location::Loc9,
         Location::Loc10,
     ];
+    println!("{:?}", generate_bus_route(&location_vector, 10));
     let passenger_list_pointer = Arc::new(Mutex::new(
         generate_passenger_list(GLOBAL_PASSENGER_COUNT, &location_vector).unwrap(),
     ));
