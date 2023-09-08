@@ -81,7 +81,6 @@ where
     }
 }
 struct Bus {
-    // unloading: bool,
     status: BusStatus,
     passengers: Vec<PassengerOnBus>,
     current_location: Option<Location>,
@@ -105,7 +104,6 @@ impl std::fmt::Debug for Bus {
 impl Bus {
     fn new(location_vector: Vec<Location>, capacity: usize) -> Bus {
         let location_vec = location_vector.clone();
-        // Bus::default()
         let iterator = location_vector.into_iter();
         Bus {
             status: BusStatus {
@@ -159,7 +157,6 @@ impl Bus {
             if self.passengers.len() == self.capacity {
                 break;
             }
-            // TODO: rewrite to check if future
 
             let mut cloned_locations = self.bus_route_iter.clone_box();
 
@@ -252,7 +249,7 @@ fn generate_bus_route(location_list: &Vec<Location>, length: usize) -> Vec<Locat
     let mut old_location_index = rng.gen_range(0..location_count);
     bus_route.push(location_list[old_location_index]);
 
-    // Atart at one because the first location was pushed before the for loop
+    // Start at one because the first location was pushed before the for loop
     for _ in 1..length {
         let mut new_location_index;
         new_location_index = rng.gen_range(0..location_count);
@@ -298,7 +295,6 @@ fn main() {
         let passenger_wait_pointer_clone = passenger_wait_pointer.clone();
         let handle = thread::spawn(move || {
             let mut passenger_list = passenger_list_pointer_clone.lock().unwrap();
-            // let bus_location_vector = Arc::into_inner(bus_location_arc).unwrap();
             let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY);
             let mut passenger_wait_list = passenger_wait_pointer_clone.lock().unwrap();
 
