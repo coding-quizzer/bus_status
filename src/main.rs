@@ -103,10 +103,10 @@ impl std::fmt::Debug for Bus {
     }
 }
 impl Bus {
-    fn new(location_vector: Vec<Location>, capacity: usize, num_stops: usize) -> Bus {
+    fn new(location_vector: Vec<Location>, capacity: usize) -> Bus {
         let location_vec = location_vector.clone();
         // Bus::default()
-        let iterator = location_vector.into_iter().cycle().take(num_stops);
+        let iterator = location_vector.into_iter();
         Bus {
             status: BusStatus {
                 movement: MovementState::Moving,
@@ -299,7 +299,7 @@ fn main() {
         let handle = thread::spawn(move || {
             let mut passenger_list = passenger_list_pointer_clone.lock().unwrap();
             // let bus_location_vector = Arc::into_inner(bus_location_arc).unwrap();
-            let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY, NUM_STOPS_PER_BUS);
+            let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY);
             let mut passenger_wait_list = passenger_wait_pointer_clone.lock().unwrap();
 
             loop {
