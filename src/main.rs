@@ -5,18 +5,14 @@ use std::{
 use uuid::Uuid;
 
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
-enum Location {
-    #[default]
-    Loc1,
-    Loc2,
-    Loc3,
-    Loc4,
-    Loc5,
-    Loc6,
-    Loc7,
-    Loc8,
-    Loc9,
-    Loc10,
+struct Location {
+    id: Uuid,
+}
+
+impl Location {
+    fn new() -> Location {
+        Location { id: Uuid::new_v4() }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -263,23 +259,21 @@ fn generate_bus_route(location_list: &Vec<Location>, length: usize) -> Vec<Locat
     bus_route
 }
 
+fn generate_location_list(count: u32) -> Vec<Location> {
+    let mut location_list = vec![];
+    for _ in 0..count {
+        location_list.push(Location::new());
+    }
+    location_list
+}
+
 const GLOBAL_PASSENGER_COUNT: u32 = 500;
+const GLOBAL_LOCATION_COUNT: u32 = 10;
 const BUS_CAPACITY: usize = 10;
 const NUM_OF_BUSES: u32 = 4;
 const NUM_STOPS_PER_BUS: usize = 25;
 fn main() {
-    let location_vector = vec![
-        Location::Loc1,
-        Location::Loc2,
-        Location::Loc3,
-        Location::Loc4,
-        Location::Loc5,
-        Location::Loc6,
-        Location::Loc7,
-        Location::Loc8,
-        Location::Loc9,
-        Location::Loc10,
-    ];
+    let location_vector = generate_location_list(GLOBAL_LOCATION_COUNT);
 
     let passenger_list_pointer = Arc::new(Mutex::new(
         generate_passenger_list(GLOBAL_PASSENGER_COUNT, &location_vector).unwrap(),
