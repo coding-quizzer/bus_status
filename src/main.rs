@@ -83,6 +83,7 @@ struct Bus {
     bus_route_iter: Box<dyn CloneIterator<Item = Location>>,
     bus_route_vec: Vec<Location>,
     capacity: usize,
+    total_passenger_count: u32,
 }
 
 // manually impliment Debug, so that the iterator field can be skipped, eliminating the complicaiton of requiring
@@ -110,6 +111,7 @@ impl Bus {
             bus_route_iter: Box::new(iterator),
             bus_route_vec: location_vec,
             capacity,
+            total_passenger_count: 0,
         }
     }
 
@@ -183,7 +185,8 @@ impl Bus {
         let mut new_bus_passengers = vec![];
         for pass in bus_passengers {
             if pass.end_location == current_location {
-                passenger_passed_stops.push(pass.passed_stops)
+                passenger_passed_stops.push(pass.passed_stops);
+                self.total_passenger_count += 1;
             } else {
                 pass.passed_stops += 1;
                 new_bus_passengers.push(*pass);
@@ -306,12 +309,16 @@ fn main() {
             if !passenger_wait_list.is_empty() {
                 let passenger_count = passenger_wait_list.len();
                 println!(
+                    "Bus Passenger count: {:?}",
+                    simulated_bus.total_passenger_count
+                );
+                println!(
                     "Passenger wait average: {:?}",
                     Into::<f64>::into((*passenger_wait_list).iter().sum::<u32>())
                         / passenger_count as f64
                 );
             }
-            println!("passenger list length: {}", passenger_list.len())
+            // println!("passenger list length: {}", passenger_list.len())
         });
         handle_list.push(handle);
     }
