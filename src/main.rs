@@ -283,6 +283,8 @@ fn main() {
 
     let passenger_wait_pointer = Arc::new(Mutex::new(Vec::<u32>::new()));
 
+    let mut handle_list = vec![];
+
     for _ in 1..=NUM_OF_BUSES {
         let bus_route = generate_bus_route(location_vector_arc.clone().as_ref(), NUM_STOPS_PER_BUS);
         let passenger_list_pointer_clone = passenger_list_pointer.clone();
@@ -311,7 +313,9 @@ fn main() {
             }
             println!("passenger list length: {}", passenger_list.len())
         });
-
+        handle_list.push(handle);
+    }
+    for handle in handle_list {
         handle.join().unwrap();
     }
 }
