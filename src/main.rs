@@ -4,6 +4,35 @@ use std::{
 };
 use uuid::Uuid;
 
+fn generate_list_of_random_elements_from_list<T: Copy>(
+    list: &Vec<T>,
+    output_length: usize,
+) -> Result<Vec<T>, String> {
+    use rand::Rng;
+    if list.len() <= 1 {
+        return Err("List must contain at least 2 elements.".to_string());
+    };
+    let mut output_list = vec![];
+    let mut rng = rand::thread_rng();
+    let location_count = list.len();
+
+    let mut old_index = rng.gen_range(0..location_count);
+    output_list.push(list[old_index]);
+
+    // Start at one because the first location was pushed before the for loop
+    for _ in 1..output_length {
+        let mut new_index;
+        new_index = rng.gen_range(0..location_count);
+        while old_index == new_index {
+            new_index = rng.gen_range(0..location_count);
+        }
+        output_list.push(list[new_index]);
+        old_index = new_index;
+    }
+
+    Ok(output_list)
+}
+
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
 struct Location {
     id: Uuid,
@@ -198,31 +227,13 @@ impl Bus {
 }
 
 fn generate_passenger(location_list: &Vec<Location>) -> Result<PassengerWaiting, String> {
-    use rand::Rng;
-    let mut rng = rand::thread_rng();
-    let max_range = location_list.len();
-    if max_range < 2 {
-        return Err(format!(
-            "Invalid Vec Length: {}. Length must be at least 2",
-            max_range
-        ));
-    }
-    let rand_value = rng.gen_range(0..max_range);
-    let old_location = location_list
-        .get(rand_value)
-        .unwrap_or_else(|| panic!("Invalid index for old_location: {rand_value}"));
+    let location_vector = generate_list_of_random_elements_from_list(location_list, 2)?;
 
-    let mut rand_value_2 = rng.gen_range(0..max_range);
+    let [old_location, new_location] = location_vector[..] else {
+        panic!("Returnedd Vector was invalid")
+    };
 
-    while rand_value == rand_value_2 {
-        rand_value_2 = rng.gen_range(0..max_range);
-    }
-
-    let new_location = location_list
-        .get(rand_value_2)
-        .unwrap_or_else(|| panic!("Invalid index for new_location: {rand_value_2}"));
-
-    Ok(Passenger::init(*old_location, *new_location))
+    Ok(Passenger::init(old_location, new_location))
 }
 
 fn generate_passenger_list(
@@ -237,29 +248,13 @@ fn generate_passenger_list(
     Ok(passenger_list)
 }
 
-fn generate_bus_route(location_list: &Vec<Location>, length: usize) -> Vec<Location> {
-    use rand::Rng;
-    assert!(location_list.len() > 1);
+fn generate_bus_route(
+    location_list: &Vec<Location>,
+    length: usize,
+) -> Result<Vec<Location>, String> {
+    let bus_route = generate_list_of_random_elements_from_list(location_list, length)?;
 
-    let mut bus_route = vec![];
-    let mut rng = rand::thread_rng();
-    let location_count = location_list.len();
-
-    let mut old_location_index = rng.gen_range(0..location_count);
-    bus_route.push(location_list[old_location_index]);
-
-    // Start at one because the first location was pushed before the for loop
-    for _ in 1..length {
-        let mut new_location_index;
-        new_location_index = rng.gen_range(0..location_count);
-        while old_location_index == new_location_index {
-            new_location_index = rng.gen_range(0..location_count);
-        }
-        bus_route.push(location_list[new_location_index]);
-        old_location_index = new_location_index;
-    }
-
-    bus_route
+    Ok(bus_route)
 }
 
 fn generate_location_list(count: u32) -> Vec<Location> {
@@ -289,7 +284,8 @@ fn main() {
     let mut handle_list = vec![];
 
     for _ in 1..=NUM_OF_BUSES {
-        let bus_route = generate_bus_route(location_vector_arc.clone().as_ref(), NUM_STOPS_PER_BUS);
+        let bus_route =
+            generate_bus_route(location_vector_arc.clone().as_ref(), NUM_STOPS_PER_BUS).unwrap();
         let passenger_list_pointer_clone = passenger_list_pointer.clone();
         let passenger_wait_pointer_clone = passenger_wait_pointer.clone();
         let handle = thread::spawn(move || {
