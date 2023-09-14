@@ -230,7 +230,7 @@ fn generate_passenger(location_list: &Vec<Location>) -> Result<PassengerWaiting,
     let location_vector = generate_list_of_random_elements_from_list(location_list, 2)?;
 
     let [old_location, new_location] = location_vector[..] else {
-        panic!("Returnedd Vector was invalid")
+        panic!("Returned Vector was invalid")
     };
 
     Ok(Passenger::init(old_location, new_location))
