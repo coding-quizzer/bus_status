@@ -4,8 +4,14 @@ use std::{
 };
 use uuid::Uuid;
 
+type Passenger = PassengerWaiting;
+
+/// generates a random list from a set of elements such that
+/// no two consecutive elements are identical.
 fn generate_list_of_random_elements_from_list<T: Copy>(
+    // List of elements from which list is generated
     list: &Vec<T>,
+    // Number of elements desired in the
     output_length: usize,
 ) -> Result<Vec<T>, String> {
     use rand::Rng;
@@ -59,22 +65,19 @@ struct PassengerWaiting {
 }
 
 impl PassengerWaiting {
+    fn new(current_location: Location, end_location: Location) -> PassengerWaiting {
+        PassengerWaiting {
+            id: Uuid::new_v4(),
+            current_location,
+            end_location,
+        }
+    }
+
     fn convert_to_onboarded_passenger(&self) -> PassengerOnBus {
         PassengerOnBus {
             id: self.id,
             end_location: self.end_location,
             passed_stops: 0,
-        }
-    }
-}
-
-struct Passenger;
-impl Passenger {
-    fn init(current_location: Location, end_location: Location) -> PassengerWaiting {
-        PassengerWaiting {
-            id: Uuid::new_v4(),
-            current_location,
-            end_location,
         }
     }
 }
@@ -127,10 +130,25 @@ impl std::fmt::Debug for Bus {
             .finish()
     }
 }
+
+// call update twice. How long does it take to get to a stop,
+// how long will a stop take
+
+// measure how time
+// count system cycles
+// coordinate the thread cycles
+// process signalling or spin use global variable
+
+// make sure bus yields between cycles
+// time between stops
+// could correlate number of updates to distance
+
+// let passengers take the most efficient route
+//
 impl Bus {
-    fn new(location_vector: Vec<Location>, capacity: usize) -> Bus {
-        let location_vec = location_vector.clone();
-        let iterator = location_vector.into_iter();
+    fn new(bus_route: Vec<Location>, capacity: usize) -> Bus {
+        let bus_route_vec = bus_route.clone();
+        let iterator = bus_route.into_iter();
         Bus {
             status: BusStatus {
                 movement: MovementState::Moving,
@@ -138,7 +156,7 @@ impl Bus {
             passengers: vec![],
             current_location: None,
             bus_route_iter: Box::new(iterator),
-            bus_route_vec: location_vec,
+            bus_route_vec,
             capacity,
             total_passenger_count: 0,
         }
@@ -160,7 +178,7 @@ impl Bus {
     fn update(
         &mut self,
         waiting_passengers: &mut Vec<PassengerWaiting>,
-        passenger_wait_list: &mut Vec<u32>,
+        passenger_stops_waited_list: &mut Vec<u32>,
     ) -> Option<()> {
         if self.status.movement == MovementState::Moving {
             let stop_output_option = self.stop_at_next_location();
@@ -171,7 +189,7 @@ impl Bus {
             self.status.movement = MovementState::Finished;
             return None;
         } else {
-            self.drop_off_passengers(passenger_wait_list);
+            self.drop_off_passengers(passenger_stops_waited_list);
             self.take_passengers(waiting_passengers);
             self.status.movement = MovementState::Moving;
         }
@@ -233,7 +251,7 @@ fn generate_passenger(location_list: &Vec<Location>) -> Result<PassengerWaiting,
         panic!("Returned Vector was invalid")
     };
 
-    Ok(Passenger::init(old_location, new_location))
+    Ok(Passenger::new(old_location, new_location))
 }
 
 fn generate_passenger_list(
@@ -283,7 +301,7 @@ fn main() {
 
     let mut handle_list = vec![];
 
-    for _ in 1..=NUM_OF_BUSES {
+    for bus_num in 1..=NUM_OF_BUSES {
         let bus_route =
             generate_bus_route(location_vector_arc.clone().as_ref(), NUM_STOPS_PER_BUS).unwrap();
         let passenger_list_pointer_clone = passenger_list_pointer.clone();
@@ -302,6 +320,8 @@ fn main() {
                     Some(_) => {}
                 }
             }
+            // somehow label buses, prove buses are in random order
+            // ensure that threads are running independently
             if !passenger_wait_list.is_empty() {
                 let passenger_count = passenger_wait_list.len();
                 println!(
@@ -321,4 +341,6 @@ fn main() {
     for handle in handle_list {
         handle.join().unwrap();
     }
+
+    println!("{:#?}", passenger_list_pointer.lock().unwrap());
 }
