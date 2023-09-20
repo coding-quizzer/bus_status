@@ -179,6 +179,7 @@ impl Bus {
         &mut self,
         waiting_passengers: &mut Vec<PassengerWaiting>,
         passenger_stops_waited_list: &mut Vec<u32>,
+        // bus_num: u32,
     ) -> Option<()> {
         if self.status.movement == MovementState::Moving {
             let stop_output_option = self.stop_at_next_location();
@@ -297,7 +298,7 @@ fn main() {
 
     let location_vector_arc = Arc::new(location_vector);
 
-    let passenger_wait_pointer = Arc::new(Mutex::new(Vec::<u32>::new()));
+    let passenger_extra_stops_waited_pointer = Arc::new(Mutex::new(Vec::<u32>::new()));
 
     let mut handle_list = vec![];
 
@@ -305,15 +306,17 @@ fn main() {
         let bus_route =
             generate_bus_route(location_vector_arc.clone().as_ref(), NUM_STOPS_PER_BUS).unwrap();
         let passenger_list_pointer_clone = passenger_list_pointer.clone();
-        let passenger_wait_pointer_clone = passenger_wait_pointer.clone();
+        let passenger_wait_pointer_clone = passenger_extra_stops_waited_pointer.clone();
         let handle = thread::spawn(move || {
             let mut passenger_list = passenger_list_pointer_clone.lock().unwrap();
             let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY);
-            let mut passenger_wait_list = passenger_wait_pointer_clone.lock().unwrap();
+            let mut passenger_extra_stops_passed_list =
+                passenger_wait_pointer_clone.lock().unwrap();
 
             loop {
-                let update_option =
-                    simulated_bus.update(&mut passenger_list, &mut passenger_wait_list);
+                let update_option = simulated_bus
+                    .update(&mut passenger_list, &mut passenger_extra_stops_passed_list);
+                println!("Bus {bus_num} updated");
 
                 match update_option {
                     None => break,
@@ -322,18 +325,7 @@ fn main() {
             }
             // somehow label buses, prove buses are in random order
             // ensure that threads are running independently
-            if !passenger_wait_list.is_empty() {
-                let passenger_count = passenger_wait_list.len();
-                println!(
-                    "Bus Passenger count: {:?}",
-                    simulated_bus.total_passenger_count
-                );
-                println!(
-                    "Passenger wait average: {:?}",
-                    Into::<f64>::into((*passenger_wait_list).iter().sum::<u32>())
-                        / passenger_count as f64
-                );
-            }
+
             // println!("passenger list length: {}", passenger_list.len())
         });
         handle_list.push(handle);
@@ -342,5 +334,12 @@ fn main() {
         handle.join().unwrap();
     }
 
-    println!("{:#?}", passenger_list_pointer.lock().unwrap());
+    let passenger_extra_stops_waited = passenger_extra_stops_waited_pointer.lock().unwrap();
+    let total_extra_stops_waited: u32 = passenger_extra_stops_waited.iter().sum();
+    let total_passengers = passenger_extra_stops_waited.len();
+
+    println!(
+        "Average wait time between stops {}",
+        total_extra_stops_waited as f64 / total_passengers as f64
+    );
 }
