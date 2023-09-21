@@ -145,6 +145,7 @@ impl std::fmt::Debug for Bus {
 
 // let passengers take the most efficient route
 //
+
 impl Bus {
     fn new(bus_route: Vec<Location>, capacity: usize) -> Bus {
         let bus_route_vec = bus_route.clone();
@@ -306,16 +307,18 @@ fn main() {
         let bus_route =
             generate_bus_route(location_vector_arc.clone().as_ref(), NUM_STOPS_PER_BUS).unwrap();
         let passenger_list_pointer_clone = passenger_list_pointer.clone();
-        let passenger_wait_pointer_clone = passenger_extra_stops_waited_pointer.clone();
+        let passenger_stops_passed_pointer_clone = passenger_extra_stops_waited_pointer.clone();
         let handle = thread::spawn(move || {
-            let mut passenger_list = passenger_list_pointer_clone.lock().unwrap();
             let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY);
-            let mut passenger_extra_stops_passed_list =
-                passenger_wait_pointer_clone.lock().unwrap();
-
             loop {
-                let update_option = simulated_bus
-                    .update(&mut passenger_list, &mut passenger_extra_stops_passed_list);
+                // let mut passenger_list = passenger_list_pointer_clone.lock().unwrap();
+                // let mut passenger_extra_stops_passed_list =
+                //     passenger_wait_pointer_clone.lock().unwrap();
+
+                let update_option = simulated_bus.update(
+                    &mut passenger_list_pointer_clone.lock().unwrap(),
+                    &mut passenger_stops_passed_pointer_clone.lock().unwrap(),
+                );
                 println!("Bus {bus_num} updated");
 
                 match update_option {
@@ -323,6 +326,7 @@ fn main() {
                     Some(_) => {}
                 }
             }
+
             // somehow label buses, prove buses are in random order
             // ensure that threads are running independently
 
@@ -337,6 +341,10 @@ fn main() {
     let passenger_extra_stops_waited = passenger_extra_stops_waited_pointer.lock().unwrap();
     let total_extra_stops_waited: u32 = passenger_extra_stops_waited.iter().sum();
     let total_passengers = passenger_extra_stops_waited.len();
+
+    let passengers_remaining = passenger_list_pointer.lock().unwrap().len();
+
+    println!("{passengers_remaining} passengers did not get onto any bus");
 
     println!(
         "Average wait time between stops {}",
