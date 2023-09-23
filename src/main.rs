@@ -1,5 +1,8 @@
 use std::{
-    sync::{Arc, Mutex},
+    sync::{
+        mpsc::{self, Sender},
+        Arc, Mutex,
+    },
     thread,
 };
 use uuid::Uuid;
@@ -116,6 +119,7 @@ struct Bus {
     bus_route_vec: Vec<Location>,
     capacity: usize,
     total_passenger_count: u32,
+    bus_stop_num: u32,
 }
 
 // manually impliment Debug, so that the iterator field can be skipped, eliminating the complicaiton of requiring
@@ -160,6 +164,7 @@ impl Bus {
             bus_route_vec,
             capacity,
             total_passenger_count: 0,
+            bus_stop_num: 0,
         }
     }
 
@@ -180,7 +185,8 @@ impl Bus {
         &mut self,
         waiting_passengers: &mut Vec<PassengerWaiting>,
         passenger_stops_waited_list: &mut Vec<u32>,
-        // bus_num: u32,
+        sender: &Sender<u32>, // bus_num: u32,
+        bus_count_pointer: &mut i32,
     ) -> Option<()> {
         if self.status.movement == MovementState::Moving {
             let stop_output_option = self.stop_at_next_location();
@@ -189,11 +195,15 @@ impl Bus {
             };
             assert_eq!(self.passengers.len(), 0);
             self.status.movement = MovementState::Finished;
+            *bus_count_pointer -= 1;
+            println!("A bus was removed from the bus count");
+            println!("Current Bus Count: {}", bus_count_pointer);
             return None;
         } else {
             self.drop_off_passengers(passenger_stops_waited_list);
             self.take_passengers(waiting_passengers);
             self.status.movement = MovementState::Moving;
+            sender.send(1).unwrap();
         }
         Some(())
     }
@@ -301,15 +311,32 @@ fn main() {
 
     let passenger_extra_stops_waited_pointer = Arc::new(Mutex::new(Vec::<u32>::new()));
 
+    let active_bus_count = Arc::new(Mutex::new(0));
+
     let mut handle_list = vec![];
 
+    let (tx_from_threads, rx_from_threads) = mpsc::channel();
+    // let (tx to_threads, rx_to_threads) = mpsc::channel();
+
+    // Sends a message to all the buses to signal that they have passed the first bus stop
+    // how does the main thread know how many buses to wait for before
     for bus_num in 1..=NUM_OF_BUSES {
+        let sender = tx_from_threads.clone();
         let bus_route =
             generate_bus_route(location_vector_arc.clone().as_ref(), NUM_STOPS_PER_BUS).unwrap();
         let passenger_list_pointer_clone = passenger_list_pointer.clone();
         let passenger_stops_passed_pointer_clone = passenger_extra_stops_waited_pointer.clone();
+        let active_bus_count_init_clone = active_bus_count.clone();
+        let active_bus_count_remove_clone = active_bus_count.clone();
         let handle = thread::spawn(move || {
             let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY);
+            let mut active_bus_count_pointer = active_bus_count_init_clone.lock().unwrap();
+            *active_bus_count_pointer += 1;
+            println!("Bus {bus_num} added to the active bus count");
+            println!("Current count: {}", active_bus_count_pointer);
+
+            std::mem::drop(active_bus_count_pointer);
+
             loop {
                 // let mut passenger_list = passenger_list_pointer_clone.lock().unwrap();
                 // let mut passenger_extra_stops_passed_list =
@@ -318,6 +345,8 @@ fn main() {
                 let update_option = simulated_bus.update(
                     &mut passenger_list_pointer_clone.lock().unwrap(),
                     &mut passenger_stops_passed_pointer_clone.lock().unwrap(),
+                    &sender,
+                    &mut active_bus_count_remove_clone.lock().unwrap(),
                 );
                 println!("Bus {bus_num} updated");
 
