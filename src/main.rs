@@ -316,6 +316,8 @@ fn main() {
     let mut handle_list = vec![];
 
     let (tx_from_threads, rx_from_threads) = mpsc::channel();
+
+    let route_sync_handle = thread::spawn(|| {});
     // let (tx to_threads, rx_to_threads) = mpsc::channel();
 
     // Sends a message to all the buses to signal that they have passed the first bus stop
@@ -326,11 +328,10 @@ fn main() {
             generate_bus_route(location_vector_arc.clone().as_ref(), NUM_STOPS_PER_BUS).unwrap();
         let passenger_list_pointer_clone = passenger_list_pointer.clone();
         let passenger_stops_passed_pointer_clone = passenger_extra_stops_waited_pointer.clone();
-        let active_bus_count_init_clone = active_bus_count.clone();
-        let active_bus_count_remove_clone = active_bus_count.clone();
+        let active_bus_count_clone = active_bus_count.clone();
         let handle = thread::spawn(move || {
             let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY);
-            let mut active_bus_count_pointer = active_bus_count_init_clone.lock().unwrap();
+            let mut active_bus_count_pointer = active_bus_count_clone.lock().unwrap();
             *active_bus_count_pointer += 1;
             println!("Bus {bus_num} added to the active bus count");
             println!("Current count: {}", active_bus_count_pointer);
@@ -346,7 +347,7 @@ fn main() {
                     &mut passenger_list_pointer_clone.lock().unwrap(),
                     &mut passenger_stops_passed_pointer_clone.lock().unwrap(),
                     &sender,
-                    &mut active_bus_count_remove_clone.lock().unwrap(),
+                    &mut active_bus_count_clone.lock().unwrap(),
                 );
                 println!("Bus {bus_num} updated");
 
