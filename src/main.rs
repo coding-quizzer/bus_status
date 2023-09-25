@@ -120,6 +120,7 @@ struct Bus {
     capacity: usize,
     total_passenger_count: u32,
     bus_stop_num: u32,
+    bus_num: u32,
 }
 
 // manually impliment Debug, so that the iterator field can be skipped, eliminating the complicaiton of requiring
@@ -151,7 +152,7 @@ impl std::fmt::Debug for Bus {
 //
 
 impl Bus {
-    fn new(bus_route: Vec<Location>, capacity: usize) -> Bus {
+    fn new(bus_route: Vec<Location>, capacity: usize, bus_num: u32) -> Bus {
         let bus_route_vec = bus_route.clone();
         let iterator = bus_route.into_iter();
         Bus {
@@ -165,6 +166,7 @@ impl Bus {
             capacity,
             total_passenger_count: 0,
             bus_stop_num: 0,
+            bus_num,
         }
     }
 
@@ -202,8 +204,14 @@ impl Bus {
         } else {
             self.drop_off_passengers(passenger_stops_waited_list);
             self.take_passengers(waiting_passengers);
+            // self.bus_stop_num += 1;
+            sender
+                .send(self.bus_stop_num)
+                .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
+            //.unwrap()
             self.status.movement = MovementState::Moving;
             sender.send(1).unwrap();
+            println!("Bus Number Sent");
         }
         Some(())
     }
@@ -316,9 +324,24 @@ fn main() {
     let mut handle_list = vec![];
 
     let (tx_from_threads, rx_from_threads) = mpsc::channel();
-
-    let route_sync_handle = thread::spawn(|| {});
     // let (tx to_threads, rx_to_threads) = mpsc::channel();
+
+    let active_bus_count_route_sync_clone = active_bus_count.clone();
+    let route_sync_handle = thread::spawn(move || {
+        // Somehow deal with the possibility of adding another bus
+        let buses_finished_at_stops = 0;
+        loop {
+            let _received_bus_stop_messages = rx_from_threads.recv().unwrap();
+            println!("Bus stop recieved");
+
+            if *active_bus_count_route_sync_clone.lock().unwrap() == 0 {
+                println!("Bus count empty");
+                break;
+            }
+        }
+    });
+
+    handle_list.push(route_sync_handle);
 
     // Sends a message to all the buses to signal that they have passed the first bus stop
     // how does the main thread know how many buses to wait for before
@@ -330,7 +353,7 @@ fn main() {
         let passenger_stops_passed_pointer_clone = passenger_extra_stops_waited_pointer.clone();
         let active_bus_count_clone = active_bus_count.clone();
         let handle = thread::spawn(move || {
-            let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY);
+            let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY, bus_num);
             let mut active_bus_count_pointer = active_bus_count_clone.lock().unwrap();
             *active_bus_count_pointer += 1;
             println!("Bus {bus_num} added to the active bus count");
@@ -349,16 +372,13 @@ fn main() {
                     &sender,
                     &mut active_bus_count_clone.lock().unwrap(),
                 );
-                println!("Bus {bus_num} updated");
+                println!("Bus {} updated", simulated_bus.bus_num);
 
                 match update_option {
                     None => break,
                     Some(_) => {}
                 }
             }
-
-            // somehow label buses, prove buses are in random order
-            // ensure that threads are running independently
 
             // println!("passenger list length: {}", passenger_list.len())
         });
