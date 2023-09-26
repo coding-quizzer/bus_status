@@ -309,6 +309,7 @@ const GLOBAL_LOCATION_COUNT: u32 = 10;
 const BUS_CAPACITY: usize = 10;
 const NUM_OF_BUSES: u32 = 4;
 const NUM_STOPS_PER_BUS: usize = 25;
+
 fn main() {
     let location_vector = generate_location_list(GLOBAL_LOCATION_COUNT);
 
@@ -330,16 +331,31 @@ fn main() {
     // let (tx to_threads, rx_to_threads) = mpsc::channel();
 
     let potential_running_bus_count_route_sync_clone = potential_running_bus_count.clone();
+    let current_bus_stop_clone = current_bus_stop.clone();
     let route_sync_handle = thread::spawn(move || {
         // Somehow deal with the possibility of adding another bus
-        let buses_finished_at_stops = 0;
+        let mut buses_finished_at_stops = 0;
         loop {
-            let _received_bus_stop_messages = rx_from_threads.recv().unwrap();
-            println!("Bus stop recieved");
+            // let potential_running_bus_count =
+            //     *potential_running_bus_count_route_sync_clone.lock().unwrap();
 
+            // Hack to ensure all buses have almost certainly decreased the potentially running_bus_count by 1 if they were done all their routes
+            thread::sleep(std::time::Duration::new(0, 10));
             if *potential_running_bus_count_route_sync_clone.lock().unwrap() == 0 {
                 println!("Bus count empty");
                 break;
+            }
+
+            let _received_bus_stop_messages = rx_from_threads.recv().unwrap();
+            println!("Bus stop recieved");
+            buses_finished_at_stops += 1;
+
+            if buses_finished_at_stops
+                == *potential_running_bus_count_route_sync_clone.lock().unwrap()
+            {
+                println!("All buses are finished at their stops");
+                *current_bus_stop_clone.lock().unwrap() += 1;
+                buses_finished_at_stops = 0;
             }
         }
     });
