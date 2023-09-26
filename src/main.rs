@@ -194,7 +194,7 @@ impl Bus {
         if self.status.movement != MovementState::Moving {
             self.drop_off_passengers(passenger_stops_waited_list);
             self.take_passengers(waiting_passengers);
-            // self.bus_stop_num += 1;
+            self.bus_stop_num += 1;
             sender
                 .send(self.bus_stop_num)
                 .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
@@ -202,7 +202,6 @@ impl Bus {
             //.unwrap()
             self.status.movement = MovementState::Moving;
         } else if self.bus_stop_num < *current_bus_stop_number {
-            self.bus_stop_num += 1;
             let stop_output_option = self.stop_at_next_location();
             if stop_output_option.is_some() {
                 return Some(());
@@ -304,6 +303,9 @@ fn generate_location_list(count: u32) -> Vec<Location> {
     location_list
 }
 
+// todo: turn this into an enum
+const BUS_FINISHED: u32 = 0;
+
 const GLOBAL_PASSENGER_COUNT: u32 = 500;
 const GLOBAL_LOCATION_COUNT: u32 = 10;
 const BUS_CAPACITY: usize = 10;
@@ -335,20 +337,27 @@ fn main() {
     let route_sync_handle = thread::spawn(move || {
         // Somehow deal with the possibility of adding another bus
         let mut buses_finished_at_stops = 0;
+        let mut finished_buses = 0;
         loop {
             // let potential_running_bus_count =
             //     *potential_running_bus_count_route_sync_clone.lock().unwrap();
 
-            // Hack to ensure all buses have almost certainly decreased the potentially running_bus_count by 1 if they were done all their routes
-            thread::sleep(std::time::Duration::new(0, 10));
             if *potential_running_bus_count_route_sync_clone.lock().unwrap() == 0 {
                 println!("Bus count empty");
                 break;
             }
 
-            let _received_bus_stop_messages = rx_from_threads.recv().unwrap();
-            println!("Bus stop recieved");
-            buses_finished_at_stops += 1;
+            let received_bus_stop_message = rx_from_threads.recv().unwrap();
+            if received_bus_stop_message == BUS_FINISHED {
+                finished_buses += 1;
+            } else {
+                println!("Bus stop recieved");
+                buses_finished_at_stops += 1;
+            }
+
+            if finished_buses == NUM_OF_BUSES {
+                break;
+            }
 
             if buses_finished_at_stops
                 == *potential_running_bus_count_route_sync_clone.lock().unwrap()
@@ -394,6 +403,8 @@ fn main() {
                     Some(_) => {}
                 }
             }
+
+            sender.send(BUS_FINISHED);
 
             // println!("passenger list length: {}", passenger_list.len())
         });
