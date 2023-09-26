@@ -188,7 +188,7 @@ impl Bus {
         waiting_passengers: &mut Vec<PassengerWaiting>,
         passenger_stops_waited_list: &mut Vec<u32>,
         sender: &Sender<u32>, // bus_num: u32,
-        bus_count_pointer: &mut i32,
+        bus_count_pointer: &mut u32,
     ) -> Option<()> {
         if self.status.movement == MovementState::Moving {
             let stop_output_option = self.stop_at_next_location();
@@ -208,10 +208,9 @@ impl Bus {
             sender
                 .send(self.bus_stop_num)
                 .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
+            println!("Bus Number {} Sent", self.bus_num);
             //.unwrap()
             self.status.movement = MovementState::Moving;
-            sender.send(1).unwrap();
-            println!("Bus Number Sent");
         }
         Some(())
     }
@@ -319,14 +318,14 @@ fn main() {
 
     let passenger_extra_stops_waited_pointer = Arc::new(Mutex::new(Vec::<u32>::new()));
 
-    let active_bus_count = Arc::new(Mutex::new(0));
+    let potential_running_bus_count = Arc::new(Mutex::new(NUM_OF_BUSES));
 
     let mut handle_list = vec![];
 
     let (tx_from_threads, rx_from_threads) = mpsc::channel();
     // let (tx to_threads, rx_to_threads) = mpsc::channel();
 
-    let active_bus_count_route_sync_clone = active_bus_count.clone();
+    let potential_running_bus_count_route_sync_clone = potential_running_bus_count.clone();
     let route_sync_handle = thread::spawn(move || {
         // Somehow deal with the possibility of adding another bus
         let buses_finished_at_stops = 0;
@@ -334,7 +333,7 @@ fn main() {
             let _received_bus_stop_messages = rx_from_threads.recv().unwrap();
             println!("Bus stop recieved");
 
-            if *active_bus_count_route_sync_clone.lock().unwrap() == 0 {
+            if *potential_running_bus_count_route_sync_clone.lock().unwrap() == 0 {
                 println!("Bus count empty");
                 break;
             }
@@ -351,15 +350,9 @@ fn main() {
             generate_bus_route(location_vector_arc.clone().as_ref(), NUM_STOPS_PER_BUS).unwrap();
         let passenger_list_pointer_clone = passenger_list_pointer.clone();
         let passenger_stops_passed_pointer_clone = passenger_extra_stops_waited_pointer.clone();
-        let active_bus_count_clone = active_bus_count.clone();
+        let potential_running_bus_count_clone = potential_running_bus_count.clone();
         let handle = thread::spawn(move || {
             let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY, bus_num);
-            let mut active_bus_count_pointer = active_bus_count_clone.lock().unwrap();
-            *active_bus_count_pointer += 1;
-            println!("Bus {bus_num} added to the active bus count");
-            println!("Current count: {}", active_bus_count_pointer);
-
-            std::mem::drop(active_bus_count_pointer);
 
             loop {
                 // let mut passenger_list = passenger_list_pointer_clone.lock().unwrap();
@@ -370,7 +363,7 @@ fn main() {
                     &mut passenger_list_pointer_clone.lock().unwrap(),
                     &mut passenger_stops_passed_pointer_clone.lock().unwrap(),
                     &sender,
-                    &mut active_bus_count_clone.lock().unwrap(),
+                    &mut potential_running_bus_count_clone.lock().unwrap(),
                 );
                 println!("Bus {} updated", simulated_bus.bus_num);
 
