@@ -188,9 +188,21 @@ impl Bus {
         waiting_passengers: &mut Vec<PassengerWaiting>,
         passenger_stops_waited_list: &mut Vec<u32>,
         sender: &Sender<u32>, // bus_num: u32,
+        current_bus_stop_number: &u32,
         bus_count_pointer: &mut u32,
     ) -> Option<()> {
-        if self.status.movement == MovementState::Moving {
+        if self.status.movement != MovementState::Moving {
+            self.drop_off_passengers(passenger_stops_waited_list);
+            self.take_passengers(waiting_passengers);
+            // self.bus_stop_num += 1;
+            sender
+                .send(self.bus_stop_num)
+                .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
+            println!("Bus Number {} Sent", self.bus_num);
+            //.unwrap()
+            self.status.movement = MovementState::Moving;
+        } else if self.bus_stop_num < *current_bus_stop_number {
+            self.bus_stop_num += 1;
             let stop_output_option = self.stop_at_next_location();
             if stop_output_option.is_some() {
                 return Some(());
@@ -201,16 +213,6 @@ impl Bus {
             println!("A bus was removed from the bus count");
             println!("Current Bus Count: {}", bus_count_pointer);
             return None;
-        } else {
-            self.drop_off_passengers(passenger_stops_waited_list);
-            self.take_passengers(waiting_passengers);
-            // self.bus_stop_num += 1;
-            sender
-                .send(self.bus_stop_num)
-                .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
-            println!("Bus Number {} Sent", self.bus_num);
-            //.unwrap()
-            self.status.movement = MovementState::Moving;
         }
         Some(())
     }
@@ -320,6 +322,8 @@ fn main() {
 
     let potential_running_bus_count = Arc::new(Mutex::new(NUM_OF_BUSES));
 
+    let current_bus_stop = Arc::new(Mutex::new(1));
+
     let mut handle_list = vec![];
 
     let (tx_from_threads, rx_from_threads) = mpsc::channel();
@@ -351,6 +355,7 @@ fn main() {
         let passenger_list_pointer_clone = passenger_list_pointer.clone();
         let passenger_stops_passed_pointer_clone = passenger_extra_stops_waited_pointer.clone();
         let potential_running_bus_count_clone = potential_running_bus_count.clone();
+        let bus_stop_number_clone = current_bus_stop.clone();
         let handle = thread::spawn(move || {
             let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY, bus_num);
 
@@ -363,9 +368,10 @@ fn main() {
                     &mut passenger_list_pointer_clone.lock().unwrap(),
                     &mut passenger_stops_passed_pointer_clone.lock().unwrap(),
                     &sender,
+                    &bus_stop_number_clone.lock().unwrap(),
                     &mut potential_running_bus_count_clone.lock().unwrap(),
                 );
-                println!("Bus {} updated", simulated_bus.bus_num);
+                //println!("Bus {} updated", simulated_bus.bus_num);
 
                 match update_option {
                     None => break,
