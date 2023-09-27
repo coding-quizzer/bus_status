@@ -187,7 +187,7 @@ impl Bus {
         &mut self,
         waiting_passengers: &mut Vec<PassengerWaiting>,
         passenger_stops_waited_list: &mut Vec<u32>,
-        sender: &Sender<u32>, // bus_num: u32,
+        sender: &Sender<BusMessages>, // bus_num: u32,
         current_bus_stop_number: &u32,
         bus_count_pointer: &mut u32,
     ) -> Option<()> {
@@ -196,7 +196,9 @@ impl Bus {
             self.take_passengers(waiting_passengers);
             self.bus_stop_num += 1;
             sender
-                .send(self.bus_stop_num)
+                .send(BusMessages::AdvanceBusStop {
+                    current_stop: self.bus_stop_num,
+                })
                 .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
             println!("Bus Number {} Sent", self.bus_num);
             //.unwrap()
@@ -264,6 +266,12 @@ impl Bus {
     }
 }
 
+#[derive(PartialEq)]
+enum BusMessages {
+    AdvanceBusStop { current_stop: u32 },
+    BusFinished,
+}
+
 fn generate_passenger(location_list: &Vec<Location>) -> Result<PassengerWaiting, String> {
     let location_vector = generate_list_of_random_elements_from_list(location_list, 2)?;
 
@@ -302,9 +310,6 @@ fn generate_location_list(count: u32) -> Vec<Location> {
     }
     location_list
 }
-
-// todo: turn this into an enum
-const BUS_FINISHED: u32 = 0;
 
 const GLOBAL_PASSENGER_COUNT: u32 = 500;
 const GLOBAL_LOCATION_COUNT: u32 = 10;
@@ -348,7 +353,7 @@ fn main() {
             }
 
             let received_bus_stop_message = rx_from_threads.recv().unwrap();
-            if received_bus_stop_message == BUS_FINISHED {
+            if received_bus_stop_message == BusMessages::BusFinished {
                 finished_buses += 1;
             } else {
                 println!("Bus stop recieved");
@@ -404,7 +409,7 @@ fn main() {
                 }
             }
 
-            sender.send(BUS_FINISHED);
+            sender.send(BusMessages::BusFinished).unwrap();
 
             // println!("passenger list length: {}", passenger_list.len())
         });
