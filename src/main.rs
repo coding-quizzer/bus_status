@@ -189,7 +189,6 @@ impl Bus {
         passenger_stops_waited_list: &mut Vec<u32>,
         sender: &Sender<BusMessages>, // bus_num: u32,
         current_bus_stop_number: &u32,
-        bus_count_pointer: &mut u32,
     ) -> Option<()> {
         if self.status.movement != MovementState::Moving {
             self.drop_off_passengers(passenger_stops_waited_list);
@@ -210,9 +209,6 @@ impl Bus {
             };
             assert_eq!(self.passengers.len(), 0);
             self.status.movement = MovementState::Finished;
-            *bus_count_pointer -= 1;
-            println!("A bus was removed from the bus count");
-            println!("Current Bus Count: {}", bus_count_pointer);
             return None;
         }
         Some(())
@@ -266,7 +262,7 @@ impl Bus {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 enum BusMessages {
     AdvanceBusStop { current_stop: u32 },
     BusFinished,
@@ -328,8 +324,6 @@ fn main() {
 
     let passenger_extra_stops_waited_pointer = Arc::new(Mutex::new(Vec::<u32>::new()));
 
-    let potential_running_bus_count = Arc::new(Mutex::new(NUM_OF_BUSES));
-
     let current_bus_stop = Arc::new(Mutex::new(1));
 
     let mut handle_list = vec![];
@@ -337,26 +331,20 @@ fn main() {
     let (tx_from_threads, rx_from_threads) = mpsc::channel();
     // let (tx to_threads, rx_to_threads) = mpsc::channel();
 
-    let potential_running_bus_count_route_sync_clone = potential_running_bus_count.clone();
     let current_bus_stop_clone = current_bus_stop.clone();
     let route_sync_handle = thread::spawn(move || {
         // Somehow deal with the possibility of adding another bus
         let mut buses_finished_at_stops = 0;
         let mut finished_buses = 0;
         loop {
-            // let potential_running_bus_count =
-            //     *potential_running_bus_count_route_sync_clone.lock().unwrap();
-
-            if *potential_running_bus_count_route_sync_clone.lock().unwrap() == 0 {
-                println!("Bus count empty");
-                break;
-            }
+            let active_buses = NUM_OF_BUSES - finished_buses;
 
             let received_bus_stop_message = rx_from_threads.recv().unwrap();
             if received_bus_stop_message == BusMessages::BusFinished {
                 finished_buses += 1;
             } else {
                 println!("Bus stop recieved");
+                println!("Current active buses: {active_buses}");
                 buses_finished_at_stops += 1;
             }
 
@@ -364,9 +352,7 @@ fn main() {
                 break;
             }
 
-            if buses_finished_at_stops
-                == *potential_running_bus_count_route_sync_clone.lock().unwrap()
-            {
+            if buses_finished_at_stops == active_buses {
                 println!("All buses are finished at their stops");
                 *current_bus_stop_clone.lock().unwrap() += 1;
                 buses_finished_at_stops = 0;
@@ -384,7 +370,6 @@ fn main() {
             generate_bus_route(location_vector_arc.clone().as_ref(), NUM_STOPS_PER_BUS).unwrap();
         let passenger_list_pointer_clone = passenger_list_pointer.clone();
         let passenger_stops_passed_pointer_clone = passenger_extra_stops_waited_pointer.clone();
-        let potential_running_bus_count_clone = potential_running_bus_count.clone();
         let bus_stop_number_clone = current_bus_stop.clone();
         let handle = thread::spawn(move || {
             let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY, bus_num);
@@ -399,7 +384,6 @@ fn main() {
                     &mut passenger_stops_passed_pointer_clone.lock().unwrap(),
                     &sender,
                     &bus_stop_number_clone.lock().unwrap(),
-                    &mut potential_running_bus_count_clone.lock().unwrap(),
                 );
                 //println!("Bus {} updated", simulated_bus.bus_num);
 
