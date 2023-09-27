@@ -234,9 +234,7 @@ impl Bus {
                         new_passengers.push(passenger.clone());
                     }
                 })
-            } /* else {
-                  println!("Passenger's destination: {:?} will not be reached by bus. Passenger did not get on bus", passenger.end_location);
-              } */
+            }
         }
 
         for passenger in new_passengers {
@@ -329,11 +327,9 @@ fn main() {
     let mut handle_list = vec![];
 
     let (tx_from_threads, rx_from_threads) = mpsc::channel();
-    // let (tx to_threads, rx_to_threads) = mpsc::channel();
 
     let current_bus_stop_clone = current_bus_stop.clone();
     let route_sync_handle = thread::spawn(move || {
-        // Somehow deal with the possibility of adding another bus
         let mut buses_finished_at_stops = 0;
         let mut finished_buses = 0;
         loop {
@@ -362,8 +358,6 @@ fn main() {
 
     handle_list.push(route_sync_handle);
 
-    // Sends a message to all the buses to signal that they have passed the first bus stop
-    // how does the main thread know how many buses to wait for before
     for bus_num in 1..=NUM_OF_BUSES {
         let sender = tx_from_threads.clone();
         let bus_route =
@@ -375,17 +369,12 @@ fn main() {
             let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY, bus_num);
 
             loop {
-                // let mut passenger_list = passenger_list_pointer_clone.lock().unwrap();
-                // let mut passenger_extra_stops_passed_list =
-                //     passenger_wait_pointer_clone.lock().unwrap();
-
                 let update_option = simulated_bus.update(
                     &mut passenger_list_pointer_clone.lock().unwrap(),
                     &mut passenger_stops_passed_pointer_clone.lock().unwrap(),
                     &sender,
                     &bus_stop_number_clone.lock().unwrap(),
                 );
-                //println!("Bus {} updated", simulated_bus.bus_num);
 
                 match update_option {
                     None => break,
@@ -394,8 +383,6 @@ fn main() {
             }
 
             sender.send(BusMessages::BusFinished).unwrap();
-
-            // println!("passenger list length: {}", passenger_list.len())
         });
         handle_list.push(handle);
     }
