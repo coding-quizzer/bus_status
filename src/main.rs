@@ -85,12 +85,17 @@ impl PassengerWaiting {
     }
 }
 
-#[derive(Default, Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 enum MovementState {
-    #[default]
     Moving,
     Stopped,
     Finished,
+}
+
+impl Default for MovementState {
+    fn default() -> Self {
+        Self::Moving
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -115,8 +120,8 @@ struct Bus {
     status: BusStatus,
     passengers: Vec<PassengerOnBus>,
     current_location: Option<Location>,
-    bus_route_iter: Box<dyn CloneIterator<Item = Location>>,
-    bus_route_vec: Vec<Location>,
+    bus_route_iter: Box<dyn CloneIterator<Item = BusLocation>>,
+    bus_route_vec: Vec<BusLocation>,
     capacity: usize,
     total_passenger_count: u32,
     bus_stop_num: u32,
@@ -149,15 +154,20 @@ impl std::fmt::Debug for Bus {
 // could correlate number of updates to distance
 
 // let passengers take the most efficient route
-//
+
+#[derive(Debug, Clone)]
+struct BusLocation {
+    location: Location,
+    distance: u32,
+}
 
 impl Bus {
-    fn new(bus_route: Vec<Location>, capacity: usize, bus_num: u32) -> Bus {
+    fn new(bus_route: Vec<BusLocation>, capacity: usize, bus_num: u32) -> Bus {
         let bus_route_vec = bus_route.clone();
         let iterator = bus_route.into_iter();
         Bus {
             status: BusStatus {
-                movement: MovementState::Moving,
+                movement: MovementState::Moving, //(bus_route_vec[0].distance),
             },
             passengers: vec![],
             current_location: None,
@@ -171,9 +181,9 @@ impl Bus {
     }
 
     fn stop_at_next_location(&mut self) -> Option<()> {
-        self.current_location = self.bus_route_iter.next();
         // Return None if the bus does not have a current location
-        self.current_location?;
+        let new_location = self.bus_route_iter.next()?;
+        self.current_location = Some(new_location.location);
 
         self.status.movement = MovementState::Stopped;
         Some(())
@@ -223,8 +233,8 @@ impl Bus {
 
             let mut cloned_locations = self.bus_route_iter.clone_box();
 
-            let bus_will_stop_at_passengers_location =
-                cloned_locations.any(|location| location == passenger.end_location);
+            let bus_will_stop_at_passengers_location = cloned_locations
+                .any(|location_of_bus| location_of_bus.location == passenger.end_location);
 
             if bus_will_stop_at_passengers_location {
                 self.current_location.map_or((), |loc| {
