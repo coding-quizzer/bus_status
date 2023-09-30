@@ -87,14 +87,14 @@ impl PassengerWaiting {
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 enum MovementState {
-    Moving,
+    Moving(u32),
     Stopped,
     Finished,
 }
 
 impl Default for MovementState {
     fn default() -> Self {
-        Self::Moving
+        Self::Moving(0)
     }
 }
 
@@ -167,7 +167,7 @@ impl Bus {
         let iterator = bus_route.into_iter();
         Bus {
             status: BusStatus {
-                movement: MovementState::Moving, //(bus_route_vec[0].distance),
+                movement: MovementState::Moving(bus_route_vec[0].distance),
             },
             passengers: vec![],
             current_location: None,
@@ -200,7 +200,17 @@ impl Bus {
         sender: &Sender<BusMessages>, // bus_num: u32,
         current_bus_stop_number: &u32,
     ) -> Option<()> {
-        if self.status.movement != MovementState::Moving {
+        if let MovementState::Moving(_) = self.status.movement {
+            if self.bus_stop_num < *current_bus_stop_number {
+                let stop_output_option = self.stop_at_next_location();
+                if stop_output_option.is_some() {
+                    return Some(());
+                };
+                assert_eq!(self.passengers.len(), 0);
+                self.status.movement = MovementState::Finished;
+                return None;
+            }
+        } else {
             self.drop_off_passengers(passenger_stops_waited_list);
             self.take_passengers(waiting_passengers);
             self.bus_stop_num += 1;
@@ -210,16 +220,9 @@ impl Bus {
                 })
                 .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
             println!("Bus Number {} Sent", self.bus_num);
+
             //.unwrap()
-            self.status.movement = MovementState::Moving;
-        } else if self.bus_stop_num < *current_bus_stop_number {
-            let stop_output_option = self.stop_at_next_location();
-            if stop_output_option.is_some() {
-                return Some(());
-            };
-            assert_eq!(self.passengers.len(), 0);
-            self.status.movement = MovementState::Finished;
-            return None;
+            self.status.movement = MovementState::Moving(0);
         }
         Some(())
     }
@@ -298,13 +301,31 @@ fn generate_passenger_list(
     Ok(passenger_list)
 }
 
-fn generate_bus_route(
+fn generate_bus_route_locations(
     location_list: &Vec<Location>,
     length: usize,
 ) -> Result<Vec<Location>, String> {
     let bus_route = generate_list_of_random_elements_from_list(location_list, length)?;
 
     Ok(bus_route)
+}
+
+fn generate_bus_route_locations_with_distances(
+    location_list: &Vec<Location>,
+    length: usize,
+) -> Result<Vec<BusLocation>, String> {
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    let bus_route_list = generate_bus_route_locations(location_list, length);
+    let bus_route_list_in_bus_locations = bus_route_list?
+        .iter()
+        .map(|location| BusLocation {
+            location: *location,
+            distance: rng.gen_range(0..5),
+        })
+        .collect::<Vec<_>>();
+
+    Ok(bus_route_list_in_bus_locations)
 }
 
 fn generate_location_list(count: u32) -> Vec<Location> {
@@ -370,8 +391,11 @@ fn main() {
 
     for bus_num in 1..=NUM_OF_BUSES {
         let sender = tx_from_threads.clone();
-        let bus_route =
-            generate_bus_route(location_vector_arc.clone().as_ref(), NUM_STOPS_PER_BUS).unwrap();
+        let bus_route = generate_bus_route_locations_with_distances(
+            location_vector_arc.clone().as_ref(),
+            NUM_STOPS_PER_BUS,
+        )
+        .unwrap();
         let passenger_list_pointer_clone = passenger_list_pointer.clone();
         let passenger_stops_passed_pointer_clone = passenger_extra_stops_waited_pointer.clone();
         let bus_stop_number_clone = current_bus_stop.clone();
