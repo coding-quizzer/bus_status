@@ -87,6 +87,7 @@ impl PassengerWaiting {
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 enum MovementState {
+    // Moving contains the distance to the next location
     Moving(u32),
     Stopped,
     Finished,
@@ -158,24 +159,25 @@ impl std::fmt::Debug for Bus {
 #[derive(Debug, Clone)]
 struct BusLocation {
     location: Location,
-    distance: u32,
+    // distance_to_next is None for the last location
+    distance_to_next: Option<u32>,
 }
 
 impl Bus {
     fn new(bus_route: Vec<BusLocation>, capacity: usize, bus_num: u32) -> Bus {
         let bus_route_vec = bus_route.clone();
-        let iterator = bus_route.into_iter();
+        let mut iterator = bus_route.into_iter();
         Bus {
             status: BusStatus {
-                movement: MovementState::Moving(bus_route_vec[0].distance),
+                movement: MovementState::Stopped,
             },
             passengers: vec![],
-            current_location: None,
+            current_location: iterator.next().map(|bus_location| bus_location.location),
             bus_route_iter: Box::new(iterator),
             bus_route_vec,
             capacity,
             total_passenger_count: 0,
-            bus_stop_num: 0,
+            bus_stop_num: 1,
             bus_num,
         }
     }
@@ -192,6 +194,12 @@ impl Bus {
     fn add_passenger(&mut self, passenger: &PassengerOnBus) {
         self.passengers.push(*passenger);
     }
+
+    // When do you toggle the next state of the itterator? On the one hand, the current location of a bus is
+    // isn't really set until the bus arrives at a location, but on the other hand, the distance to the next location is
+    // neccesary. Perhapse each location should have a distance to the next location instead of distance to the next location.
+    // In that case, the distance would probably need to be an option, since the last location does not have a next location
+    // on the other hand, the next location could represent the offboarding garage?
 
     fn update(
         &mut self,
@@ -317,13 +325,19 @@ fn generate_bus_route_locations_with_distances(
     use rand::Rng;
     let mut rng = rand::thread_rng();
     let bus_route_list = generate_bus_route_locations(location_list, length);
-    let bus_route_list_in_bus_locations = bus_route_list?
+    let mut bus_route_list_in_bus_locations = bus_route_list?
         .iter()
         .map(|location| BusLocation {
             location: *location,
-            distance: rng.gen_range(0..5),
+            distance_to_next: Some(rng.gen_range(0..5)),
         })
         .collect::<Vec<_>>();
+
+    // The final location should be set to none, since there will be no location afterwards
+    bus_route_list_in_bus_locations
+        .last_mut()
+        .expect("Route must have at least one location.")
+        .distance_to_next = None;
 
     Ok(bus_route_list_in_bus_locations)
 }
