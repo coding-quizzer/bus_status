@@ -330,14 +330,14 @@ fn generate_bus_route_locations_with_distances(
     use rand::Rng;
     let mut rng = rand::thread_rng();
     let bus_route_list = generate_bus_route_locations(location_list, length);
-    let mut bus_route_list_in_bus_locations = bus_route_list?
+    let bus_route_list_to_bus_location_types = bus_route_list?
         .iter()
         .map(|location| BusLocation {
             location: *location,
             distance_to_location: rng.gen_range(0..5),
         })
         .collect::<Vec<_>>();
-    Ok(bus_route_list_in_bus_locations)
+    Ok(bus_route_list_to_bus_location_types)
 }
 
 fn generate_location_list(count: u32) -> Vec<Location> {
