@@ -160,7 +160,7 @@ impl std::fmt::Debug for Bus {
 struct BusLocation {
     location: Location,
     // distance_to_next is None for the last location
-    distance_to_next: Option<u32>,
+    distance_to_location: u32,
 }
 
 impl Bus {
@@ -182,12 +182,17 @@ impl Bus {
         }
     }
 
-    fn stop_at_next_location(&mut self) -> Option<()> {
-        // Return None if the bus does not have a current location
-        let new_location = self.bus_route_iter.next()?;
-        self.current_location = Some(new_location.location);
-
+    fn stop_at_destination_stop(&mut self) -> Option<()> {
         self.status.movement = MovementState::Stopped;
+        Some(())
+    }
+
+    fn leave_for_next_location(&mut self) -> Option<()> {
+        // Return None if the previous location was the end of the list
+        let next_location = self.bus_route_iter.next()?;
+        self.current_location = Some(next_location.location);
+
+        self.status.movement = MovementState::Moving(next_location.distance_to_location);
         Some(())
     }
 
@@ -195,7 +200,7 @@ impl Bus {
         self.passengers.push(*passenger);
     }
 
-    // When do you toggle the next state of the itterator? On the one hand, the current location of a bus is
+    // When do you toggle the next state of the iterator? On the one hand, the current location of a bus is
     // isn't really set until the bus arrives at a location, but on the other hand, the distance to the next location is
     // neccesary. Perhapse each location should have a distance to the next location instead of distance to the next location.
     // In that case, the distance would probably need to be an option, since the last location does not have a next location
@@ -210,7 +215,7 @@ impl Bus {
     ) -> Option<()> {
         if let MovementState::Moving(_) = self.status.movement {
             if self.bus_stop_num < *current_bus_stop_number {
-                let stop_output_option = self.stop_at_next_location();
+                let stop_output_option = self.stop_at_destination_stop();
                 if stop_output_option.is_some() {
                     return Some(());
                 };
@@ -230,7 +235,7 @@ impl Bus {
             println!("Bus Number {} Sent", self.bus_num);
 
             //.unwrap()
-            self.status.movement = MovementState::Moving(0);
+            self.leave_for_next_location();
         }
         Some(())
     }
@@ -329,16 +334,9 @@ fn generate_bus_route_locations_with_distances(
         .iter()
         .map(|location| BusLocation {
             location: *location,
-            distance_to_next: Some(rng.gen_range(0..5)),
+            distance_to_location: rng.gen_range(0..5),
         })
         .collect::<Vec<_>>();
-
-    // The final location should be set to none, since there will be no location afterwards
-    bus_route_list_in_bus_locations
-        .last_mut()
-        .expect("Route must have at least one location.")
-        .distance_to_next = None;
-
     Ok(bus_route_list_in_bus_locations)
 }
 
