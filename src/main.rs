@@ -1,4 +1,5 @@
 use std::{
+    ops::ControlFlow,
     sync::{
         mpsc::{self, Sender},
         Arc, Mutex,
@@ -212,16 +213,16 @@ impl Bus {
         passenger_stops_waited_list: &mut Vec<u32>,
         sender: &Sender<BusMessages>, // bus_num: u32,
         current_bus_stop_number: &u32,
-    ) -> Option<()> {
+    ) -> ControlFlow<()> {
         if let MovementState::Moving(_) = self.status.movement {
             if self.bus_stop_num < *current_bus_stop_number {
                 let stop_output_option = self.stop_at_destination_stop();
                 if stop_output_option.is_some() {
-                    return Some(());
+                    return ControlFlow::Continue(());
                 };
                 assert_eq!(self.passengers.len(), 0);
                 self.status.movement = MovementState::Finished;
-                return None;
+                return ControlFlow::Break(());
             }
         } else {
             self.drop_off_passengers(passenger_stops_waited_list);
@@ -237,7 +238,7 @@ impl Bus {
             //.unwrap()
             self.leave_for_next_location();
         }
-        Some(())
+        ControlFlow::Continue(())
     }
 
     fn take_passengers(&mut self, waiting_passengers: &mut Vec<PassengerWaiting>) {
@@ -423,8 +424,8 @@ fn main() {
                 );
 
                 match update_option {
-                    None => break,
-                    Some(_) => {}
+                    ControlFlow::Break(()) => break,
+                    ControlFlow::Continue(()) => {}
                 }
             }
 
