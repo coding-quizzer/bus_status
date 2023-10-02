@@ -214,7 +214,15 @@ impl Bus {
         sender: &Sender<BusMessages>, // bus_num: u32,
         current_bus_stop_number: &u32,
     ) -> ControlFlow<()> {
-        if let MovementState::Moving(_) = self.status.movement {
+        if let MovementState::Moving(distance) = self.status.movement {
+            if distance != 0 {
+                self.status.movement = MovementState::Moving(distance - 1);
+                println!(
+                    "Bus {} moved by one tick. New movement status is {:?}",
+                    self.bus_num, self.status.movement
+                );
+                return ControlFlow::Continue(());
+            }
             if self.bus_stop_num < *current_bus_stop_number {
                 let stop_output_option = self.stop_at_destination_stop();
                 if stop_output_option.is_some() {
@@ -335,7 +343,7 @@ fn generate_bus_route_locations_with_distances(
         .iter()
         .map(|location| BusLocation {
             location: *location,
-            distance_to_location: rng.gen_range(0..5),
+            distance_to_location: rng.gen_range(1..=5),
         })
         .collect::<Vec<_>>();
     Ok(bus_route_list_to_bus_location_types)
