@@ -306,10 +306,10 @@ fn generate_location_list(count: u32) -> Vec<Location> {
 }
 
 const GLOBAL_PASSENGER_COUNT: u32 = 500;
-const GLOBAL_LOCATION_COUNT: u32 = 10;
+const GLOBAL_LOCATION_COUNT: u32 = 5;
 const BUS_CAPACITY: usize = 10;
-const NUM_OF_BUSES: u32 = 4;
-const NUM_STOPS_PER_BUS: usize = 25;
+const NUM_OF_BUSES: u32 = 1;
+const NUM_STOPS_PER_BUS: usize = 5;
 
 fn main() {
     let location_vector = generate_location_list(GLOBAL_LOCATION_COUNT);
@@ -336,12 +336,20 @@ fn main() {
             let active_buses = NUM_OF_BUSES - finished_buses;
 
             let received_bus_stop_message = rx_from_threads.recv().unwrap();
-            if received_bus_stop_message == BusMessages::BusFinished {
-                finished_buses += 1;
-            } else {
-                println!("Bus stop recieved");
-                println!("Current active buses: {active_buses}");
-                buses_finished_at_stops += 1;
+            match received_bus_stop_message {
+                BusMessages::BusFinished => {
+                    finished_buses += 1;
+                }
+
+                BusMessages::AdvanceBusStop { .. } => {
+                    println!("Bus stop recieved");
+                    println!("Current active buses: {active_buses}");
+                    buses_finished_at_stops += 1;
+                }
+
+                _ => {
+                    panic!("Invalid Message Recieved")
+                }
             }
 
             if finished_buses == NUM_OF_BUSES {
@@ -395,7 +403,7 @@ fn main() {
     let total_passengers = passenger_extra_stops_waited.len();
 
     let passengers_remaining = passenger_list_pointer.lock().unwrap().len();
-
+    // Check that the number of passengers that got on the bus + number pf passengers that did not get on equals the total number of passengers
     println!("{passengers_remaining} passengers did not get onto any bus");
 
     println!(
