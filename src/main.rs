@@ -220,8 +220,15 @@ impl Bus {
         sender: &Sender<BusMessages>, // bus_num: u32,
         current_bus_stop_number: &u32,
     ) -> Option<()> {
-        if let MovementState::Moving(_) = self.status.movement {
+        if let MovementState::Moving(distance) = self.status.movement {
+            if distance > 0 {
+                println!("Bus {} distance to next stop: {}", self.bus_num, distance);
+                self.status.movement = MovementState::Moving(distance - 1);
+                return Some(());
+            }
             if self.bus_stop_num < *current_bus_stop_number {
+                println!("Bus {} distance to next stop: {}", self.bus_num, distance);
+
                 self.stop_at_destination_stop();
             }
         } else {
@@ -235,12 +242,13 @@ impl Bus {
                 .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
             println!("Bus Number {} Sent", self.bus_num);
 
-            //.unwrap()
             let more_locations_left = self.leave_for_next_location();
 
             if more_locations_left.is_some() {
                 return Some(());
             };
+            //.unwrap()
+
             assert_eq!(self.passengers.len(), 0);
             self.status.movement = MovementState::Finished;
             return None;
