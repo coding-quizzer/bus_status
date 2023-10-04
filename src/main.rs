@@ -177,7 +177,7 @@ impl Bus {
             bus_route_vec,
             capacity,
             total_passenger_count: 0,
-            bus_stop_num: 1,
+            bus_stop_num: 0,
             bus_num,
         }
     }
@@ -215,13 +215,7 @@ impl Bus {
     ) -> Option<()> {
         if let MovementState::Moving(_) = self.status.movement {
             if self.bus_stop_num < *current_bus_stop_number {
-                let stop_output_option = self.stop_at_destination_stop();
-                if stop_output_option.is_some() {
-                    return Some(());
-                };
-                assert_eq!(self.passengers.len(), 0);
-                self.status.movement = MovementState::Finished;
-                return None;
+                self.stop_at_destination_stop();
             }
         } else {
             self.drop_off_passengers(passenger_stops_waited_list);
@@ -235,7 +229,14 @@ impl Bus {
             println!("Bus Number {} Sent", self.bus_num);
 
             //.unwrap()
-            self.leave_for_next_location();
+            let more_locations_left = self.leave_for_next_location();
+
+            if more_locations_left.is_some() {
+                return Some(());
+            };
+            assert_eq!(self.passengers.len(), 0);
+            self.status.movement = MovementState::Finished;
+            return None;
         }
         Some(())
     }
