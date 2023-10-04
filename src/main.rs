@@ -167,12 +167,19 @@ impl Bus {
     fn new(bus_route: Vec<BusLocation>, capacity: usize, bus_num: u32) -> Bus {
         let bus_route_vec = bus_route.clone();
         let mut iterator = bus_route.into_iter();
+        let first_bus_location = iterator
+            .next()
+            .expect("Bus route must contain at least one location");
+        let BusLocation {
+            location: first_bus_location,
+            distance_to_location: distance_to_first_location,
+        } = first_bus_location;
         Bus {
             status: BusStatus {
-                movement: MovementState::Stopped,
+                movement: MovementState::Moving(distance_to_first_location),
             },
             passengers: vec![],
-            current_location: iterator.next().map(|bus_location| bus_location.location),
+            current_location: Some(first_bus_location),
             bus_route_iter: Box::new(iterator),
             bus_route_vec,
             capacity,
