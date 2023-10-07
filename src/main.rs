@@ -230,23 +230,25 @@ impl Bus {
                 println!("Bus {} distance to next stop: {}", self.bus_num, distance);
 
                 self.stop_at_destination_stop();
+
+                self.bus_stop_num += 1;
+                sender
+                    .send(BusMessages::AdvanceTimeStep {
+                        current_time_step: self.bus_stop_num,
+                    })
+                    .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
+                println!("Bus Number {} Sent", self.bus_num);
+
+                let more_locations_left = self.leave_for_next_location();
+
+                if more_locations_left.is_some() {
+                    return Some(());
+                };
             }
         } else {
+            // FIX ME: Bus shouldn't iterate distances to next route before getting the new bus stop number from the sync thread.
             self.drop_off_passengers(passenger_stops_waited_list);
             self.take_passengers(waiting_passengers);
-            self.bus_stop_num += 1;
-            sender
-                .send(BusMessages::AdvanceBusStop {
-                    current_stop: self.bus_stop_num,
-                })
-                .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
-            println!("Bus Number {} Sent", self.bus_num);
-
-            let more_locations_left = self.leave_for_next_location();
-
-            if more_locations_left.is_some() {
-                return Some(());
-            };
             //.unwrap()
 
             assert_eq!(self.passengers.len(), 0);
@@ -285,11 +287,13 @@ impl Bus {
         }
     }
     fn drop_off_passengers(&mut self, passenger_passed_stops: &mut Vec<u32>) -> Option<()> {
+        println!("Drop off Passengers");
         let current_location = self.current_location?;
         let bus_passengers = &mut *self.passengers;
         let mut new_bus_passengers = vec![];
         for pass in bus_passengers {
             if pass.end_location == current_location {
+                println!("New passenger stop added");
                 passenger_passed_stops.push(pass.passed_stops);
                 self.total_passenger_count += 1;
             } else {
@@ -304,7 +308,7 @@ impl Bus {
 
 #[derive(PartialEq, Debug)]
 enum BusMessages {
-    AdvanceBusStop { current_stop: u32 },
+    AdvanceTimeStep { current_time_step: u32 },
     BusFinished,
 }
 
@@ -454,11 +458,14 @@ fn main() {
 
     let passenger_extra_stops_waited = passenger_extra_stops_waited_pointer.lock().unwrap();
     let total_extra_stops_waited: u32 = passenger_extra_stops_waited.iter().sum();
+
     let total_passengers = passenger_extra_stops_waited.len();
 
     let passengers_remaining = passenger_list_pointer.lock().unwrap().len();
 
     println!("{passengers_remaining} passengers did not get onto any bus");
+
+    println!("total extra stops waited: {}", total_extra_stops_waited);
 
     println!(
         "Average wait time between stops {}",
