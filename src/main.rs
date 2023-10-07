@@ -168,17 +168,24 @@ impl Bus {
     fn new(bus_route: Vec<BusLocation>, capacity: usize, bus_num: u32) -> Bus {
         let bus_route_vec = bus_route.clone();
         let mut iterator = bus_route.into_iter();
+        let first_bus_location = iterator
+            .next()
+            .expect("Bus route must contain at least one location");
+        let BusLocation {
+            location: first_bus_location,
+            distance_to_location: distance_to_first_location,
+        } = first_bus_location;
         Bus {
             status: BusStatus {
-                movement: MovementState::Stopped,
+                movement: MovementState::Moving(distance_to_first_location),
             },
             passengers: vec![],
-            current_location: iterator.next().map(|bus_location| bus_location.location),
+            current_location: Some(first_bus_location),
             bus_route_iter: Box::new(iterator),
             bus_route_vec,
             capacity,
             total_passenger_count: 0,
-            bus_stop_num: 1,
+            bus_stop_num: 0,
             bus_num,
         }
     }
@@ -215,37 +222,47 @@ impl Bus {
         current_bus_stop_number: &u32,
     ) -> ControlFlow<()> {
         if let MovementState::Moving(distance) = self.status.movement {
-            if distance != 0 {
-                self.status.movement = MovementState::Moving(distance - 1);
-                println!(
-                    "Bus {} moved by one tick. New movement status is {:?}",
-                    self.bus_num, self.status.movement
-                );
-                return ControlFlow::Continue(());
-            }
             if self.bus_stop_num < *current_bus_stop_number {
-                let stop_output_option = self.stop_at_destination_stop();
-                if stop_output_option.is_some() {
+                if distance > 0 {
+                    println!("Bus {} distance to next stop: {}", self.bus_num, distance);
+                    self.status.movement = MovementState::Moving(distance - 1);
+                    // return Some(());
+                } else {
+                    self.stop_at_destination_stop();
+                }
+                self.bus_stop_num += 1;
+
+                sender
+                    .send(BusMessages::AdvanceTimeStep {
+                        current_time_step: self.bus_stop_num,
+                    })
+                    .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
+                println!("Bus Number {} Sent", self.bus_num);
+
+                let more_locations_left = self.leave_for_next_location();
+
+                self.drop_off_passengers(passenger_stops_waited_list);
+                self.take_passengers(waiting_passengers);
+
+                if more_locations_left.is_some() {
                     return ControlFlow::Continue(());
                 };
+
                 assert_eq!(self.passengers.len(), 0);
                 self.status.movement = MovementState::Finished;
                 return ControlFlow::Break(());
             }
-        } else {
-            self.drop_off_passengers(passenger_stops_waited_list);
-            self.take_passengers(waiting_passengers);
-            self.bus_stop_num += 1;
-            sender
-                .send(BusMessages::AdvanceBusStop {
-                    current_stop: self.bus_stop_num,
-                })
-                .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
-            println!("Bus Number {} Sent", self.bus_num);
-
-            //.unwrap()
-            self.leave_for_next_location();
         }
+        // else {
+        //     // FIX ME: Bus shouldn't iterate distances to next route before getting the new bus stop number from the sync thread.
+        //     self.drop_off_passengers(passenger_stops_waited_list);
+        //     self.take_passengers(waiting_passengers);
+        //     //.unwrap()
+
+        //     assert_eq!(self.passengers.len(), 0);
+        //     self.status.movement = MovementState::Finished;
+        //     return None;
+        // }
         ControlFlow::Continue(())
     }
 
@@ -278,11 +295,13 @@ impl Bus {
         }
     }
     fn drop_off_passengers(&mut self, passenger_passed_stops: &mut Vec<u32>) -> Option<()> {
+        println!("Drop off Passengers");
         let current_location = self.current_location?;
         let bus_passengers = &mut *self.passengers;
         let mut new_bus_passengers = vec![];
         for pass in bus_passengers {
             if pass.end_location == current_location {
+                println!("New passenger stop added");
                 passenger_passed_stops.push(pass.passed_stops);
                 self.total_passenger_count += 1;
             } else {
@@ -297,7 +316,7 @@ impl Bus {
 
 #[derive(PartialEq, Debug)]
 enum BusMessages {
-    AdvanceBusStop { current_stop: u32 },
+    AdvanceTimeStep { current_time_step: u32 },
     BusFinished,
 }
 
@@ -447,11 +466,14 @@ fn main() {
 
     let passenger_extra_stops_waited = passenger_extra_stops_waited_pointer.lock().unwrap();
     let total_extra_stops_waited: u32 = passenger_extra_stops_waited.iter().sum();
+
     let total_passengers = passenger_extra_stops_waited.len();
 
     let passengers_remaining = passenger_list_pointer.lock().unwrap().len();
 
     println!("{passengers_remaining} passengers did not get onto any bus");
+
+    println!("total extra stops waited: {}", total_extra_stops_waited);
 
     println!(
         "Average wait time between stops {}",
