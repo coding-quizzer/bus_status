@@ -221,17 +221,16 @@ impl Bus {
         current_bus_stop_number: &u32,
     ) -> Option<()> {
         if let MovementState::Moving(distance) = self.status.movement {
-            if distance > 0 {
-                println!("Bus {} distance to next stop: {}", self.bus_num, distance);
-                self.status.movement = MovementState::Moving(distance - 1);
-                return Some(());
-            }
             if self.bus_stop_num < *current_bus_stop_number {
-                println!("Bus {} distance to next stop: {}", self.bus_num, distance);
-
-                self.stop_at_destination_stop();
-
+                if distance > 0 {
+                    println!("Bus {} distance to next stop: {}", self.bus_num, distance);
+                    self.status.movement = MovementState::Moving(distance - 1);
+                    // return Some(());
+                } else {
+                    self.stop_at_destination_stop();
+                }
                 self.bus_stop_num += 1;
+
                 sender
                     .send(BusMessages::AdvanceTimeStep {
                         current_time_step: self.bus_stop_num,
@@ -241,20 +240,28 @@ impl Bus {
 
                 let more_locations_left = self.leave_for_next_location();
 
+                self.drop_off_passengers(passenger_stops_waited_list);
+                self.take_passengers(waiting_passengers);
+
                 if more_locations_left.is_some() {
                     return Some(());
                 };
-            }
-        } else {
-            // FIX ME: Bus shouldn't iterate distances to next route before getting the new bus stop number from the sync thread.
-            self.drop_off_passengers(passenger_stops_waited_list);
-            self.take_passengers(waiting_passengers);
-            //.unwrap()
 
-            assert_eq!(self.passengers.len(), 0);
-            self.status.movement = MovementState::Finished;
-            return None;
+                assert_eq!(self.passengers.len(), 0);
+                self.status.movement = MovementState::Finished;
+                return None;
+            }
         }
+        // else {
+        //     // FIX ME: Bus shouldn't iterate distances to next route before getting the new bus stop number from the sync thread.
+        //     self.drop_off_passengers(passenger_stops_waited_list);
+        //     self.take_passengers(waiting_passengers);
+        //     //.unwrap()
+
+        //     assert_eq!(self.passengers.len(), 0);
+        //     self.status.movement = MovementState::Finished;
+        //     return None;
+        // }
         Some(())
     }
 
