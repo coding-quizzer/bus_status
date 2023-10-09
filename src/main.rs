@@ -126,7 +126,7 @@ struct Bus {
     bus_route_vec: Vec<BusLocation>,
     capacity: usize,
     total_passenger_count: u32,
-    bus_stop_num: u32,
+    time_tick_num: u32,
     bus_num: u32,
 }
 
@@ -185,7 +185,7 @@ impl Bus {
             bus_route_vec,
             capacity,
             total_passenger_count: 0,
-            bus_stop_num: 0,
+            time_tick_num: 0,
             bus_num,
         }
     }
@@ -219,10 +219,10 @@ impl Bus {
         waiting_passengers: &mut Vec<PassengerWaiting>,
         passenger_stops_waited_list: &mut Vec<u32>,
         sender: &Sender<BusMessages>, // bus_num: u32,
-        current_bus_stop_number: &u32,
+        current_time_tick_number: &u32,
     ) -> ControlFlow<()> {
         if let MovementState::Moving(distance) = self.status.movement {
-            if self.bus_stop_num < *current_bus_stop_number {
+            if self.time_tick_num < *current_time_tick_number {
                 if distance > 0 {
                     println!("Bus {} distance to next stop: {}", self.bus_num, distance);
                     self.status.movement = MovementState::Moving(distance - 1);
@@ -230,11 +230,11 @@ impl Bus {
                 } else {
                     self.stop_at_destination_stop();
                 }
-                self.bus_stop_num += 1;
+                self.time_tick_num += 1;
 
                 sender
                     .send(BusMessages::AdvanceTimeStep {
-                        current_time_step: self.bus_stop_num,
+                        current_time_step: self.time_tick_num,
                     })
                     .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
                 println!("Bus Number {} Sent", self.bus_num);
@@ -301,7 +301,7 @@ impl Bus {
         let mut new_bus_passengers = vec![];
         for pass in bus_passengers {
             if pass.end_location == current_location {
-                println!("New passenger stop added");
+                println!("New passenger added to Bus {}", self.bus_num);
                 passenger_passed_stops.push(pass.passed_stops);
                 self.total_passenger_count += 1;
             } else {
