@@ -238,31 +238,30 @@ impl Bus {
                     })
                     .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
                 println!("Bus Number {} Sent", self.bus_num);
-
-                let more_locations_left = self.leave_for_next_location();
-
-                self.drop_off_passengers(passenger_stops_waited_list);
-                self.take_passengers(waiting_passengers);
-
-                if more_locations_left.is_some() {
-                    return ControlFlow::Continue(());
-                };
-
-                assert_eq!(self.passengers.len(), 0);
-                self.status.movement = MovementState::Finished;
-                return ControlFlow::Break(());
             }
-        }
-        // else {
-        //     // FIX ME: Bus shouldn't iterate distances to next route before getting the new bus stop number from the sync thread.
-        //     self.drop_off_passengers(passenger_stops_waited_list);
-        //     self.take_passengers(waiting_passengers);
-        //     //.unwrap()
+        } else if self.time_tick_num < *current_time_tick_number {
+            let more_locations_left = self.leave_for_next_location();
 
-        //     assert_eq!(self.passengers.len(), 0);
-        //     self.status.movement = MovementState::Finished;
-        //     return None;
-        // }
+            self.drop_off_passengers(passenger_stops_waited_list);
+            self.take_passengers(waiting_passengers);
+
+            self.time_tick_num += 1;
+
+            sender
+                .send(BusMessages::AdvanceTimeStep {
+                    current_time_step: self.time_tick_num,
+                })
+                .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
+            println!("Bus Number {} Sent", self.bus_num);
+
+            if more_locations_left.is_some() {
+                return ControlFlow::Continue(());
+            };
+
+            assert_eq!(self.passengers.len(), 0);
+            self.status.movement = MovementState::Finished;
+            return ControlFlow::Break(());
+        }
         ControlFlow::Continue(())
     }
 
