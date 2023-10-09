@@ -221,8 +221,14 @@ impl Bus {
         sender: &Sender<BusMessages>, // bus_num: u32,
         current_time_tick_number: &u32,
     ) -> ControlFlow<()> {
-        if let MovementState::Moving(distance) = self.status.movement {
-            if self.time_tick_num < *current_time_tick_number {
+        if self.time_tick_num < *current_time_tick_number {
+            sender
+                .send(BusMessages::AdvanceTimeStep {
+                    current_time_step: self.time_tick_num,
+                })
+                .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
+            println!("Bus Number {} Sent", self.bus_num);
+            if let MovementState::Moving(distance) = self.status.movement {
                 if distance > 0 {
                     println!("Bus {} distance to next stop: {}", self.bus_num, distance);
                     self.status.movement = MovementState::Moving(distance - 1);
@@ -231,36 +237,22 @@ impl Bus {
                     self.stop_at_destination_stop();
                 }
                 self.time_tick_num += 1;
+            } else {
+                let more_locations_left = self.leave_for_next_location();
 
-                sender
-                    .send(BusMessages::AdvanceTimeStep {
-                        current_time_step: self.time_tick_num,
-                    })
-                    .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
-                println!("Bus Number {} Sent", self.bus_num);
+                self.drop_off_passengers(passenger_stops_waited_list);
+                self.take_passengers(waiting_passengers);
+
+                self.time_tick_num += 1;
+
+                if more_locations_left.is_some() {
+                    return ControlFlow::Continue(());
+                };
+
+                assert_eq!(self.passengers.len(), 0);
+                self.status.movement = MovementState::Finished;
+                return ControlFlow::Break(());
             }
-        } else if self.time_tick_num < *current_time_tick_number {
-            let more_locations_left = self.leave_for_next_location();
-
-            self.drop_off_passengers(passenger_stops_waited_list);
-            self.take_passengers(waiting_passengers);
-
-            self.time_tick_num += 1;
-
-            sender
-                .send(BusMessages::AdvanceTimeStep {
-                    current_time_step: self.time_tick_num,
-                })
-                .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
-            println!("Bus Number {} Sent", self.bus_num);
-
-            if more_locations_left.is_some() {
-                return ControlFlow::Continue(());
-            };
-
-            assert_eq!(self.passengers.len(), 0);
-            self.status.movement = MovementState::Finished;
-            return ControlFlow::Break(());
         }
         ControlFlow::Continue(())
     }
@@ -419,7 +411,7 @@ fn main() {
             }
 
             if buses_finished_at_stops == active_buses {
-                println!("All buses are finished at their stops");
+                println!("---------- All buses are finished at their stops -----------");
                 *current_bus_stop_clone.lock().unwrap() += 1;
                 buses_finished_at_stops = 0;
             }
