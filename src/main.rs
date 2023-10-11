@@ -225,6 +225,7 @@ impl Bus {
             sender
                 .send(BusMessages::AdvanceTimeStep {
                     current_time_step: self.time_tick_num,
+                    bus_number: self.bus_num,
                 })
                 .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
             println!("Bus Number {} Sent", self.bus_num);
@@ -307,8 +308,13 @@ impl Bus {
 
 #[derive(PartialEq, Debug)]
 enum BusMessages {
-    AdvanceTimeStep { current_time_step: u32 },
-    BusFinished,
+    AdvanceTimeStep {
+        current_time_step: u32,
+        bus_number: u32,
+    },
+    BusFinished {
+        bus_number: u32,
+    },
 }
 
 fn generate_passenger(location_list: &Vec<Location>) -> Result<PassengerWaiting, String> {
@@ -395,18 +401,29 @@ fn main() {
         let mut buses_finished_at_stops = 0;
         let mut finished_buses = 0;
         loop {
-            let active_buses = NUM_OF_BUSES - finished_buses;
+            let mut active_buses = NUM_OF_BUSES - finished_buses;
 
             let received_bus_stop_message = rx_from_threads.recv().unwrap();
-            if received_bus_stop_message == BusMessages::BusFinished {
-                finished_buses += 1;
-            } else {
-                println!("Bus stop recieved");
-                println!("Current active buses: {active_buses}");
-                buses_finished_at_stops += 1;
+
+            match received_bus_stop_message {
+                BusMessages::AdvanceTimeStep {
+                    current_time_step,
+                    bus_number,
+                } => {
+                    println!("Stop recieved from Bus {}", bus_number);
+                    buses_finished_at_stops += 1;
+                }
+
+                BusMessages::BusFinished { bus_number } => {
+                    println!("Bus {} Finished Route", bus_number);
+                    active_buses -= 1;
+                    println!("There are now {active_buses} active buses.");
+                    finished_buses += 1;
+                }
             }
 
             if finished_buses == NUM_OF_BUSES {
+                println!("Program Complete");
                 break;
             }
 
@@ -446,8 +463,11 @@ fn main() {
                     ControlFlow::Continue(()) => {}
                 }
             }
-
-            sender.send(BusMessages::BusFinished).unwrap();
+            sender
+                .send(BusMessages::BusFinished {
+                    bus_number: simulated_bus.bus_num,
+                })
+                .unwrap();
         });
         handle_list.push(handle);
     }
