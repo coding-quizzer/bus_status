@@ -407,8 +407,9 @@ fn main() {
 
             match received_bus_stop_message {
                 BusMessages::AdvanceTimeStep {
-                    current_time_step,
+                    // current_time_step,
                     bus_number,
+                    ..
                 } => {
                     println!("Stop recieved from Bus {}", bus_number);
                     buses_finished_at_stops += 1;
