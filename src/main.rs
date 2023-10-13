@@ -127,7 +127,7 @@ struct Bus {
     capacity: usize,
     total_passenger_count: u32,
     time_tick_num: u32,
-    bus_num: u32,
+    bus_num: usize,
 }
 
 // manually impliment Debug, so that the iterator field can be skipped, eliminating the complicaiton of requiring
@@ -165,7 +165,7 @@ struct BusLocation {
 }
 
 impl Bus {
-    fn new(bus_route: Vec<BusLocation>, capacity: usize, bus_num: u32) -> Bus {
+    fn new(bus_route: Vec<BusLocation>, capacity: usize, bus_num: usize) -> Bus {
         let bus_route_vec = bus_route.clone();
         let mut iterator = bus_route.into_iter();
         let first_bus_location = iterator
@@ -224,7 +224,7 @@ impl Bus {
         if self.time_tick_num < *current_time_tick_number {
             sender
                 .send(BusMessages::AdvanceTimeStep {
-                    current_time_step: self.time_tick_num,
+                    //current_time_step: self.time_tick_num,
                     bus_number: self.bus_num,
                 })
                 .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
@@ -309,12 +309,19 @@ impl Bus {
 #[derive(PartialEq, Debug)]
 enum BusMessages {
     AdvanceTimeStep {
-        current_time_step: u32,
-        bus_number: u32,
+        // current_time_step: u32,
+        bus_number: usize,
     },
     BusFinished {
-        bus_number: u32,
+        bus_number: usize,
     },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum BusThreadStatus {
+    BusFinishedRoute,
+    WaitingForTimeStep,
+    CompletedTimeStep,
 }
 
 fn generate_passenger(location_list: &Vec<Location>) -> Result<PassengerWaiting, String> {
@@ -376,7 +383,7 @@ fn generate_location_list(count: u32) -> Vec<Location> {
 const GLOBAL_PASSENGER_COUNT: u32 = 500;
 const GLOBAL_LOCATION_COUNT: u32 = 10;
 const BUS_CAPACITY: usize = 10;
-const NUM_OF_BUSES: u32 = 4;
+const NUM_OF_BUSES: usize = 4;
 const NUM_STOPS_PER_BUS: usize = 25;
 
 fn main() {
@@ -398,11 +405,8 @@ fn main() {
 
     let current_bus_stop_clone = current_bus_stop.clone();
     let route_sync_handle = thread::spawn(move || {
-        let mut buses_finished_at_stops = 0;
-        let mut finished_buses = 0;
+        let mut bus_status_array = [BusThreadStatus::WaitingForTimeStep; NUM_OF_BUSES];
         loop {
-            let mut active_buses = NUM_OF_BUSES - finished_buses;
-
             let received_bus_stop_message = rx_from_threads.recv().unwrap();
 
             match received_bus_stop_message {
@@ -412,26 +416,45 @@ fn main() {
                     ..
                 } => {
                     println!("Stop recieved from Bus {}", bus_number);
-                    buses_finished_at_stops += 1;
+                    bus_status_array[bus_number - 1] = BusThreadStatus::CompletedTimeStep;
                 }
 
                 BusMessages::BusFinished { bus_number } => {
+                    bus_status_array[bus_number - 1] = BusThreadStatus::BusFinishedRoute;
                     println!("Bus {} Finished Route", bus_number);
-                    active_buses -= 1;
+                    let finished_buses = bus_status_array
+                        .iter()
+                        .filter(|status| *status == &BusThreadStatus::BusFinishedRoute)
+                        .count();
+                    let active_buses = NUM_OF_BUSES - finished_buses;
                     println!("There are now {active_buses} active buses.");
-                    finished_buses += 1;
                 }
             }
+
+            let finished_buses = bus_status_array
+                .iter()
+                .filter(|status| *status == &BusThreadStatus::BusFinishedRoute)
+                .count();
 
             if finished_buses == NUM_OF_BUSES {
                 println!("Program Complete");
                 break;
             }
 
-            if buses_finished_at_stops == active_buses {
+            if bus_status_array
+                .iter()
+                .filter(|status| **status == BusThreadStatus::WaitingForTimeStep)
+                .count()
+                == 0
+            {
+                for status in bus_status_array.iter_mut() {
+                    if status == &BusThreadStatus::CompletedTimeStep {
+                        *status = BusThreadStatus::WaitingForTimeStep;
+                    }
+                }
                 println!("---------- All buses are finished at their stops -----------");
                 *current_bus_stop_clone.lock().unwrap() += 1;
-                buses_finished_at_stops = 0;
+                // buses_finished_at_stops = 0;
             }
         }
     });
