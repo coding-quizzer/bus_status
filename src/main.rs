@@ -143,18 +143,6 @@ impl std::fmt::Debug for Bus {
     }
 }
 
-// call update twice. How long does it take to get to a stop,
-// how long will a stop take
-
-// measure how time
-// count system cycles
-// coordinate the thread cycles
-// process signalling or spin use global variable
-
-// make sure bus yields between cycles
-// time between stops
-// could correlate number of updates to distance
-
 // let passengers take the most efficient route
 
 #[derive(Debug, Clone)]
@@ -207,12 +195,6 @@ impl Bus {
     fn add_passenger(&mut self, passenger: &PassengerOnBus) {
         self.passengers.push(*passenger);
     }
-
-    // When do you toggle the next state of the iterator? On the one hand, the current location of a bus is
-    // isn't really set until the bus arrives at a location, but on the other hand, the distance to the next location is
-    // neccesary. Perhapse each location should have a distance to the next location instead of distance to the next location.
-    // In that case, the distance would probably need to be an option, since the last location does not have a next location
-    // on the other hand, the next location could represent the offboarding garage?
 
     fn update(
         &mut self,
