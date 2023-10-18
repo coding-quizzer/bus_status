@@ -118,6 +118,13 @@ where
         Box::new(self.clone())
     }
 }
+
+// Evantually, Passengers will need to somehow access the bus timetable to determine what bus will reach
+// their destination. So far, the bus has decided what passengers can get on, but at this point
+// the passengers should probably choose.
+
+// The current bus route data the buses impliment may not be the same format the passengers would want
+// It's hard to compare the positions of the buses at each time tick.s
 struct Bus {
     status: BusStatus,
     passengers: Vec<PassengerOnBus>,
@@ -287,6 +294,10 @@ impl Bus {
         self.passengers = new_bus_passengers;
         Some(())
     }
+
+    fn get_bus_route(&self) -> Vec<BusLocation> {
+        self.bus_route_vec.clone()
+    }
 }
 
 #[derive(PartialEq, Debug)]
@@ -378,6 +389,8 @@ fn main() {
 
     let location_vector_arc = Arc::new(location_vector);
 
+    let bus_route_vec_arc = Arc::new(Mutex::new(vec![]));
+
     let passenger_extra_stops_waited_pointer = Arc::new(Mutex::new(Vec::<u32>::new()));
 
     let current_time_tick = Arc::new(Mutex::new(1));
@@ -389,6 +402,7 @@ fn main() {
     let current_time_tick_clone = current_time_tick.clone();
     let route_sync_handle = thread::spawn(move || {
         let mut bus_status_array = [BusThreadStatus::WaitingForTimeStep; NUM_OF_BUSES];
+
         loop {
             let received_bus_stop_message = rx_from_threads.recv().unwrap();
 
@@ -455,8 +469,13 @@ fn main() {
         let passenger_list_pointer_clone = passenger_list_pointer.clone();
         let passenger_stops_passed_pointer_clone = passenger_extra_stops_waited_pointer.clone();
         let bus_stop_number_clone = current_time_tick.clone();
+        let bus_route_vec_clone = bus_route_vec_arc.clone();
         let handle = thread::spawn(move || {
             let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY, bus_num);
+            bus_route_vec_clone
+                .lock()
+                .unwrap()
+                .push(simulated_bus.get_bus_route());
 
             loop {
                 let update_option = simulated_bus.update(
