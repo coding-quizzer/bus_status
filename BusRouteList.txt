@@ -1,0 +1,73 @@
+CurrentBusRouteList = vec![
+  BusLocation {
+    location: Location {
+      id: 1
+    }
+    distance to location: 5
+  },
+   BusLocation {
+    location: Location {
+      id: 14
+    }
+    distance to location: 2
+  },
+   BusLocation {
+    location: Location {
+      id: 23
+    }
+    distance to location: 3
+  },
+   BusLocation {
+    location: Location {
+      id: 4
+    }
+    distance to location: 1
+  },
+   BusLocation {
+    location: Location {
+      id: 6
+    }
+    distance to location: 1
+  }
+
+]
+
+PassengerBusRouteList = vec![
+  BusLocation {
+    location: Location {
+      id: 1
+    }
+
+    bus_time_tick: 5
+  }
+
+  BusLocation {
+    location: Location {
+      id: 14
+    }
+    bus_time_tick: 8
+  }
+
+  BusLocation {
+    location: Location {
+      id: 23
+    }
+    bus_time_tick: 12
+  }
+
+  BusLocation {
+    location: Location {
+      id: 4
+    }
+
+    bus_time_tick: 14
+  }
+
+  BusLocation {
+    location: Location {
+      id: 6
+    }
+
+    bus_time_tick: 16
+  }
+]

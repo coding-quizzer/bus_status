@@ -8,8 +8,6 @@ use std::{
 };
 use uuid::Uuid;
 
-type Passenger = PassengerWaiting;
-
 /// generates a random list from a set of elements such that
 /// no two consecutive elements are identical.
 fn generate_list_of_random_elements_from_list<T: Copy>(
@@ -51,6 +49,41 @@ struct Location {
 impl Location {
     fn new() -> Location {
         Location { id: Uuid::new_v4() }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum PassengerStatus {
+    OnBus,
+    Waiting,
+    Arrived,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct Passenger {
+    id: Uuid,
+    destination_location: Location,
+    status: PassengerStatus,
+    current_location: Option<Location>,
+    passed_stops: u32,
+}
+impl Passenger {
+    fn new(current_location: Location, destination_location: Location) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            current_location: Some(current_location),
+            destination_location,
+            status: PassengerStatus::Waiting,
+            passed_stops: 0,
+        }
+    }
+
+    fn convert_to_onboarded_passenger(mut self) -> Self {
+        if self.status == PassengerStatus::Waiting {
+            self.status = PassengerStatus::OnBus;
+            self.current_location = None;
+        }
+        self
     }
 }
 
@@ -127,7 +160,7 @@ where
 // It's hard to compare the positions of the buses at each time tick.s
 struct Bus {
     status: BusStatus,
-    passengers: Vec<PassengerOnBus>,
+    passengers: Vec<Passenger>,
     current_location: Option<Location>,
     bus_route_iter: Box<dyn CloneIterator<Item = BusLocation>>,
     bus_route_vec: Vec<BusLocation>,
@@ -199,13 +232,13 @@ impl Bus {
         Some(())
     }
 
-    fn add_passenger(&mut self, passenger: &PassengerOnBus) {
+    fn add_passenger(&mut self, passenger: &Passenger) {
         self.passengers.push(*passenger);
     }
 
     fn update(
         &mut self,
-        waiting_passengers: &mut Vec<PassengerWaiting>,
+        waiting_passengers: &mut Vec<Passenger>,
         passenger_stops_waited_list: &mut Vec<u32>,
         sender: &Sender<BusMessages>, // bus_num: u32,
         current_time_tick_number: &u32,
@@ -247,7 +280,7 @@ impl Bus {
         ControlFlow::Continue(())
     }
 
-    fn take_passengers(&mut self, waiting_passengers: &mut Vec<PassengerWaiting>) {
+    fn take_passengers(&mut self, waiting_passengers: &mut Vec<Passenger>) {
         let mut new_passengers = vec![];
         for passenger in &mut *waiting_passengers {
             if self.passengers.len() >= self.capacity {
@@ -258,11 +291,11 @@ impl Bus {
 
             // might become a seperate function call
             let bus_will_stop_at_passengers_location = cloned_locations
-                .any(|location_of_bus| location_of_bus.location == passenger.end_location);
+                .any(|location_of_bus| location_of_bus.location == passenger.destination_location);
 
             if bus_will_stop_at_passengers_location {
                 self.current_location.map_or((), |loc| {
-                    if loc == passenger.current_location {
+                    if loc == passenger.current_location.unwrap() {
                         let onboard_passenger = passenger.convert_to_onboarded_passenger();
                         self.add_passenger(&onboard_passenger);
                         new_passengers.push(passenger.clone());
@@ -282,7 +315,7 @@ impl Bus {
         let bus_passengers = &mut *self.passengers;
         let mut new_bus_passengers = vec![];
         for pass in bus_passengers {
-            if pass.end_location == current_location {
+            if pass.destination_location == current_location {
                 println!("Passenger left Bus {}", self.bus_num);
                 passenger_passed_stops.push(pass.passed_stops);
                 self.total_passenger_count += 1;
@@ -318,7 +351,7 @@ enum BusThreadStatus {
     CompletedTimeStep,
 }
 
-fn generate_passenger(location_list: &Vec<Location>) -> Result<PassengerWaiting, String> {
+fn generate_passenger(location_list: &Vec<Location>) -> Result<Passenger, String> {
     let location_vector = generate_list_of_random_elements_from_list(location_list, 2)?;
 
     let [old_location, new_location] = location_vector[..] else {
@@ -331,7 +364,7 @@ fn generate_passenger(location_list: &Vec<Location>) -> Result<PassengerWaiting,
 fn generate_passenger_list(
     count: u32,
     location_list: &Vec<Location>,
-) -> Result<Vec<PassengerWaiting>, String> {
+) -> Result<Vec<Passenger>, String> {
     let mut passenger_list = vec![];
     for _num in 0..count {
         passenger_list.push(generate_passenger(location_list)?)
