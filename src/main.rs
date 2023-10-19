@@ -502,12 +502,23 @@ fn main() {
 
     handle_list.push(route_sync_handle);
 
+    let passenger_thread_bus_route_clone = bus_route_vec_arc.clone();
+
     let passenger_thread_passenger_list_clone = passenger_list_pointer.clone();
 
     let passenger_thread_program_end_clone = program_end.clone();
 
+    let passenger_thread_time_tick_clone = current_time_tick.clone();
+
     let passengers_thread_handle = thread::spawn(move || loop {
-        let passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
+        let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
+        let bus_route_list = passenger_thread_bus_route_clone.lock().unwrap();
+        let bus_route_list = bus_route_list
+            .clone()
+            .into_iter()
+            .map(convert_bus_route_list_to_passenger_bus_route_list);
+        let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
+        for passenger in passenger_list.iter_mut() {}
         assert_eq!(passenger_list.len(), GLOBAL_PASSENGER_COUNT as usize);
 
         if *passenger_thread_program_end_clone.lock().unwrap() {
