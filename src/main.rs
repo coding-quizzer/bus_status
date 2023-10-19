@@ -255,15 +255,19 @@ impl Bus {
     }
 
     fn take_passengers(&mut self, waiting_passengers: &mut Vec<Passenger>) {
-        let mut new_passengers = vec![];
         for passenger in &mut *waiting_passengers {
-            if self.passengers.len() >= self.capacity {
+            // Don't take a passenger if the bus is full or the passenger is either already on a bus or at his destination
+            if self.passengers.len() >= self.capacity
+                || passenger.status != PassengerStatus::Waiting
+            {
                 break;
             }
 
             let mut cloned_locations = self.bus_route_iter.clone_box();
 
             // might become a seperate function call
+
+            // Letting Passengers in will eventually move to Passenger side instead of Bus side
             let bus_will_stop_at_passengers_location = cloned_locations
                 .any(|location_of_bus| location_of_bus.location == passenger.destination_location);
 
@@ -272,15 +276,9 @@ impl Bus {
                     if loc == passenger.current_location.unwrap() {
                         let onboard_passenger = passenger.convert_to_onboarded_passenger();
                         self.add_passenger(&onboard_passenger);
-                        new_passengers.push(*passenger);
                     }
                 })
             }
-        }
-
-        for passenger in new_passengers {
-            // remove_from_list(passenger_list, passenger);
-            waiting_passengers.retain(|pass| pass != &passenger);
         }
     }
     fn drop_off_passengers(&mut self, passenger_passed_stops: &mut Vec<u32>) -> Option<()> {
@@ -417,9 +415,10 @@ const NUM_STOPS_PER_BUS: usize = 25;
 fn main() {
     let location_vector = initialize_location_list(GLOBAL_LOCATION_COUNT);
 
-    let passenger_list_pointer = Arc::new(Mutex::new(
-        generate_passenger_list(GLOBAL_PASSENGER_COUNT, &location_vector).unwrap(),
-    ));
+    let total_passenger_list =
+        generate_passenger_list(GLOBAL_PASSENGER_COUNT, &location_vector).unwrap();
+
+    let passenger_list_pointer = Arc::new(Mutex::new(total_passenger_list));
 
     let location_vector_arc = Arc::new(location_vector);
 
@@ -429,13 +428,20 @@ fn main() {
 
     let current_time_tick = Arc::new(Mutex::new(1));
 
+    let program_end = Arc::new(Mutex::new(false));
+
     let mut handle_list = vec![];
+
+    let sync_handle_program_end_clone = program_end.clone();
 
     let (tx_from_threads, rx_from_threads) = mpsc::channel();
 
     let current_time_tick_clone = current_time_tick.clone();
     let route_sync_handle = thread::spawn(move || {
         let mut bus_status_array = [BusThreadStatus::WaitingForTimeStep; NUM_OF_BUSES];
+
+        // Eventually, there will be two time ticks per movement so that the stopped buses can have two ticks:
+        // One for unloading passengers and another for loading them. Bus Movement will probably happen on the second tick
 
         loop {
             let received_bus_stop_message = rx_from_threads.recv().unwrap();
@@ -468,6 +474,8 @@ fn main() {
                 .count();
 
             if finished_buses >= NUM_OF_BUSES {
+                let mut program_end = sync_handle_program_end_clone.lock().unwrap();
+                *program_end = true;
                 println!("Program Complete");
                 break;
             }
@@ -492,6 +500,21 @@ fn main() {
     });
 
     handle_list.push(route_sync_handle);
+
+    let passenger_thread_passenger_list_clone = passenger_list_pointer.clone();
+
+    let passenger_thread_program_end_clone = program_end.clone();
+
+    let passengers_thread_handle = thread::spawn(move || loop {
+        let passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
+        assert_eq!(passenger_list.len(), GLOBAL_PASSENGER_COUNT as usize);
+
+        if *passenger_thread_program_end_clone.lock().unwrap() {
+            break;
+        }
+    });
+
+    handle_list.push(passengers_thread_handle);
 
     for bus_num in 1..=NUM_OF_BUSES {
         let sender = tx_from_threads.clone();
