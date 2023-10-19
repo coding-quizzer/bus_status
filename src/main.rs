@@ -290,6 +290,7 @@ impl Bus {
             if pass.destination_location == current_location {
                 println!("Passenger left Bus {}", self.bus_num);
                 passenger_passed_stops.push(pass.passed_stops);
+                pass.status = PassengerStatus::Arrived;
                 self.total_passenger_count += 1;
             } else {
                 pass.passed_stops += 1;
