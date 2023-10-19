@@ -298,7 +298,7 @@ impl Bus {
                     if loc == passenger.current_location.unwrap() {
                         let onboard_passenger = passenger.convert_to_onboarded_passenger();
                         self.add_passenger(&onboard_passenger);
-                        new_passengers.push(passenger.clone());
+                        new_passengers.push(*passenger);
                     }
                 })
             }
@@ -306,7 +306,7 @@ impl Bus {
 
         for passenger in new_passengers {
             // remove_from_list(passenger_list, passenger);
-            waiting_passengers.retain(|pass| pass.clone() != passenger);
+            waiting_passengers.retain(|pass| pass != &passenger);
         }
     }
     fn drop_off_passengers(&mut self, passenger_passed_stops: &mut Vec<u32>) -> Option<()> {
