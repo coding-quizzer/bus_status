@@ -160,6 +160,12 @@ struct BusLocation {
     distance_to_location: u32,
 }
 
+#[derive(Debug, Clone)]
+struct PassengerBusLocation {
+    location: Location,
+    location_time_tick: u32,
+}
+
 impl Bus {
     fn new(bus_route: Vec<BusLocation>, capacity: usize, bus_num: usize) -> Bus {
         let bus_route_vec = bus_route.clone();
@@ -339,6 +345,33 @@ fn generate_passenger_list(
     }
 
     Ok(passenger_list)
+}
+
+fn convert_bus_route_list_to_passenger_bus_route_list(
+    bus_route_list: Vec<BusLocation>,
+) -> Vec<PassengerBusLocation> {
+    let mut time_tick = 0;
+    let mut passenger_bus_route_list = vec![];
+    for (index, bus_location) in bus_route_list.iter().enumerate() {
+        let mut index_increment = 0;
+        if index != 0 {
+            // Add one to the index_increment for the time tick used at the previous stop
+            index_increment += 1;
+        }
+
+        index_increment += bus_location.distance_to_location;
+
+        time_tick += index_increment;
+
+        let passenger_bus_location = PassengerBusLocation {
+            location: bus_location.location,
+            location_time_tick: time_tick,
+        };
+
+        passenger_bus_route_list.push(passenger_bus_location);
+    }
+
+    passenger_bus_route_list
 }
 
 fn generate_bus_route_locations(
