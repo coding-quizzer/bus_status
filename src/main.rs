@@ -87,38 +87,6 @@ impl Passenger {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct PassengerOnBus {
-    id: Uuid,
-    end_location: Location,
-    passed_stops: u32,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-struct PassengerWaiting {
-    id: Uuid,
-    current_location: Location,
-    end_location: Location,
-}
-
-impl PassengerWaiting {
-    fn new(current_location: Location, end_location: Location) -> PassengerWaiting {
-        PassengerWaiting {
-            id: Uuid::new_v4(),
-            current_location,
-            end_location,
-        }
-    }
-
-    fn convert_to_onboarded_passenger(&self) -> PassengerOnBus {
-        PassengerOnBus {
-            id: self.id,
-            end_location: self.end_location,
-            passed_stops: 0,
-        }
-    }
-}
-
 #[derive(Clone, PartialEq, Eq, Debug)]
 enum MovementState {
     // Moving contains the distance to the next location
