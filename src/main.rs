@@ -502,6 +502,40 @@ fn main() {
 
     handle_list.push(route_sync_handle);
 
+    // return Option with a tuple containing bus number and pick up time tick
+    fn find_bus_to_pick_up_passenger(
+        current_location: &Location,
+        destination_location: &Location,
+        time_tick: u32,
+        bus_route_list: Vec<Vec<PassengerBusLocation>>,
+    ) -> Option<(usize, u32)> {
+        for (bus_index, bus_route) in bus_route_list.iter().enumerate() {
+            // let bus_route_iter = bus_route.iter();
+            for passenger_bus_location in bus_route {
+                let PassengerBusLocation {
+                    location,
+                    location_time_tick,
+                } = passenger_bus_location;
+                if location == current_location && location_time_tick >= &time_tick {
+                    for other_passenger_bus_location in bus_route {
+                        let PassengerBusLocation {
+                            location: location_for_dest,
+                            location_time_tick: time_tick_for_dest,
+                        } = other_passenger_bus_location;
+
+                        if location_for_dest == destination_location
+                            && time_tick_for_dest > location_time_tick
+                        {
+                            return Some((bus_index, time_tick));
+                        }
+                    }
+                }
+            }
+        }
+
+        None
+    }
+
     let passenger_thread_bus_route_clone = bus_route_vec_arc.clone();
 
     let passenger_thread_passenger_list_clone = passenger_list_pointer.clone();
@@ -511,14 +545,42 @@ fn main() {
     let passenger_thread_time_tick_clone = current_time_tick.clone();
 
     let passengers_thread_handle = thread::spawn(move || loop {
-        let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
         let bus_route_list = passenger_thread_bus_route_clone.lock().unwrap();
-        let bus_route_list = bus_route_list
+        let bus_route_list: Vec<Vec<PassengerBusLocation>> = bus_route_list
             .clone()
             .into_iter()
-            .map(convert_bus_route_list_to_passenger_bus_route_list);
+            .map(convert_bus_route_list_to_passenger_bus_route_list)
+            .collect();
         let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
-        for passenger in passenger_list.iter_mut() {}
+        let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
+        for passenger in passenger_list.iter_mut() {
+            match passenger.status {
+                PassengerStatus::Waiting => {
+                    // If passenger is waiting for the bus, find out what bus will be able to take
+                    // the passenger to his destination at a time later than this time step
+                    // and send some message to the bus to pick him up
+
+                    let (bus_num, arrival_time_tick) = find_bus_to_pick_up_passenger(
+                        &passenger.current_location.unwrap(),
+                        &passenger.destination_location,
+                        *time_tick,
+                        bus_route_list.clone(),
+                    )
+                    .unwrap();
+
+                    println!("Bus Num: {}", bus_num);
+                    println!("Time tick: {}", arrival_time_tick);
+                }
+                PassengerStatus::OnBus => {
+                    // If the passenger is on a bus, perhaps send a message to get off of bus
+                    // if the bus has arrived? That could also be done by the bus.
+                }
+                PassengerStatus::Arrived => {
+                    // If passenger is at destination, there is nothing to be done,
+                    // since the passenger has arrived and is not part of the bus route anymore
+                }
+            }
+        }
         assert_eq!(passenger_list.len(), GLOBAL_PASSENGER_COUNT as usize);
 
         if *passenger_thread_program_end_clone.lock().unwrap() {
