@@ -60,6 +60,9 @@ enum PassengerStatus {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+// Passenger should eventually contain the index and the time tick for the bus
+// I'm not sure how recalculating the route should work if the passenger doesn't get on the bus
+// I wonder if some sort of priority system would be useful sometime
 struct Passenger {
     id: Uuid,
     destination_location: Location,
@@ -308,6 +311,10 @@ impl Bus {
 
 #[derive(PartialEq, Debug)]
 enum BusMessages {
+    InitBus {
+        bus_number: usize,
+    },
+    InitPassengers,
     AdvanceTimeStep {
         // current_time_step: u32,
         bus_number: usize,
@@ -319,6 +326,8 @@ enum BusMessages {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum BusThreadStatus {
+    Uninitialized,
+    Initialized,
     BusFinishedRoute,
     WaitingForTimeStep,
     CompletedTimeStep,
@@ -410,7 +419,7 @@ fn initialize_location_list(count: u32) -> Vec<Location> {
 const GLOBAL_PASSENGER_COUNT: u32 = 500;
 const GLOBAL_LOCATION_COUNT: u32 = 10;
 const BUS_CAPACITY: usize = 10;
-const NUM_OF_BUSES: usize = 4;
+const NUM_OF_BUSES: usize = 10;
 const NUM_STOPS_PER_BUS: usize = 25;
 
 fn main() {
@@ -423,11 +432,13 @@ fn main() {
 
     let location_vector_arc = Arc::new(location_vector);
 
+    // TODO: Convert to an array with size NUM_OF_BUSES
+    // each bus should add its bus route to its index in the array
     let bus_route_vec_arc = Arc::new(Mutex::new(vec![]));
 
     let passenger_extra_stops_waited_pointer = Arc::new(Mutex::new(Vec::<u32>::new()));
 
-    let current_time_tick = Arc::new(Mutex::new(1));
+    let current_time_tick = Arc::new(Mutex::new(0));
 
     let program_end = Arc::new(Mutex::new(false));
 
@@ -439,10 +450,13 @@ fn main() {
 
     let current_time_tick_clone = current_time_tick.clone();
     let route_sync_handle = thread::spawn(move || {
-        let mut bus_status_array = [BusThreadStatus::WaitingForTimeStep; NUM_OF_BUSES];
+        let mut bus_status_array = [BusThreadStatus::Uninitialized; NUM_OF_BUSES];
 
         // Eventually, there will be two time ticks per movement so that the stopped buses can have two ticks:
         // One for unloading passengers and another for loading them. Bus Movement will probably happen on the second tick
+        // (Uninitialized items could contain the empty vector)
+
+        // Buses are initialized on the first time tick, Passengers choose their bus route info on the second time tick, and the bus route happens on the third time tick
 
         loop {
             let received_bus_stop_message = rx_from_threads.recv().unwrap();
@@ -467,6 +481,23 @@ fn main() {
                     let active_buses = NUM_OF_BUSES - finished_buses;
                     println!("There are now {active_buses} active buses.");
                 }
+
+                BusMessages::InitBus { bus_number } => {
+                    bus_status_array[bus_number - 1] = BusThreadStatus::WaitingForTimeStep;
+                    println!("Bus {bus_number} Initialized")
+                }
+                BusMessages::InitPassengers => {}
+            }
+
+            if *current_time_tick_clone.lock().unwrap() == 0
+                && bus_status_array
+                    .iter()
+                    .filter(|status| *status == &BusThreadStatus::Uninitialized)
+                    .count()
+                    == 0
+            {
+                *current_time_tick_clone.lock().unwrap() += 1;
+                continue;
             }
 
             let finished_buses = bus_status_array
@@ -484,7 +515,7 @@ fn main() {
             // Increment the time step after all buses have run
             if bus_status_array
                 .iter()
-                .filter(|status| **status == BusThreadStatus::WaitingForTimeStep)
+                .filter(|status| *status == &BusThreadStatus::WaitingForTimeStep)
                 .count()
                 == 0
             {
@@ -553,6 +584,9 @@ fn main() {
             .collect();
         let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
         let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
+        if *time_tick == 0 {
+            continue;
+        }
         for passenger in passenger_list.iter_mut() {
             match passenger.status {
                 PassengerStatus::Waiting => {
@@ -599,7 +633,7 @@ fn main() {
         .unwrap();
         let passenger_list_pointer_clone = passenger_list_pointer.clone();
         let passenger_stops_passed_pointer_clone = passenger_extra_stops_waited_pointer.clone();
-        let bus_stop_number_clone = current_time_tick.clone();
+        let current_time_tick_clone = current_time_tick.clone();
         let bus_route_vec_clone = bus_route_vec_arc.clone();
         let handle = thread::spawn(move || {
             let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY, bus_num);
@@ -607,13 +641,21 @@ fn main() {
                 .lock()
                 .unwrap()
                 .push(simulated_bus.get_bus_route());
+            sender
+                .send(BusMessages::InitBus {
+                    bus_number: simulated_bus.bus_num,
+                })
+                .unwrap();
 
             loop {
+                if *current_time_tick_clone.lock().unwrap() < 1 {
+                    continue;
+                }
                 let update_option = simulated_bus.update(
                     &mut passenger_list_pointer_clone.lock().unwrap(),
                     &mut passenger_stops_passed_pointer_clone.lock().unwrap(),
                     &sender,
-                    &bus_stop_number_clone.lock().unwrap(),
+                    &current_time_tick_clone.lock().unwrap(),
                 );
 
                 match update_option {
