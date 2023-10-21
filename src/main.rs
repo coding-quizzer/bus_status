@@ -434,7 +434,8 @@ fn main() {
 
     // TODO: Convert to an array with size NUM_OF_BUSES
     // each bus should add its bus route to its index in the array
-    let bus_route_vec_arc = Arc::new(Mutex::new(vec![]));
+    let bus_route_vec_arc: Arc<Mutex<[Vec<BusLocation>; NUM_OF_BUSES]>> =
+        Arc::new(Mutex::new(std::array::from_fn(|_| vec![])));
 
     let passenger_extra_stops_waited_pointer = Arc::new(Mutex::new(Vec::<u32>::new()));
 
@@ -449,6 +450,7 @@ fn main() {
     let (tx_from_threads, rx_from_threads) = mpsc::channel();
 
     let current_time_tick_clone = current_time_tick.clone();
+    // TODO: Figure out why only one bus is initializing at this time.
     let route_sync_handle = thread::spawn(move || {
         let mut bus_status_array = [BusThreadStatus::Uninitialized; NUM_OF_BUSES];
 
@@ -561,7 +563,7 @@ fn main() {
                         if location_for_dest == destination_location
                             && time_tick_for_dest > location_time_tick
                         {
-                            return Some((bus_index, time_tick));
+                            return Some((bus_index + 1, time_tick));
                         }
                     }
                 }
@@ -650,10 +652,8 @@ fn main() {
         let bus_route_vec_clone = bus_route_vec_arc.clone();
         let handle = thread::spawn(move || {
             let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY, bus_num);
-            bus_route_vec_clone
-                .lock()
-                .unwrap()
-                .push(simulated_bus.get_bus_route());
+            let mut bus_route_vec = bus_route_vec_clone.lock().unwrap();
+            bus_route_vec[simulated_bus.bus_num - 1] = simulated_bus.get_bus_route();
             sender
                 .send(BusMessages::InitBus {
                     bus_number: simulated_bus.bus_num,
@@ -693,7 +693,8 @@ fn main() {
 
     let total_passengers = passenger_extra_stops_waited.len();
 
-    let passengers_remaining = passenger_list_pointer.lock().unwrap().len();
+    // let passengers_remaining = passenger_list_pointer.lock().unwrap().len();
+    let passengers_remaining = GLOBAL_PASSENGER_COUNT - total_passengers as u32;
 
     println!("{passengers_remaining} passengers did not get onto any bus");
 
