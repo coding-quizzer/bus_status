@@ -419,7 +419,7 @@ fn initialize_location_list(count: u32) -> Vec<Location> {
 const GLOBAL_PASSENGER_COUNT: u32 = 500;
 const GLOBAL_LOCATION_COUNT: u32 = 10;
 const BUS_CAPACITY: usize = 10;
-const NUM_OF_BUSES: usize = 10;
+const NUM_OF_BUSES: usize = 4;
 const NUM_STOPS_PER_BUS: usize = 25;
 
 fn main() {
@@ -500,6 +500,10 @@ fn main() {
                 continue;
             }
 
+            if *current_time_tick_clone.lock().unwrap() == 1 {
+                *current_time_tick_clone.lock().unwrap() += 1;
+            }
+
             let finished_buses = bus_status_array
                 .iter()
                 .filter(|status| *status == &BusThreadStatus::BusFinishedRoute)
@@ -574,7 +578,7 @@ fn main() {
     let passenger_thread_program_end_clone = program_end.clone();
 
     let passenger_thread_time_tick_clone = current_time_tick.clone();
-
+    let passenger_thread_sender = tx_from_threads.clone();
     let passengers_thread_handle = thread::spawn(move || loop {
         let bus_route_list = passenger_thread_bus_route_clone.lock().unwrap();
         let bus_route_list: Vec<Vec<PassengerBusLocation>> = bus_route_list
@@ -587,34 +591,43 @@ fn main() {
         if *time_tick == 0 {
             continue;
         }
-        for passenger in passenger_list.iter_mut() {
-            match passenger.status {
-                PassengerStatus::Waiting => {
-                    // If passenger is waiting for the bus, find out what bus will be able to take
-                    // the passenger to his destination at a time later than this time step
-                    // and send some message to the bus to pick him up
 
-                    let (bus_num, arrival_time_tick) = find_bus_to_pick_up_passenger(
-                        &passenger.current_location.unwrap(),
-                        &passenger.destination_location,
-                        *time_tick,
-                        bus_route_list.clone(),
-                    )
-                    .unwrap();
+        if *time_tick == 1 {
+            for passenger in passenger_list.iter_mut() {
+                match passenger.status {
+                    PassengerStatus::Waiting => {
+                        // If passenger is waiting for the bus, find out what bus will be able to take
+                        // the passenger to his destination at a time later than this time step
+                        // and send some message to the bus to pick him up
 
-                    println!("Bus Num: {}", bus_num);
-                    println!("Time tick: {}", arrival_time_tick);
-                }
-                PassengerStatus::OnBus => {
-                    // If the passenger is on a bus, perhaps send a message to get off of bus
-                    // if the bus has arrived? That could also be done by the bus.
-                }
-                PassengerStatus::Arrived => {
-                    // If passenger is at destination, there is nothing to be done,
-                    // since the passenger has arrived and is not part of the bus route anymore
+                        let (bus_num, arrival_time_tick) = find_bus_to_pick_up_passenger(
+                            &passenger.current_location.unwrap(),
+                            &passenger.destination_location,
+                            *time_tick,
+                            bus_route_list.clone(),
+                        )
+                        .unwrap();
+
+                        println!("Bus Num: {}", bus_num);
+                        println!("Time tick: {}", arrival_time_tick);
+                    }
+                    PassengerStatus::OnBus => {
+                        // If the passenger is on a bus, perhaps send a message to get off of bus
+                        // if the bus has arrived? That could also be done by the bus.
+                    }
+                    PassengerStatus::Arrived => {
+                        // If passenger is at destination, there is nothing to be done,
+                        // since the passenger has arrived and is not part of the bus route anymore
+                    }
                 }
             }
+
+            passenger_thread_sender
+                .send(BusMessages::InitPassengers)
+                .unwrap();
+            break;
         }
+
         assert_eq!(passenger_list.len(), GLOBAL_PASSENGER_COUNT as usize);
 
         if *passenger_thread_program_end_clone.lock().unwrap() {
@@ -648,7 +661,7 @@ fn main() {
                 .unwrap();
 
             loop {
-                if *current_time_tick_clone.lock().unwrap() < 1 {
+                if *current_time_tick_clone.lock().unwrap() < 2 {
                     continue;
                 }
                 let update_option = simulated_bus.update(
