@@ -60,6 +60,13 @@ enum PassengerStatus {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct PassengerOnboardingBusSchedule {
+    time_tick: u32,
+    // the last destination will not include a bus number because the passenger will be at his destination
+    bus_num: Option<usize>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 // Passenger should eventually contain the index and the time tick for the bus
 // I'm not sure how recalculating the route should work if the passenger doesn't get on the bus
 // I wonder if some sort of priority system would be useful sometime
@@ -69,6 +76,7 @@ struct Passenger {
     status: PassengerStatus,
     current_location: Option<Location>,
     passed_stops: u32,
+    bus_schedule: Vec<PassengerOnboardingBusSchedule>,
 }
 impl Passenger {
     fn new(current_location: Location, destination_location: Location) -> Self {
@@ -78,6 +86,7 @@ impl Passenger {
             destination_location,
             status: PassengerStatus::Waiting,
             passed_stops: 0,
+            bus_schedule: Vec::new(),
         }
     }
 
@@ -210,7 +219,7 @@ impl Bus {
     }
 
     fn add_passenger(&mut self, passenger: &Passenger) {
-        self.passengers.push(*passenger);
+        self.passengers.push(passenger.clone());
     }
 
     fn update(
@@ -258,7 +267,7 @@ impl Bus {
     }
 
     fn take_passengers(&mut self, waiting_passengers: &mut Vec<Passenger>) {
-        for passenger in &mut *waiting_passengers {
+        for passenger in waiting_passengers {
             // Don't take a passenger if the bus is full or the passenger is either already on a bus or at his destination
             if self.passengers.len() >= self.capacity
                 || passenger.status != PassengerStatus::Waiting
@@ -277,7 +286,7 @@ impl Bus {
             if bus_will_stop_at_passengers_location {
                 self.current_location.map_or((), |loc| {
                     if loc == passenger.current_location.unwrap() {
-                        let onboard_passenger = passenger.convert_to_onboarded_passenger();
+                        let onboard_passenger = passenger.clone().convert_to_onboarded_passenger();
                         self.add_passenger(&onboard_passenger);
                     }
                 })
@@ -289,15 +298,15 @@ impl Bus {
         let current_location = self.current_location?;
         let bus_passengers = &mut *self.passengers;
         let mut new_bus_passengers = vec![];
-        for pass in bus_passengers {
-            if pass.destination_location == current_location {
+        for passenger in bus_passengers {
+            if passenger.destination_location == current_location {
                 println!("Passenger left Bus {}", self.bus_num);
-                passenger_passed_stops.push(pass.passed_stops);
-                pass.status = PassengerStatus::Arrived;
+                passenger_passed_stops.push(passenger.passed_stops);
+                passenger.status = PassengerStatus::Arrived;
                 self.total_passenger_count += 1;
             } else {
-                pass.passed_stops += 1;
-                new_bus_passengers.push(*pass);
+                passenger.passed_stops += 1;
+                new_bus_passengers.push(passenger.clone());
             }
         }
         self.passengers = new_bus_passengers;
