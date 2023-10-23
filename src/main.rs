@@ -462,7 +462,6 @@ fn main() {
 
         loop {
             let received_bus_stop_message = rx_from_threads.recv().unwrap();
-
             match received_bus_stop_message {
                 BusMessages::AdvanceTimeStep {
                     // current_time_step,
@@ -498,6 +497,7 @@ fn main() {
                     .count()
                     == 0
             {
+                println!("Bus i");
                 *current_time_tick_clone.lock().unwrap() += 1;
                 continue;
             }
@@ -652,8 +652,11 @@ fn main() {
         let bus_route_vec_clone = bus_route_vec_arc.clone();
         let handle = thread::spawn(move || {
             let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY, bus_num);
-            let mut bus_route_vec = bus_route_vec_clone.lock().unwrap();
-            bus_route_vec[simulated_bus.bus_num - 1] = simulated_bus.get_bus_route();
+            let mut bus_route_array = bus_route_vec_clone.lock().unwrap();
+            println!("Bus message sent");
+            bus_route_array[simulated_bus.bus_num - 1] = simulated_bus.get_bus_route();
+            // Release the lock on bus_route_vec by dropping it
+            drop(bus_route_array);
             sender
                 .send(BusMessages::InitBus {
                     bus_number: simulated_bus.bus_num,
