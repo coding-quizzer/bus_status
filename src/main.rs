@@ -327,7 +327,6 @@ enum BusMessages {
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum BusThreadStatus {
     Uninitialized,
-    Initialized,
     BusFinishedRoute,
     WaitingForTimeStep,
     CompletedTimeStep,
