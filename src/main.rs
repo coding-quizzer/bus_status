@@ -553,7 +553,9 @@ fn main() {
         destination_location: &Location,
         time_tick: u32,
         bus_route_list: Vec<Vec<PassengerBusLocation>>,
-    ) -> Option<(usize, u32)> {
+    ) -> Option<Vec<PassengerOnboardingBusSchedule>> {
+        let start_plan: PassengerOnboardingBusSchedule;
+        let end_plan: PassengerOnboardingBusSchedule;
         for (bus_index, bus_route) in bus_route_list.iter().enumerate() {
             // let bus_route_iter = bus_route.iter();
             for passenger_bus_location in bus_route {
@@ -571,7 +573,16 @@ fn main() {
                         if location_for_dest == destination_location
                             && time_tick_for_dest > location_time_tick
                         {
-                            return Some((bus_index + 1, time_tick));
+                            return Some(vec![
+                                PassengerOnboardingBusSchedule {
+                                    bus_num: Some(bus_index + 1),
+                                    time_tick: *location_time_tick,
+                                },
+                                PassengerOnboardingBusSchedule {
+                                    bus_num: None,
+                                    time_tick: *time_tick_for_dest,
+                                },
+                            ]);
                         }
                     }
                 }
@@ -610,16 +621,13 @@ fn main() {
                         // the passenger to his destination at a time later than this time step
                         // and send some message to the bus to pick him up
 
-                        let (bus_num, arrival_time_tick) = find_bus_to_pick_up_passenger(
+                        passenger.bus_schedule = find_bus_to_pick_up_passenger(
                             &passenger.current_location.unwrap(),
                             &passenger.destination_location,
                             *time_tick,
                             bus_route_list.clone(),
                         )
                         .unwrap();
-
-                        println!("Bus Num: {}", bus_num);
-                        println!("Time tick: {}", arrival_time_tick);
                     }
                     PassengerStatus::OnBus => {
                         // If the passenger is on a bus, perhaps send a message to get off of bus
