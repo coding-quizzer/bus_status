@@ -1,5 +1,4 @@
 use std::{
-    io::BufRead,
     ops::ControlFlow,
     sync::{
         mpsc::{self, Sender},
@@ -293,7 +292,7 @@ impl Bus {
                 self.add_passenger(&onboard_passenger);
             }
 
-            let mut cloned_locations = self.bus_route_iter.clone_box();
+            // let mut cloned_locations = self.bus_route_iter.clone_box();
 
             // might become a seperate function call
 
@@ -567,13 +566,14 @@ fn main() {
 
     // return Option with a tuple containing bus number and pick up time tick
     fn find_bus_to_pick_up_passenger(
-        current_location: &Location,
-        destination_location: &Location,
+        passenger: &Passenger,
         time_tick: u32,
         bus_route_list: Vec<Vec<PassengerBusLocation>>,
-    ) -> Option<Vec<PassengerOnboardingBusSchedule>> {
+    ) -> Result<Vec<PassengerOnboardingBusSchedule>, &Passenger> {
         // let start_plan: PassengerOnboardingBusSchedule;
         // let end_plan: PassengerOnboardingBusSchedule;
+        let current_location = passenger.current_location;
+        let destination_location = passenger.destination_location;
         for (bus_index, bus_route) in bus_route_list.iter().enumerate() {
             // let bus_route_iter = bus_route.iter();
             for passenger_bus_location in bus_route {
@@ -581,17 +581,17 @@ fn main() {
                     location,
                     location_time_tick,
                 } = passenger_bus_location;
-                if location == current_location && location_time_tick >= &time_tick {
+                if *location == current_location.unwrap() && location_time_tick >= &time_tick {
                     for other_passenger_bus_location in bus_route {
                         let PassengerBusLocation {
                             location: location_for_dest,
                             location_time_tick: time_tick_for_dest,
                         } = other_passenger_bus_location;
 
-                        if location_for_dest == destination_location
+                        if *location_for_dest == destination_location
                             && time_tick_for_dest > location_time_tick
                         {
-                            return Some(vec![
+                            return Ok(vec![
                                 PassengerOnboardingBusSchedule {
                                     bus_num: Some(bus_index + 1),
                                     time_tick: *location_time_tick,
@@ -607,7 +607,7 @@ fn main() {
             }
         }
 
-        None
+        Err(passenger)
     }
 
     let passenger_thread_bus_route_clone = bus_route_vec_arc.clone();
@@ -618,56 +618,75 @@ fn main() {
 
     let passenger_thread_time_tick_clone = current_time_tick.clone();
     let passenger_thread_sender = tx_from_threads.clone();
-    let passengers_thread_handle = thread::spawn(move || loop {
-        let bus_route_list = passenger_thread_bus_route_clone.lock().unwrap();
-        let bus_route_list: Vec<Vec<PassengerBusLocation>> = bus_route_list
-            .clone()
-            .into_iter()
-            .map(convert_bus_route_list_to_passenger_bus_route_list)
-            .collect();
-        let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
-        let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
-        if *time_tick == 0 {
-            continue;
-        }
-
-        if *time_tick == 1 {
-            for passenger in passenger_list.iter_mut() {
-                match passenger.status {
-                    PassengerStatus::Waiting => {
-                        // If passenger is waiting for the bus, find out what bus will be able to take
-                        // the passenger to his destination at a time later than this time step
-                        // and send some message to the bus to pick him up
-
-                        passenger.bus_schedule = find_bus_to_pick_up_passenger(
-                            &passenger.current_location.unwrap(),
-                            &passenger.destination_location,
-                            *time_tick,
-                            bus_route_list.clone(),
-                        )
-                        .unwrap();
-                    }
-                    PassengerStatus::OnBus => {
-                        // If the passenger is on a bus, perhaps send a message to get off of bus
-                        // if the bus has arrived? That could also be done by the bus.
-                    }
-                    PassengerStatus::Arrived => {
-                        // If passenger is at destination, there is nothing to be done,
-                        // since the passenger has arrived and is not part of the bus route anymore
-                    }
-                }
+    let passengers_thread_handle = thread::spawn(move || {
+        let mut rejected_passengers: Vec<Passenger> = Vec::new();
+        loop {
+            let bus_route_list = passenger_thread_bus_route_clone.lock().unwrap();
+            let bus_route_list: Vec<Vec<PassengerBusLocation>> = bus_route_list
+                .clone()
+                .into_iter()
+                .map(convert_bus_route_list_to_passenger_bus_route_list)
+                .collect();
+            let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
+            let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
+            let mut rejected_passengers_indeces = Vec::new();
+            if *time_tick == 0 {
+                continue;
             }
 
-            passenger_thread_sender
-                .send(BusMessages::InitPassengers)
-                .unwrap();
-            break;
-        }
+            if *time_tick == 1 {
+                for (passenger_index, passenger) in passenger_list.iter_mut().enumerate() {
+                    match passenger.status {
+                        PassengerStatus::Waiting => {
+                            // If passenger is waiting for the bus, find out what bus will be able to take
+                            // the passenger to his destination at a time later than this time step
+                            // and send some message to the bus to pick him up
 
-        assert_eq!(passenger_list.len(), GLOBAL_PASSENGER_COUNT as usize);
+                            if let Ok(bus_schedule) = find_bus_to_pick_up_passenger(
+                                passenger,
+                                *time_tick,
+                                bus_route_list.clone(),
+                            ) {
+                                passenger.bus_schedule = bus_schedule;
+                            } else {
+                                rejected_passengers_indeces.push(passenger_index);
+                            }
+                        }
+                        PassengerStatus::OnBus => {
+                            // If the passenger is on a bus, perhaps send a message to get off of bus
+                            // if the bus has arrived? That could also be done by the bus.
+                        }
+                        PassengerStatus::Arrived => {
+                            // If passenger is at destination, there is nothing to be done,
+                            // since the passenger has arrived and is not part of the bus route anymore
+                        }
+                    }
+                }
 
-        if *passenger_thread_program_end_clone.lock().unwrap() {
-            break;
+                // Remove passengers who cannot get onto a bus, since if they cannot get on any bus
+                // now, they will not be able to later, because the schedules will not change. I
+                // might as well continue keeping track of them.
+
+                for passenger_index in rejected_passengers_indeces.into_iter().rev() {
+                    let rejected_passenger = passenger_list.remove(passenger_index);
+                    rejected_passengers.push(rejected_passenger);
+                }
+
+                passenger_thread_sender
+                    .send(BusMessages::InitPassengers)
+                    .unwrap();
+                // break;
+            }
+
+            assert_eq!(
+                passenger_list.len() + rejected_passengers.len(),
+                GLOBAL_PASSENGER_COUNT as usize
+            );
+
+            if *passenger_thread_program_end_clone.lock().unwrap() {
+                println!("Rejected Passenger count: {}", rejected_passengers.len());
+                break;
+            }
         }
     });
 
