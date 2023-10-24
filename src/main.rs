@@ -1,4 +1,5 @@
 use std::{
+    io::BufRead,
     ops::ControlFlow,
     sync::{
         mpsc::{self, Sender},
@@ -250,7 +251,7 @@ impl Bus {
                 let more_locations_left = self.leave_for_next_location();
 
                 self.drop_off_passengers(passenger_stops_waited_list);
-                self.take_passengers(waiting_passengers);
+                self.take_passengers(waiting_passengers, current_time_tick_number);
 
                 self.time_tick_num += 1;
 
@@ -266,13 +267,30 @@ impl Bus {
         ControlFlow::Continue(())
     }
 
-    fn take_passengers(&mut self, waiting_passengers: &mut Vec<Passenger>) {
+    fn take_passengers(
+        &mut self,
+        waiting_passengers: &mut Vec<Passenger>,
+        current_time_tick: &u32,
+    ) {
         for passenger in waiting_passengers {
             // Don't take a passenger if the bus is full or the passenger is either already on a bus or at his destination
-            if self.passengers.len() >= self.capacity
-                || passenger.status != PassengerStatus::Waiting
-            {
+            // if self.passengers.len() >= self.capacity
+            //     || passenger.status != PassengerStatus::Waiting
+            if passenger.status != PassengerStatus::Waiting {
                 break;
+            }
+
+            let PassengerOnboardingBusSchedule {
+                time_tick: onboarding_time_tick,
+                bus_num,
+            } = passenger
+                .bus_schedule
+                .get(0)
+                .expect("Passenger schedule cannot be empty");
+
+            if onboarding_time_tick == current_time_tick && bus_num.expect("At this point, this cannot be the last bus loction, and thus the bus_num must exist") == self.bus_num {
+                let onboard_passenger = passenger.clone().convert_to_onboarded_passenger();
+                self.add_passenger(&onboard_passenger);
             }
 
             let mut cloned_locations = self.bus_route_iter.clone_box();
@@ -280,17 +298,17 @@ impl Bus {
             // might become a seperate function call
 
             // Letting Passengers in will eventually move to Passenger side instead of Bus side
-            let bus_will_stop_at_passengers_location = cloned_locations
-                .any(|location_of_bus| location_of_bus.location == passenger.destination_location);
+            // let bus_will_stop_at_passengers_location = cloned_locations
+            //     .any(|location_of_bus| location_of_bus.location == passenger.destination_location);
 
-            if bus_will_stop_at_passengers_location {
-                self.current_location.map_or((), |loc| {
-                    if loc == passenger.current_location.unwrap() {
-                        let onboard_passenger = passenger.clone().convert_to_onboarded_passenger();
-                        self.add_passenger(&onboard_passenger);
-                    }
-                })
-            }
+            // if bus_will_stop_at_passengers_location {
+            //     self.current_location.map_or((), |loc| {
+            //         if loc == passenger.current_location.unwrap() {
+            //             let onboard_passenger = passenger.clone().convert_to_onboarded_passenger();
+            //             self.add_passenger(&onboard_passenger);
+            //         }
+            //     })
+            // }
         }
     }
     fn drop_off_passengers(&mut self, passenger_passed_stops: &mut Vec<u32>) -> Option<()> {
@@ -554,8 +572,8 @@ fn main() {
         time_tick: u32,
         bus_route_list: Vec<Vec<PassengerBusLocation>>,
     ) -> Option<Vec<PassengerOnboardingBusSchedule>> {
-        let start_plan: PassengerOnboardingBusSchedule;
-        let end_plan: PassengerOnboardingBusSchedule;
+        // let start_plan: PassengerOnboardingBusSchedule;
+        // let end_plan: PassengerOnboardingBusSchedule;
         for (bus_index, bus_route) in bus_route_list.iter().enumerate() {
             // let bus_route_iter = bus_route.iter();
             for passenger_bus_location in bus_route {
