@@ -177,6 +177,11 @@ struct PassengerBusLocation {
     location: Location,
     location_time_tick: u32,
 }
+enum UpdateOutput {
+    WrongTimeTick,
+    MovingBus,
+    ReceivedPassengers { rejected_passengers: Vec<Passenger> },
+}
 
 impl Bus {
     fn new(bus_route: Vec<BusLocation>, capacity: usize, bus_num: usize) -> Bus {
@@ -222,13 +227,18 @@ impl Bus {
         self.passengers.push(passenger.clone());
     }
 
+    // Somehow, the passenger thread will need to keep some kind of track how many buses have sent their reject customers to the
+    // passenger thread so that all the passengers are considiered. One way to do this could be to send thoses messages to the
+    // sync thread which can pretty easily track how many buses to be concerned about and have the sync thread send the passengers to the
+    // passenger thread
+
     fn update(
         &mut self,
         waiting_passengers: &mut Vec<Passenger>,
         passenger_stops_waited_list: &mut Vec<u32>,
         sender: &Sender<BusMessages>, // bus_num: u32,
         current_time_tick_number: &u32,
-    ) -> ControlFlow<()> {
+    ) -> ControlFlow<(), UpdateOutput> {
         if self.time_tick_num < *current_time_tick_number {
             sender
                 .send(BusMessages::AdvanceTimeStep {
@@ -246,16 +256,20 @@ impl Bus {
                     self.stop_at_destination_stop();
                 }
                 self.time_tick_num += 1;
+                return ControlFlow::Continue(UpdateOutput::MovingBus);
             } else {
                 let more_locations_left = self.leave_for_next_location();
 
                 self.drop_off_passengers(passenger_stops_waited_list);
-                self.take_passengers(waiting_passengers, current_time_tick_number);
+                let rejected_passengers =
+                    self.take_passengers(waiting_passengers, current_time_tick_number);
 
                 self.time_tick_num += 1;
 
                 if more_locations_left.is_some() {
-                    return ControlFlow::Continue(());
+                    return ControlFlow::Continue(UpdateOutput::ReceivedPassengers {
+                        rejected_passengers,
+                    });
                 };
 
                 assert_eq!(self.passengers.len(), 0);
@@ -263,20 +277,26 @@ impl Bus {
                 return ControlFlow::Break(());
             }
         }
-        ControlFlow::Continue(())
+        // ControlFlow::Continue(None) Means either this is the wrong timestep, or else the bus is moving
+        ControlFlow::Continue(UpdateOutput::WrongTimeTick)
     }
 
     fn take_passengers(
         &mut self,
         waiting_passengers: &mut Vec<Passenger>,
         current_time_tick: &u32,
-    ) {
+    ) -> Vec<Passenger> {
+        let mut overflow_passengers = vec![];
         for passenger in waiting_passengers {
             // Don't take a passenger if the bus is full or the passenger is either already on a bus or at his destination
             // if self.passengers.len() >= self.capacity
             //     || passenger.status != PassengerStatus::Waiting
             if passenger.status != PassengerStatus::Waiting {
                 break;
+            }
+
+            if self.passengers.len() >= self.capacity {
+                overflow_passengers.push(passenger.clone());
             }
 
             let PassengerOnboardingBusSchedule {
@@ -309,6 +329,7 @@ impl Bus {
             //     })
             // }
         }
+        overflow_passengers
     }
     fn drop_off_passengers(&mut self, passenger_passed_stops: &mut Vec<u32>) -> Option<()> {
         println!("Drop off Passengers");
@@ -717,9 +738,11 @@ fn main() {
                 .unwrap();
 
             loop {
-                if *current_time_tick_clone.lock().unwrap() < 2 {
+                let current_time_tick = current_time_tick_clone.lock().unwrap();
+                if *current_time_tick < 2 || *current_time_tick % 2 == 1 {
                     continue;
                 }
+                drop(current_time_tick);
                 let update_option = simulated_bus.update(
                     &mut passenger_list_pointer_clone.lock().unwrap(),
                     &mut passenger_stops_passed_pointer_clone.lock().unwrap(),
@@ -729,7 +752,11 @@ fn main() {
 
                 match update_option {
                     ControlFlow::Break(()) => break,
-                    ControlFlow::Continue(()) => {}
+                    ControlFlow::Continue(UpdateOutput::WrongTimeTick) => {}
+                    ControlFlow::Continue(UpdateOutput::MovingBus) => {}
+                    ControlFlow::Continue(UpdateOutput::ReceivedPassengers {
+                        rejected_passengers,
+                    }) => {}
                 }
             }
             sender
