@@ -357,6 +357,12 @@ impl Bus {
 }
 
 #[derive(PartialEq, Debug)]
+enum RejectedPassengersMessages {
+    MovingBus,
+    StoppedBus { rejected_passengers: Vec<Passenger> },
+}
+
+#[derive(PartialEq, Debug)]
 enum BusMessages {
     InitBus {
         bus_number: usize,
@@ -369,6 +375,8 @@ enum BusMessages {
     BusFinished {
         bus_number: usize,
     },
+
+    RejectedPassengers(RejectedPassengersMessages),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -500,6 +508,8 @@ fn main() {
     let route_sync_handle = thread::spawn(move || {
         let mut bus_status_array = [BusThreadStatus::Uninitialized; NUM_OF_BUSES];
 
+        let mut rejected_bus_received_count = 0;
+
         // Eventually, there will be two time ticks per movement so that the stopped buses can have two ticks:
         // One for unloading passengers and another for loading them. Bus Movement will probably happen on the second tick
         // (Uninitialized items could contain the empty vector)
@@ -534,6 +544,27 @@ fn main() {
                     println!("Bus {bus_number} Initialized")
                 }
                 BusMessages::InitPassengers => {}
+
+                BusMessages::RejectedPassengers(RejectedPassengersMessages::MovingBus) => {
+                    println!("Moving bus received");
+                    rejected_bus_received_count += 1;
+                }
+
+                BusMessages::RejectedPassengers(RejectedPassengersMessages::StoppedBus {
+                    rejected_passengers,
+                }) => {
+                    println!("Stopped Bus Received");
+                    rejected_bus_received_count += 1;
+                }
+            }
+
+            if rejected_bus_received_count
+                == bus_status_array
+                    .iter()
+                    .filter(|status| *status != &BusThreadStatus::BusFinishedRoute)
+                    .count()
+            {
+                println!("Rejected passengers for all buses were received");
             }
 
             if *current_time_tick_clone.lock().unwrap() == 0
@@ -543,7 +574,6 @@ fn main() {
                     .count()
                     == 0
             {
-                println!("Bus i");
                 *current_time_tick_clone.lock().unwrap() += 1;
                 continue;
             }
@@ -753,10 +783,20 @@ fn main() {
                 match update_option {
                     ControlFlow::Break(()) => break,
                     ControlFlow::Continue(UpdateOutput::WrongTimeTick) => {}
-                    ControlFlow::Continue(UpdateOutput::MovingBus) => {}
+                    ControlFlow::Continue(UpdateOutput::MovingBus) => sender
+                        .send(BusMessages::RejectedPassengers(
+                            RejectedPassengersMessages::MovingBus,
+                        ))
+                        .unwrap(),
                     ControlFlow::Continue(UpdateOutput::ReceivedPassengers {
                         rejected_passengers,
-                    }) => {}
+                    }) => sender
+                        .send(BusMessages::RejectedPassengers(
+                            RejectedPassengersMessages::StoppedBus {
+                                rejected_passengers,
+                            },
+                        ))
+                        .unwrap(),
                 }
             }
             sender
