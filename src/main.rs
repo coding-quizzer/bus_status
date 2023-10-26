@@ -232,6 +232,7 @@ impl Bus {
     // sync thread which can pretty easily track how many buses to be concerned about and have the sync thread send the passengers to the
     // passenger thread
 
+    // Why is the AdvanceTimeStep message sent twice for each bus?
     fn update(
         &mut self,
         waiting_passengers: &mut Vec<Passenger>,
@@ -239,7 +240,19 @@ impl Bus {
         sender: &Sender<BusMessages>, // bus_num: u32,
         current_time_tick_number: &u32,
     ) -> ControlFlow<(), UpdateOutput> {
+        println!("Update Beginning");
+        println!(
+            "Bus update. current time tick: {}",
+            current_time_tick_number
+        );
         if self.time_tick_num < *current_time_tick_number {
+            // This might cause problems, since it sends a message for increaseing the time step
+            // before the operations have actually been performed. Hopefully keeping the timestep
+            // locked until after this function shoudl help?
+            println!(
+                "Bus Time tick sent. Time tick: {}",
+                current_time_tick_number
+            );
             sender
                 .send(BusMessages::AdvanceTimeStep {
                     //current_time_step: self.time_tick_num,
@@ -518,13 +531,18 @@ fn main() {
 
         loop {
             let received_bus_stop_message = rx_from_threads.recv().unwrap();
+            let mut current_time_tick = current_time_tick_clone.lock().unwrap();
+            println!("Message Received");
             match received_bus_stop_message {
                 BusMessages::AdvanceTimeStep {
                     // current_time_step,
                     bus_number,
                     ..
                 } => {
-                    println!("Stop recieved from Bus {}", bus_number);
+                    println!(
+                        "Stop recieved from Bus {}. Time tick {}",
+                        bus_number, &current_time_tick
+                    );
                     bus_status_array[bus_number - 1] = BusThreadStatus::CompletedTimeStep;
                 }
 
@@ -543,7 +561,9 @@ fn main() {
                     bus_status_array[bus_number - 1] = BusThreadStatus::WaitingForTimeStep;
                     println!("Bus {bus_number} Initialized")
                 }
-                BusMessages::InitPassengers => {}
+                BusMessages::InitPassengers => {
+                    println!("Passenger initialized");
+                }
 
                 BusMessages::RejectedPassengers(RejectedPassengersMessages::MovingBus) => {
                     println!("Moving bus received");
@@ -567,19 +587,21 @@ fn main() {
                 println!("Rejected passengers for all buses were received");
             }
 
-            if *current_time_tick_clone.lock().unwrap() == 0
+            if *current_time_tick == 0
                 && bus_status_array
                     .iter()
                     .filter(|status| *status == &BusThreadStatus::Uninitialized)
                     .count()
                     == 0
             {
-                *current_time_tick_clone.lock().unwrap() += 1;
+                *current_time_tick += 1;
                 continue;
             }
 
-            if *current_time_tick_clone.lock().unwrap() == 1 {
-                *current_time_tick_clone.lock().unwrap() += 1;
+            if *current_time_tick == 1 {
+                // Time tick for initiating passengers.
+                // If the program has reached this spot, the message must have been received
+                *current_time_tick += 1;
             }
 
             let finished_buses = bus_status_array
@@ -607,7 +629,7 @@ fn main() {
                     }
                 }
                 println!("---------- All buses are finished at their stops -----------");
-                *current_time_tick_clone.lock().unwrap() += 1;
+                *current_time_tick += 1;
                 // buses_finished_at_stops = 0;
             }
         }
@@ -645,11 +667,15 @@ fn main() {
                             return Ok(vec![
                                 PassengerOnboardingBusSchedule {
                                     bus_num: Some(bus_index + 1),
-                                    time_tick: *location_time_tick,
+                                    // multiply by two to skip time when passengers are generated
+                                    // and add two to skip the initial two time ticks
+                                    // TODO: Adjust again when a seperat time tick is used for loading and unloading
+                                    time_tick: (*location_time_tick) * 2 + 2,
                                 },
                                 PassengerOnboardingBusSchedule {
                                     bus_num: None,
-                                    time_tick: *time_tick_for_dest,
+                                    // See above
+                                    time_tick: (*time_tick_for_dest) * 2 + 2,
                                 },
                             ]);
                         }
@@ -678,7 +704,6 @@ fn main() {
                 .into_iter()
                 .map(convert_bus_route_list_to_passenger_bus_route_list)
                 .collect();
-            let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
             let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
             let mut rejected_passengers_indeces = Vec::new();
             if *time_tick == 0 {
@@ -686,6 +711,7 @@ fn main() {
             }
 
             if *time_tick == 1 {
+                let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
                 for (passenger_index, passenger) in passenger_list.iter_mut().enumerate() {
                     match passenger.status {
                         PassengerStatus::Waiting => {
@@ -727,12 +753,11 @@ fn main() {
                     .send(BusMessages::InitPassengers)
                     .unwrap();
                 // break;
+                assert_eq!(
+                    passenger_list.len() + rejected_passengers.len(),
+                    GLOBAL_PASSENGER_COUNT as usize
+                );
             }
-
-            assert_eq!(
-                passenger_list.len() + rejected_passengers.len(),
-                GLOBAL_PASSENGER_COUNT as usize
-            );
 
             if *passenger_thread_program_end_clone.lock().unwrap() {
                 println!("Rejected Passenger count: {}", rejected_passengers.len());
@@ -753,6 +778,7 @@ fn main() {
         let passenger_list_pointer_clone = passenger_list_pointer.clone();
         let passenger_stops_passed_pointer_clone = passenger_extra_stops_waited_pointer.clone();
         let current_time_tick_clone = current_time_tick.clone();
+        let mut time_clone_check = 1;
         let bus_route_vec_clone = bus_route_vec_arc.clone();
         let handle = thread::spawn(move || {
             let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY, bus_num);
@@ -772,13 +798,25 @@ fn main() {
                 if *current_time_tick < 2 || *current_time_tick % 2 == 1 {
                     continue;
                 }
-                drop(current_time_tick);
+
+                // Make sure the loop only runs once for each time tick
+                if time_clone_check == *current_time_tick {
+                    continue;
+                } else {
+                    time_clone_check = *current_time_tick;
+                }
+
+                println!("Current time tick: {}", &current_time_tick);
+
+                // Why is this message sent exactly twice for each time tick?
                 let update_option = simulated_bus.update(
                     &mut passenger_list_pointer_clone.lock().unwrap(),
                     &mut passenger_stops_passed_pointer_clone.lock().unwrap(),
                     &sender,
-                    &current_time_tick_clone.lock().unwrap(),
+                    &current_time_tick,
                 );
+
+                drop(current_time_tick);
 
                 match update_option {
                     ControlFlow::Break(()) => break,
