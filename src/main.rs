@@ -266,11 +266,13 @@ impl Bus {
                     self.status.movement = MovementState::Moving(distance - 1);
                     // return Some(());
                 } else {
+                    println!("Bus {}, will stop at next time tick", self.bus_num);
                     self.stop_at_destination_stop();
                 }
                 self.time_tick_num += 1;
                 return ControlFlow::Continue(UpdateOutput::MovingBus);
             } else {
+                println!("Bus {} stopped", self.bus_num);
                 let more_locations_left = self.leave_for_next_location();
 
                 self.drop_off_passengers(passenger_stops_waited_list);
@@ -309,6 +311,7 @@ impl Bus {
             }
 
             if self.passengers.len() >= self.capacity {
+                println!("Passenger Rejected. Bus Overfull");
                 overflow_passengers.push(passenger.clone());
             }
 
@@ -522,6 +525,7 @@ fn main() {
         let mut bus_status_array = [BusThreadStatus::Uninitialized; NUM_OF_BUSES];
 
         let mut rejected_bus_received_count = 0;
+        let mut rejected_passengers_list = Vec::new();
 
         // Eventually, there will be two time ticks per movement so that the stopped buses can have two ticks:
         // One for unloading passengers and another for loading them. Bus Movement will probably happen on the second tick
@@ -540,7 +544,7 @@ fn main() {
                     ..
                 } => {
                     println!(
-                        "Stop recieved from Bus {}. Time tick {}",
+                        "Time step recieved from Bus {}. Time tick {}",
                         bus_number, &current_time_tick
                     );
                     bus_status_array[bus_number - 1] = BusThreadStatus::CompletedTimeStep;
@@ -571,9 +575,10 @@ fn main() {
                 }
 
                 BusMessages::RejectedPassengers(RejectedPassengersMessages::StoppedBus {
-                    rejected_passengers,
+                    mut rejected_passengers,
                 }) => {
                     println!("Stopped Bus Received");
+                    rejected_passengers_list.append(&mut rejected_passengers);
                     rejected_bus_received_count += 1;
                 }
             }
@@ -583,7 +588,22 @@ fn main() {
                     .iter()
                     .filter(|status| *status != &BusThreadStatus::BusFinishedRoute)
                     .count()
+                && *current_time_tick % 2 == 1
             {
+                rejected_bus_received_count = 0;
+                if rejected_passengers_list.is_empty() {
+                    println!("No Rejected Passengers to send to the other thread");
+                    *current_time_tick += 1;
+                    continue;
+                }
+                println!("There were rejected passengers received");
+                rejected_passengers_list.sort_by(|early_passenger, late_passenger| {
+                    early_passenger.bus_schedule[0]
+                        .time_tick
+                        .cmp(&late_passenger.bus_schedule[0].time_tick)
+                });
+                println!("Rejected Passenger List: {:#?}", rejected_passengers_list);
+                println!("List Length: {}", rejected_passengers_list.len());
                 println!("Rejected passengers for all buses were received");
             }
 
@@ -600,7 +620,8 @@ fn main() {
 
             if *current_time_tick == 1 {
                 // Time tick for initiating passengers.
-                // If the program has reached this spot, the message must have been received
+                // If the program has reached this spot, the message must have been received,
+                // assuming the time ticks are in sync
                 *current_time_tick += 1;
             }
 
