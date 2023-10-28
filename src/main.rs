@@ -519,9 +519,12 @@ fn main() {
 
     let (tx_from_threads, rx_from_threads) = mpsc::channel();
 
+    let (tx_to_passengers, rx_to_passengers) = mpsc::channel();
+
     let current_time_tick_clone = current_time_tick.clone();
     // TODO: Figure out why only one bus is initializing at this time.
     let route_sync_handle = thread::spawn(move || {
+        let passenger_sender = tx_to_passengers;
         let mut bus_status_array = [BusThreadStatus::Uninitialized; NUM_OF_BUSES];
 
         let mut rejected_bus_received_count = 0;
@@ -602,9 +605,12 @@ fn main() {
                         .time_tick
                         .cmp(&late_passenger.bus_schedule[0].time_tick)
                 });
-                println!("Rejected Passenger List: {:#?}", rejected_passengers_list);
-                println!("List Length: {}", rejected_passengers_list.len());
+                // println!("Rejected Passenger List: {:#?}", rejected_passengers_list);
+                // println!("List Length: {}", rejected_passengers_list.len());
                 println!("Rejected passengers for all buses were received");
+                passenger_sender
+                    .send(rejected_passengers_list.clone())
+                    .unwrap();
             }
 
             if *current_time_tick == 0
@@ -718,6 +724,7 @@ fn main() {
     let passenger_thread_sender = tx_from_threads.clone();
     let passengers_thread_handle = thread::spawn(move || {
         let mut rejected_passengers: Vec<Passenger> = Vec::new();
+        let receiver_from_sync_thread = rx_to_passengers;
         loop {
             let bus_route_list = passenger_thread_bus_route_clone.lock().unwrap();
             let bus_route_list: Vec<Vec<PassengerBusLocation>> = bus_route_list
@@ -725,7 +732,7 @@ fn main() {
                 .into_iter()
                 .map(convert_bus_route_list_to_passenger_bus_route_list)
                 .collect();
-            let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
+            let mut time_tick = passenger_thread_time_tick_clone.lock().unwrap();
             let mut rejected_passengers_indeces = Vec::new();
             if *time_tick == 0 {
                 continue;
@@ -778,6 +785,53 @@ fn main() {
                     passenger_list.len() + rejected_passengers.len(),
                     GLOBAL_PASSENGER_COUNT as usize
                 );
+            }
+
+            if *time_tick % 2 == 1 && *time_tick != 1 {
+                // let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
+                let mut rejected_passenger_list = receiver_from_sync_thread.recv().unwrap();
+                for (passenger_index, passenger) in rejected_passenger_list.iter_mut().enumerate() {
+                    match passenger.status {
+                        PassengerStatus::Waiting => {
+                            // If passenger is waiting for the bus, find out what bus will be able to take
+                            // the passenger to his destination at a time later than this time step
+                            // and send some message to the bus to pick him up
+
+                            if let Ok(bus_schedule) = find_bus_to_pick_up_passenger(
+                                passenger,
+                                *time_tick,
+                                bus_route_list.clone(),
+                            ) {
+                                passenger.bus_schedule = bus_schedule;
+                            } else {
+                                // passenger_list
+                                //     .iter_mut()
+                                //     .find(|passenger_query| *passenger_query == passenger)
+                                //     .expect("Item must still remain in passenger list")
+                                //     .remove();
+                            }
+                        }
+                        PassengerStatus::OnBus => {
+                            // If the passenger is on a bus, perhaps send a message to get off of bus
+                            // if the bus has arrived? That could also be done by the bus.
+                        }
+                        PassengerStatus::Arrived => {
+                            // If passenger is at destination, there is nothing to be done,
+                            // since the passenger has arrived and is not part of the bus route anymore
+                        }
+                    }
+                }
+
+                // Remove passengers who cannot get onto a bus, since if they cannot get on any bus
+                // now, they will not be able to later, because the schedules will not change. I
+                // might as well continue keeping track of them.
+
+                // for passenger_index in rejected_passengers_indeces.into_iter().rev() {
+                //     let rejected_passenger = rejected_passenger_list.remove(passenger_index);
+                //     rejected_passengers.push(rejected_passenger);
+                // }
+
+                *time_tick += 1;
             }
 
             if *passenger_thread_program_end_clone.lock().unwrap() {
