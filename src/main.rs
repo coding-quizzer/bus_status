@@ -788,9 +788,11 @@ fn main() {
             }
 
             if *time_tick % 2 == 1 && *time_tick != 1 {
-                // let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
+                let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
                 let mut rejected_passenger_list = receiver_from_sync_thread.recv().unwrap();
-                for (passenger_index, passenger) in rejected_passenger_list.iter_mut().enumerate() {
+                let mut nonboardable_passengers_list = vec![];
+                let mut nonboardable_passenger_indeces = vec![];
+                for passenger in rejected_passenger_list.iter_mut() {
                     match passenger.status {
                         PassengerStatus::Waiting => {
                             // If passenger is waiting for the bus, find out what bus will be able to take
@@ -804,11 +806,7 @@ fn main() {
                             ) {
                                 passenger.bus_schedule = bus_schedule;
                             } else {
-                                // passenger_list
-                                //     .iter_mut()
-                                //     .find(|passenger_query| *passenger_query == passenger)
-                                //     .expect("Item must still remain in passenger list")
-                                //     .remove();
+                                nonboardable_passengers_list.push(passenger);
                             }
                         }
                         PassengerStatus::OnBus => {
@@ -821,6 +819,27 @@ fn main() {
                         }
                     }
                 }
+
+                for nonboardable_passenger in nonboardable_passengers_list {
+                    for (passenger_index, passenger) in passenger_list.iter().enumerate() {
+                        if nonboardable_passenger == passenger {
+                            nonboardable_passenger_indeces.push(passenger_index);
+                            break;
+                        }
+                    }
+                }
+
+                nonboardable_passenger_indeces.sort();
+
+                for passenger_index in nonboardable_passenger_indeces.into_iter().rev() {
+                    let rejected_passenger = passenger_list.remove(passenger_index);
+                    rejected_passengers.push(rejected_passenger);
+                }
+
+                assert_eq!(
+                    passenger_list.len() + rejected_passengers.len(),
+                    GLOBAL_PASSENGER_COUNT as usize
+                );
 
                 // Remove passengers who cannot get onto a bus, since if they cannot get on any bus
                 // now, they will not be able to later, because the schedules will not change. I
