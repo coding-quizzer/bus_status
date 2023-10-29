@@ -288,6 +288,7 @@ impl Bus {
                 };
 
                 assert_eq!(self.passengers.len(), 0);
+                println!("Bus number {} is finished", self.bus_num);
                 self.status.movement = MovementState::Finished;
                 return ControlFlow::Break(());
             }
@@ -502,7 +503,6 @@ fn main() {
 
     let location_vector_arc = Arc::new(location_vector);
 
-    // TODO: Convert to an array with size NUM_OF_BUSES
     // each bus should add its bus route to its index in the array
     let bus_route_vec_arc: Arc<Mutex<[Vec<BusLocation>; NUM_OF_BUSES]>> =
         Arc::new(Mutex::new(std::array::from_fn(|_| vec![])));
@@ -790,9 +790,11 @@ fn main() {
             }
 
             if *time_tick % 2 == 1 && *time_tick != 1 {
+                println!("Passenger rejected thread time tick");
                 let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
                 let rejected_passenger_list_option = receiver_from_sync_thread.recv().unwrap();
                 if let Some(mut rejected_passenger_list) = rejected_passenger_list_option {
+                    println!("Some passengers were rejected");
                     let mut nonboardable_passengers_list = vec![];
                     let mut nonboardable_passenger_indeces = vec![];
                     for passenger in rejected_passenger_list.iter_mut() {
@@ -834,10 +836,24 @@ fn main() {
 
                     nonboardable_passenger_indeces.sort();
 
+                    // FIXME: sorting the passenger indeces and reversing them should ensure
+                    // that the indeces continue to line up with the same passengers,
+                    // but something must be wrong beause occasionally, the thread panics
+                    // because an invalid index tries to be accessed
                     for passenger_index in nonboardable_passenger_indeces.into_iter().rev() {
                         let rejected_passenger = passenger_list.remove(passenger_index);
                         rejected_passengers.push(rejected_passenger);
                     }
+
+                    println!("Non active passengers count: {}", rejected_passengers.len());
+
+                    let finished_passenger_count = passenger_list
+                        .iter()
+                        .filter(|passenger| passenger.status == PassengerStatus::Arrived)
+                        .count();
+                    println!(
+                        "{finished_passenger_count} passengers sucessfully arived at their destination"
+                    );
 
                     assert_eq!(
                         passenger_list.len() + rejected_passengers.len(),
