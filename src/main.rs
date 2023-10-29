@@ -596,21 +596,23 @@ fn main() {
                 rejected_bus_received_count = 0;
                 if rejected_passengers_list.is_empty() {
                     println!("No Rejected Passengers to send to the other thread");
-                    *current_time_tick += 1;
+                    passenger_sender.send(None).unwrap();
+
                     continue;
                 }
-                println!("There were rejected passengers received");
-                rejected_passengers_list.sort_by(|early_passenger, late_passenger| {
-                    early_passenger.bus_schedule[0]
-                        .time_tick
-                        .cmp(&late_passenger.bus_schedule[0].time_tick)
-                });
+                println!(
+                    "There were rejected passengers received. Count: {}",
+                    rejected_passengers_list.len()
+                );
+
                 // println!("Rejected Passenger List: {:#?}", rejected_passengers_list);
                 // println!("List Length: {}", rejected_passengers_list.len());
                 println!("Rejected passengers for all buses were received");
                 passenger_sender
-                    .send(rejected_passengers_list.clone())
+                    .send(Some(rejected_passengers_list.clone()))
                     .unwrap();
+
+                rejected_passengers_list.clear();
             }
 
             if *current_time_tick == 0
@@ -789,66 +791,68 @@ fn main() {
 
             if *time_tick % 2 == 1 && *time_tick != 1 {
                 let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
-                let mut rejected_passenger_list = receiver_from_sync_thread.recv().unwrap();
-                let mut nonboardable_passengers_list = vec![];
-                let mut nonboardable_passenger_indeces = vec![];
-                for passenger in rejected_passenger_list.iter_mut() {
-                    match passenger.status {
-                        PassengerStatus::Waiting => {
-                            // If passenger is waiting for the bus, find out what bus will be able to take
-                            // the passenger to his destination at a time later than this time step
-                            // and send some message to the bus to pick him up
+                let rejected_passenger_list_option = receiver_from_sync_thread.recv().unwrap();
+                if let Some(mut rejected_passenger_list) = rejected_passenger_list_option {
+                    let mut nonboardable_passengers_list = vec![];
+                    let mut nonboardable_passenger_indeces = vec![];
+                    for passenger in rejected_passenger_list.iter_mut() {
+                        match passenger.status {
+                            PassengerStatus::Waiting => {
+                                // If passenger is waiting for the bus, find out what bus will be able to take
+                                // the passenger to his destination at a time later than this time step
+                                // and send some message to the bus to pick him up
 
-                            if let Ok(bus_schedule) = find_bus_to_pick_up_passenger(
-                                passenger,
-                                *time_tick,
-                                bus_route_list.clone(),
-                            ) {
-                                passenger.bus_schedule = bus_schedule;
-                            } else {
-                                nonboardable_passengers_list.push(passenger);
+                                if let Ok(bus_schedule) = find_bus_to_pick_up_passenger(
+                                    passenger,
+                                    *time_tick,
+                                    bus_route_list.clone(),
+                                ) {
+                                    passenger.bus_schedule = bus_schedule;
+                                } else {
+                                    nonboardable_passengers_list.push(passenger);
+                                }
+                            }
+                            PassengerStatus::OnBus => {
+                                // If the passenger is on a bus, perhaps send a message to get off of bus
+                                // if the bus has arrived? That could also be done by the bus.
+                            }
+                            PassengerStatus::Arrived => {
+                                // If passenger is at destination, there is nothing to be done,
+                                // since the passenger has arrived and is not part of the bus route anymore
                             }
                         }
-                        PassengerStatus::OnBus => {
-                            // If the passenger is on a bus, perhaps send a message to get off of bus
-                            // if the bus has arrived? That could also be done by the bus.
-                        }
-                        PassengerStatus::Arrived => {
-                            // If passenger is at destination, there is nothing to be done,
-                            // since the passenger has arrived and is not part of the bus route anymore
+                    }
+
+                    for nonboardable_passenger in nonboardable_passengers_list {
+                        for (passenger_index, passenger) in passenger_list.iter().enumerate() {
+                            if nonboardable_passenger == passenger {
+                                nonboardable_passenger_indeces.push(passenger_index);
+                                break;
+                            }
                         }
                     }
-                }
 
-                for nonboardable_passenger in nonboardable_passengers_list {
-                    for (passenger_index, passenger) in passenger_list.iter().enumerate() {
-                        if nonboardable_passenger == passenger {
-                            nonboardable_passenger_indeces.push(passenger_index);
-                            break;
-                        }
+                    nonboardable_passenger_indeces.sort();
+
+                    for passenger_index in nonboardable_passenger_indeces.into_iter().rev() {
+                        let rejected_passenger = passenger_list.remove(passenger_index);
+                        rejected_passengers.push(rejected_passenger);
                     }
+
+                    assert_eq!(
+                        passenger_list.len() + rejected_passengers.len(),
+                        GLOBAL_PASSENGER_COUNT as usize
+                    );
+
+                    // Remove passengers who cannot get onto a bus, since if they cannot get on any bus
+                    // now, they will not be able to later, because the schedules will not change. I
+                    // might as well continue keeping track of them.
+
+                    // for passenger_index in rejected_passengers_indeces.into_iter().rev() {
+                    //     let rejected_passenger = rejected_passenger_list.remove(passenger_index);
+                    //     rejected_passengers.push(rejected_passenger);
+                    // }
                 }
-
-                nonboardable_passenger_indeces.sort();
-
-                for passenger_index in nonboardable_passenger_indeces.into_iter().rev() {
-                    let rejected_passenger = passenger_list.remove(passenger_index);
-                    rejected_passengers.push(rejected_passenger);
-                }
-
-                assert_eq!(
-                    passenger_list.len() + rejected_passengers.len(),
-                    GLOBAL_PASSENGER_COUNT as usize
-                );
-
-                // Remove passengers who cannot get onto a bus, since if they cannot get on any bus
-                // now, they will not be able to later, because the schedules will not change. I
-                // might as well continue keeping track of them.
-
-                // for passenger_index in rejected_passengers_indeces.into_iter().rev() {
-                //     let rejected_passenger = rejected_passenger_list.remove(passenger_index);
-                //     rejected_passengers.push(rejected_passenger);
-                // }
 
                 *time_tick += 1;
             }
