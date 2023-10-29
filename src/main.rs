@@ -503,7 +503,6 @@ fn main() {
 
     let location_vector_arc = Arc::new(location_vector);
 
-    // each bus should add its bus route to its index in the array
     let bus_route_vec_arc: Arc<Mutex<[Vec<BusLocation>; NUM_OF_BUSES]>> =
         Arc::new(Mutex::new(std::array::from_fn(|_| vec![])));
 
@@ -522,7 +521,7 @@ fn main() {
     let (tx_to_passengers, rx_to_passengers) = mpsc::channel();
 
     let current_time_tick_clone = current_time_tick.clone();
-    // TODO: Figure out why only one bus is initializing at this time.
+
     let route_sync_handle = thread::spawn(move || {
         let passenger_sender = tx_to_passengers;
         let mut bus_status_array = [BusThreadStatus::Uninitialized; NUM_OF_BUSES];
