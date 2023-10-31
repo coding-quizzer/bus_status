@@ -4,7 +4,7 @@ use std::{
         mpsc::{self, Sender},
         Arc, Mutex,
     },
-    thread,
+    thread::{self, current},
 };
 use uuid::Uuid;
 
@@ -90,7 +90,7 @@ impl Passenger {
         }
     }
 
-    fn convert_to_onboarded_passenger(mut self) -> Self {
+    fn convert_to_onboarded_passenger(&mut self) -> &Self {
         if self.status == PassengerStatus::Waiting {
             self.status = PassengerStatus::OnBus;
             self.current_location = None;
@@ -253,12 +253,11 @@ impl Bus {
                 "Bus Time tick sent. Time tick: {}",
                 current_time_tick_number
             );
-            sender
-                .send(BusMessages::AdvanceTimeStep {
-                    //current_time_step: self.time_tick_num,
-                    bus_number: self.bus_num,
-                })
-                .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
+
+            // Bus message
+            // Holding output in a variable can allow a single send directly before the return
+            // sender should be right before the
+
             println!("Bus Number {} Sent", self.bus_num);
             if let MovementState::Moving(distance) = self.status.movement {
                 if distance > 0 {
@@ -270,6 +269,12 @@ impl Bus {
                     self.stop_at_destination_stop();
                 }
                 self.time_tick_num += 1;
+                sender
+                    .send(BusMessages::AdvanceTimeStep {
+                        //current_time_step: self.time_tick_num,
+                        bus_number: self.bus_num,
+                    })
+                    .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
                 return ControlFlow::Continue(UpdateOutput::MovingBus);
             } else {
                 println!("Bus {} stopped", self.bus_num);
@@ -282,6 +287,14 @@ impl Bus {
                 self.time_tick_num += 1;
 
                 if more_locations_left.is_some() {
+                    sender
+                        .send(BusMessages::AdvanceTimeStep {
+                            //current_time_step: self.time_tick_num,
+                            bus_number: self.bus_num,
+                        })
+                        .unwrap_or_else(|error| {
+                            panic!("Error from bus {}: {}", self.bus_num, error)
+                        });
                     return ControlFlow::Continue(UpdateOutput::ReceivedPassengers {
                         rejected_passengers,
                     });
@@ -303,17 +316,12 @@ impl Bus {
         current_time_tick: &u32,
     ) -> Vec<Passenger> {
         let mut overflow_passengers = vec![];
-        for passenger in waiting_passengers {
+        for passenger in waiting_passengers.iter_mut() {
             // Don't take a passenger if the bus is full or the passenger is either already on a bus or at his destination
             // if self.passengers.len() >= self.capacity
             //     || passenger.status != PassengerStatus::Waiting
             if passenger.status != PassengerStatus::Waiting {
                 break;
-            }
-
-            if self.passengers.len() >= self.capacity {
-                println!("Passenger Rejected. Bus Overfull");
-                overflow_passengers.push(passenger.clone());
             }
 
             let PassengerOnboardingBusSchedule {
@@ -325,8 +333,13 @@ impl Bus {
                 .expect("Passenger schedule cannot be empty");
 
             if onboarding_time_tick == current_time_tick && bus_num.expect("At this point, this cannot be the last bus loction, and thus the bus_num must exist") == self.bus_num {
-                let onboard_passenger = passenger.clone().convert_to_onboarded_passenger();
-                self.add_passenger(&onboard_passenger);
+              if self.passengers.len() >= self.capacity {
+                  println!("Passenger Rejected. Bus Overfull");
+                  overflow_passengers.push(passenger.clone());
+                  break;
+              }
+                let onboard_passenger = passenger.convert_to_onboarded_passenger();
+                self.add_passenger(onboard_passenger);
             }
 
             // let mut cloned_locations = self.bus_route_iter.clone_box();
@@ -508,6 +521,7 @@ fn main() {
 
     let passenger_extra_stops_waited_pointer = Arc::new(Mutex::new(Vec::<u32>::new()));
 
+    // Split time ticks into two - time ticks are accurate
     let current_time_tick = Arc::new(Mutex::new(0));
 
     let program_end = Arc::new(Mutex::new(false));
@@ -525,7 +539,7 @@ fn main() {
     let route_sync_handle = thread::spawn(move || {
         let passenger_sender = tx_to_passengers;
         let mut bus_status_array = [BusThreadStatus::Uninitialized; NUM_OF_BUSES];
-
+        // Bus that has unloaded passengers/ moving buses
         let mut rejected_bus_received_count = 0;
         let mut rejected_passengers_list = Vec::new();
 
@@ -568,6 +582,7 @@ fn main() {
                     println!("Bus {bus_number} Initialized")
                 }
                 BusMessages::InitPassengers => {
+                    *current_time_tick += 1;
                     println!("Passenger initialized");
                 }
 
@@ -584,13 +599,12 @@ fn main() {
                     rejected_bus_received_count += 1;
                 }
             }
-
+            // There might be a way to
             if rejected_bus_received_count
                 == bus_status_array
                     .iter()
                     .filter(|status| *status != &BusThreadStatus::BusFinishedRoute)
                     .count()
-                && *current_time_tick % 2 == 1
             {
                 rejected_bus_received_count = 0;
                 if rejected_passengers_list.is_empty() {
@@ -599,13 +613,14 @@ fn main() {
 
                     continue;
                 }
+
                 println!(
                     "There were rejected passengers received. Count: {}",
                     rejected_passengers_list.len()
                 );
 
-                // println!("Rejected Passenger List: {:#?}", rejected_passengers_list);
-                // println!("List Length: {}", rejected_passengers_list.len());
+                println!("Rejected Passenger List: {:#?}", rejected_passengers_list);
+                println!("List Length: {}", rejected_passengers_list.len());
                 println!("Rejected passengers for all buses were received");
                 passenger_sender
                     .send(Some(rejected_passengers_list.clone()))
@@ -623,13 +638,6 @@ fn main() {
             {
                 *current_time_tick += 1;
                 continue;
-            }
-
-            if *current_time_tick == 1 {
-                // Time tick for initiating passengers.
-                // If the program has reached this spot, the message must have been received,
-                // assuming the time ticks are in sync
-                *current_time_tick += 1;
             }
 
             let finished_buses = bus_status_array
@@ -665,6 +673,13 @@ fn main() {
 
     handle_list.push(route_sync_handle);
 
+    // Valid route list of top 3 solutions
+    // A* algorithm eventually
+    // When a passenger is rejected on a certain bus,
+    // trip cost should be less than some value
+
+    // PassengerOnboardingBusSchedule => PassengerOnboardingTimeTick, PassengerLeavingTimeTick
+
     // return Option with a tuple containing bus number and pick up time tick
     fn find_bus_to_pick_up_passenger(
         passenger: &Passenger,
@@ -678,19 +693,22 @@ fn main() {
         for (bus_index, bus_route) in bus_route_list.iter().enumerate() {
             // let bus_route_iter = bus_route.iter();
             for passenger_bus_location in bus_route {
-                let PassengerBusLocation {
-                    location,
-                    location_time_tick,
-                } = passenger_bus_location;
-                if *location == current_location.unwrap() && location_time_tick >= &time_tick {
+                // let PassengerBusLocation {
+                //     location,
+                //     location_time_tick,
+                // } = passenger_bus_location;
+                if passenger_bus_location.location == current_location.unwrap()
+                    && (passenger_bus_location.location_time_tick * 2 + 2) > time_tick
+                {
                     for other_passenger_bus_location in bus_route {
                         let PassengerBusLocation {
                             location: location_for_dest,
                             location_time_tick: time_tick_for_dest,
                         } = other_passenger_bus_location;
 
-                        if *location_for_dest == destination_location
-                            && time_tick_for_dest > location_time_tick
+                        if other_passenger_bus_location.location == destination_location
+                            && other_passenger_bus_location.location_time_tick
+                                > passenger_bus_location.location_time_tick
                         {
                             return Ok(vec![
                                 PassengerOnboardingBusSchedule {
@@ -698,12 +716,14 @@ fn main() {
                                     // multiply by two to skip time when passengers are generated
                                     // and add two to skip the initial two time ticks
                                     // TODO: Adjust again when a seperat time tick is used for loading and unloading
-                                    time_tick: (*location_time_tick) * 2 + 2,
+                                    time_tick: (passenger_bus_location.location_time_tick) * 2 + 2,
                                 },
                                 PassengerOnboardingBusSchedule {
                                     bus_num: None,
                                     // See above
-                                    time_tick: (*time_tick_for_dest) * 2 + 2,
+                                    time_tick: (other_passenger_bus_location.location_time_tick)
+                                        * 2
+                                        + 2,
                                 },
                             ]);
                         }
@@ -727,17 +747,19 @@ fn main() {
         let mut rejected_passengers: Vec<Passenger> = Vec::new();
         let receiver_from_sync_thread = rx_to_passengers;
         loop {
+            println!("Start of Passenger loop");
+            let mut time_tick = passenger_thread_time_tick_clone.lock().unwrap();
+            let mut rejected_passengers_indeces = Vec::new();
+            if *time_tick == 0 {
+                std::thread::sleep(std::time::Duration::from_millis(1));
+                continue;
+            }
             let bus_route_list = passenger_thread_bus_route_clone.lock().unwrap();
             let bus_route_list: Vec<Vec<PassengerBusLocation>> = bus_route_list
                 .clone()
                 .into_iter()
                 .map(convert_bus_route_list_to_passenger_bus_route_list)
                 .collect();
-            let mut time_tick = passenger_thread_time_tick_clone.lock().unwrap();
-            let mut rejected_passengers_indeces = Vec::new();
-            if *time_tick == 0 {
-                continue;
-            }
 
             if *time_tick == 1 {
                 let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
@@ -789,8 +811,11 @@ fn main() {
             }
 
             if *time_tick % 2 == 1 && *time_tick != 1 {
-                println!("Passenger rejected thread time tick");
                 let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
+                println!("Passenger rejected thread time tick");
+
+                // No message is sent, so the program halts
+
                 let rejected_passenger_list_option = receiver_from_sync_thread.recv().unwrap();
                 if let Some(mut rejected_passenger_list) = rejected_passenger_list_option {
                     println!("Some passengers were rejected");
@@ -869,7 +894,13 @@ fn main() {
                     // }
                 }
 
-                *time_tick += 1;
+                passenger_thread_sender
+                    .send(BusMessages::InitPassengers)
+                    .unwrap();
+            }
+
+            if *time_tick % 2 == 0 {
+                std::thread::yield_now();
             }
 
             if *passenger_thread_program_end_clone.lock().unwrap() {
