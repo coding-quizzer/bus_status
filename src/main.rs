@@ -333,6 +333,7 @@ impl Bus {
                 .expect("Passenger schedule cannot be empty");
 
             if onboarding_time_tick == current_time_tick && bus_num.expect("At this point, this cannot be the last bus loction, and thus the bus_num must exist") == self.bus_num {
+              println!("This is the correct time tick and bus");
               if self.passengers.len() >= self.capacity {
                   println!("Passenger Rejected. Bus Overfull");
                   overflow_passengers.push(passenger.clone());
@@ -390,6 +391,7 @@ impl Bus {
 enum RejectedPassengersMessages {
     MovingBus,
     StoppedBus { rejected_passengers: Vec<Passenger> },
+    CompletedProcessing,
 }
 
 #[derive(PartialEq, Debug)]
@@ -592,11 +594,18 @@ fn main() {
                 }
 
                 BusMessages::RejectedPassengers(RejectedPassengersMessages::StoppedBus {
-                    mut rejected_passengers,
+                    ref rejected_passengers,
                 }) => {
                     println!("Stopped Bus Received");
-                    rejected_passengers_list.append(&mut rejected_passengers);
+                    rejected_passengers_list.append(&mut rejected_passengers.clone());
                     rejected_bus_received_count += 1;
+                }
+
+                BusMessages::RejectedPassengers(
+                    RejectedPassengersMessages::CompletedProcessing,
+                ) => {
+                    println!("Rejected Passengers were all processed");
+                    *current_time_tick += 1;
                 }
             }
             // There might be a way to
@@ -636,6 +645,7 @@ fn main() {
                     .count()
                     == 0
             {
+                println!("Time tick 0 message: {:?}", received_bus_stop_message);
                 *current_time_tick += 1;
                 continue;
             }
@@ -746,10 +756,12 @@ fn main() {
     let passengers_thread_handle = thread::spawn(move || {
         let mut rejected_passengers: Vec<Passenger> = Vec::new();
         let receiver_from_sync_thread = rx_to_passengers;
+        let mut previous_time_tick = 0;
         loop {
             println!("Start of Passenger loop");
-            let mut time_tick = passenger_thread_time_tick_clone.lock().unwrap();
-            let mut rejected_passengers_indeces = Vec::new();
+            let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
+            let mut rejected_passengers_indeces: Vec<usize> = Vec::new();
+
             if *time_tick == 0 {
                 std::thread::sleep(std::time::Duration::from_millis(1));
                 continue;
@@ -761,7 +773,11 @@ fn main() {
                 .map(convert_bus_route_list_to_passenger_bus_route_list)
                 .collect();
 
-            if *time_tick == 1 {
+            if *time_tick % 2 == 0 || previous_time_tick == *time_tick {
+                std::thread::yield_now();
+            }
+
+            if previous_time_tick == 0 && *time_tick == 1 {
                 let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
                 for (passenger_index, passenger) in passenger_list.iter_mut().enumerate() {
                     match passenger.status {
@@ -803,11 +819,14 @@ fn main() {
                 passenger_thread_sender
                     .send(BusMessages::InitPassengers)
                     .unwrap();
+                println!("Passengers init message sent");
                 // break;
                 assert_eq!(
                     passenger_list.len() + rejected_passengers.len(),
                     GLOBAL_PASSENGER_COUNT as usize
                 );
+
+                previous_time_tick = *time_tick;
             }
 
             if *time_tick % 2 == 1 && *time_tick != 1 {
@@ -895,13 +914,15 @@ fn main() {
                 }
 
                 passenger_thread_sender
-                    .send(BusMessages::InitPassengers)
+                    .send(BusMessages::RejectedPassengers(
+                        RejectedPassengersMessages::CompletedProcessing,
+                    ))
                     .unwrap();
+
+                previous_time_tick = *time_tick;
             }
 
-            if *time_tick % 2 == 0 {
-                std::thread::yield_now();
-            }
+            drop(time_tick);
 
             if *passenger_thread_program_end_clone.lock().unwrap() {
                 println!("Rejected Passenger count: {}", rejected_passengers.len());
