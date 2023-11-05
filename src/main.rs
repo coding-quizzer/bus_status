@@ -235,7 +235,7 @@ impl Bus {
     // Why is the AdvanceTimeStep message sent twice for each bus?
     fn update(
         &mut self,
-        waiting_passengers: &mut Vec<Passenger>,
+        waiting_passengers: &mut [Passenger],
         passenger_stops_waited_list: &mut Vec<u32>,
         sender: &Sender<BusMessages>, // bus_num: u32,
         current_time_tick_number: &u32,
@@ -312,7 +312,7 @@ impl Bus {
 
     fn take_passengers(
         &mut self,
-        waiting_passengers: &mut Vec<Passenger>,
+        waiting_passengers: &mut [Passenger],
         current_time_tick: &u32,
     ) -> Vec<Passenger> {
         let mut overflow_passengers = vec![];
@@ -544,6 +544,7 @@ fn main() {
         // Bus that has unloaded passengers/ moving buses
         let mut rejected_bus_received_count = 0;
         let mut rejected_passengers_list = Vec::new();
+        let mut processed_moving_bus_count = 0;
 
         // Eventually, there will be two time ticks per movement so that the stopped buses can have two ticks:
         // One for unloading passengers and another for loading them. Bus Movement will probably happen on the second tick
@@ -554,7 +555,12 @@ fn main() {
         loop {
             let received_bus_stop_message = rx_from_threads.recv().unwrap();
             let mut current_time_tick = current_time_tick_clone.lock().unwrap();
-            println!("Message Received");
+            println!("Message Received. Time tick: {}", current_time_tick);
+            println!("Message: {:?}", received_bus_stop_message);
+            println!(
+                "Before time processing, bus processed count: {}",
+                rejected_bus_received_count
+            );
             match received_bus_stop_message {
                 BusMessages::AdvanceTimeStep {
                     // current_time_step,
@@ -591,6 +597,7 @@ fn main() {
                 BusMessages::RejectedPassengers(RejectedPassengersMessages::MovingBus) => {
                     println!("Moving bus received");
                     rejected_bus_received_count += 1;
+                    processed_moving_bus_count += 1;
                 }
 
                 BusMessages::RejectedPassengers(RejectedPassengersMessages::StoppedBus {
@@ -608,6 +615,14 @@ fn main() {
                     *current_time_tick += 1;
                 }
             }
+            println!("Rejected buses received: {rejected_bus_received_count}");
+            println!(
+                "{}",
+                bus_status_array
+                    .iter()
+                    .filter(|status| *status != &BusThreadStatus::BusFinishedRoute)
+                    .count()
+            );
             // There might be a way to
             if rejected_bus_received_count
                 == bus_status_array
@@ -616,6 +631,8 @@ fn main() {
                     .count()
             {
                 rejected_bus_received_count = 0;
+                println!("Moving bus processed count: {}", processed_moving_bus_count);
+                processed_moving_bus_count = 0;
                 if rejected_passengers_list.is_empty() {
                     println!("No Rejected Passengers to send to the other thread");
                     passenger_sender.send(None).unwrap();
@@ -758,12 +775,17 @@ fn main() {
         let receiver_from_sync_thread = rx_to_passengers;
         let mut previous_time_tick = 0;
         loop {
-            println!("Start of Passenger loop");
             let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
             let mut rejected_passengers_indeces: Vec<usize> = Vec::new();
 
             if *time_tick == 0 {
                 std::thread::sleep(std::time::Duration::from_millis(1));
+                thread::yield_now();
+                continue;
+            }
+            if *time_tick % 2 == 0 || previous_time_tick == *time_tick {
+                std::thread::sleep(std::time::Duration::from_millis(1));
+                std::thread::yield_now();
                 continue;
             }
             let bus_route_list = passenger_thread_bus_route_clone.lock().unwrap();
@@ -773,11 +795,8 @@ fn main() {
                 .map(convert_bus_route_list_to_passenger_bus_route_list)
                 .collect();
 
-            if *time_tick % 2 == 0 || previous_time_tick == *time_tick {
-                std::thread::yield_now();
-            }
-
-            if previous_time_tick == 0 && *time_tick == 1 {
+            if *time_tick == 1 {
+                println!("First time tick loop");
                 let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
                 for (passenger_index, passenger) in passenger_list.iter_mut().enumerate() {
                     match passenger.status {
