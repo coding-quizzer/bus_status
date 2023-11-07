@@ -568,10 +568,10 @@ fn main() {
                     bus_number,
                     ..
                 } => {
-                    println!(
-                        "Time step recieved from Bus {}. Time tick {}",
-                        bus_number, &current_time_tick
-                    );
+                    // println!(
+                    //     "Time step recieved from Bus {}. Time tick {}",
+                    //     bus_number, &current_time_tick
+                    // );
                     bus_status_array[bus_number - 1] = BusThreadStatus::CompletedTimeStep;
                 }
 
@@ -663,8 +663,11 @@ fn main() {
                     .count()
                     == 0
             {
-                println!("Time tick 0 message: {:?}", received_bus_stop_message);
                 *current_time_tick += 1;
+                println!(
+                    "All Buses Initialized. Time tick 0 message: {:?}",
+                    received_bus_stop_message
+                );
                 continue;
             }
 
@@ -795,16 +798,18 @@ fn main() {
         let receiver_from_sync_thread = rx_to_passengers;
         let mut previous_time_tick = 0;
         loop {
+            // Wait for 1 milliseconds to give other threads a chance to use the time tick mutex
+            // std::thread::sleep(std::time::Duration::from_millis(1));
             let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
             let mut rejected_passengers_indeces: Vec<usize> = Vec::new();
+            // println!("Passenger loop beginning");
 
             if *time_tick == 0 {
-                std::thread::sleep(std::time::Duration::from_millis(1));
+                std::thread::sleep(std::time::Duration::from_millis(10));
                 thread::yield_now();
                 continue;
-            }
-            if *time_tick % 2 == 0 || previous_time_tick == *time_tick {
-                std::thread::sleep(std::time::Duration::from_millis(1));
+            } else if *time_tick % 2 == 0 || previous_time_tick == *time_tick {
+                std::thread::sleep(std::time::Duration::from_millis(10));
                 std::thread::yield_now();
                 continue;
             }
@@ -818,6 +823,7 @@ fn main() {
             if *time_tick == 1 {
                 println!("First time tick loop");
                 let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
+                println!("Beginning of tick one passenger calculations");
                 for (passenger_index, passenger) in passenger_list.iter_mut().enumerate() {
                     match passenger.status {
                         PassengerStatus::Waiting => {
@@ -847,6 +853,7 @@ fn main() {
                         }
                     }
                 }
+                println!("End of tick one passenger calculations");
 
                 // Remove passengers who cannot get onto a bus, since if they cannot get on any bus
                 // now, they will not be able to later, because the schedules will not change. I
@@ -868,9 +875,7 @@ fn main() {
                 );
 
                 previous_time_tick = *time_tick;
-            }
-
-            if *time_tick % 2 == 1 && *time_tick != 1 {
+            } else if *time_tick % 2 == 1 {
                 let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
                 println!("Passenger rejected thread time tick");
 
@@ -991,7 +996,6 @@ fn main() {
         let handle = thread::spawn(move || {
             let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY, bus_num);
             let mut bus_route_array = bus_route_vec_clone.lock().unwrap();
-            println!("Bus message sent");
             bus_route_array[simulated_bus.bus_num - 1] = simulated_bus.get_bus_route();
             // Release the lock on bus_route_vec by dropping it
             drop(bus_route_array);
@@ -1000,8 +1004,10 @@ fn main() {
                     bus_number: simulated_bus.bus_num,
                 })
                 .unwrap();
+            println!("Bus message sent");
 
             loop {
+                // println!("Bus loop beginning");
                 let current_time_tick = current_time_tick_clone.lock().unwrap();
                 if *current_time_tick < 2 || *current_time_tick % 2 == 1 {
                     continue;
@@ -1044,6 +1050,7 @@ fn main() {
                         ))
                         .unwrap(),
                 }
+                println!("Bus loop end.");
             }
             sender
                 .send(BusMessages::BusFinished {
