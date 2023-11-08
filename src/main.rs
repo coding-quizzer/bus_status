@@ -554,7 +554,39 @@ fn main() {
         // Buses are initialized on the first time tick, Passengers choose their bus route info on the second time tick, and the bus route happens on the third time tick
 
         loop {
+            println!("rejected bus received count: {rejected_bus_received_count}");
+            if rejected_bus_received_count
+                == bus_status_array
+                    .iter()
+                    .filter(|status| *status != &BusThreadStatus::BusFinishedRoute)
+                    .count()
+            {
+                rejected_bus_received_count = 0;
+                println!("Moving bus processed count: {}", processed_moving_bus_count);
+                processed_moving_bus_count = 0;
+                if rejected_passengers_list.is_empty() {
+                    println!("No Rejected Passengers to send to the other thread");
+                    passenger_sender.send(None).unwrap();
+
+                    continue;
+                }
+
+                println!(
+                    "There were rejected passengers received. Count: {}",
+                    rejected_passengers_list.len()
+                );
+
+                println!("Rejected Passenger List: {:#?}", rejected_passengers_list);
+                println!("List Length: {}", rejected_passengers_list.len());
+                println!("Rejected passengers for all buses were received");
+                passenger_sender
+                    .send(Some(rejected_passengers_list.clone()))
+                    .unwrap();
+
+                rejected_passengers_list.clear();
+            }
             let received_bus_stop_message = rx_from_threads.recv().unwrap();
+            println!("Sync thread loop");
             let mut current_time_tick = current_time_tick_clone.lock().unwrap();
             println!("Message Received. Time tick: {}", current_time_tick);
             println!("Message: {:?}", received_bus_stop_message);
@@ -625,36 +657,8 @@ fn main() {
                     .count()
             );
             // There might be a way to
-            if rejected_bus_received_count
-                == bus_status_array
-                    .iter()
-                    .filter(|status| *status != &BusThreadStatus::BusFinishedRoute)
-                    .count()
-            {
-                rejected_bus_received_count = 0;
-                println!("Moving bus processed count: {}", processed_moving_bus_count);
-                processed_moving_bus_count = 0;
-                if rejected_passengers_list.is_empty() {
-                    println!("No Rejected Passengers to send to the other thread");
-                    passenger_sender.send(None).unwrap();
-
-                    continue;
-                }
-
-                println!(
-                    "There were rejected passengers received. Count: {}",
-                    rejected_passengers_list.len()
-                );
-
-                println!("Rejected Passenger List: {:#?}", rejected_passengers_list);
-                println!("List Length: {}", rejected_passengers_list.len());
-                println!("Rejected passengers for all buses were received");
-                passenger_sender
-                    .send(Some(rejected_passengers_list.clone()))
-                    .unwrap();
-
-                rejected_passengers_list.clear();
-            }
+            println!("Rejected Passengers conditional");
+            if let BusMessages::RejectedPassengers(_) = received_bus_stop_message {}
 
             if *current_time_tick == 0
                 && bus_status_array
@@ -675,6 +679,7 @@ fn main() {
                 .iter()
                 .filter(|status| *status == &BusThreadStatus::BusFinishedRoute)
                 .count();
+            println!("There are {finished_buses} finished buses.");
 
             if finished_buses >= NUM_OF_BUSES {
                 let mut program_end = sync_handle_program_end_clone.lock().unwrap();
@@ -799,10 +804,15 @@ fn main() {
         let mut previous_time_tick = 0;
         loop {
             // Wait for 1 milliseconds to give other threads a chance to use the time tick mutex
-            // std::thread::sleep(std::time::Duration::from_millis(1));
+            std::thread::sleep(std::time::Duration::from_millis(1));
             let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
             let mut rejected_passengers_indeces: Vec<usize> = Vec::new();
-            // println!("Passenger loop beginning");
+            println!("Passenger loop beginning. Time tick: {}", time_tick);
+
+            if *passenger_thread_program_end_clone.lock().unwrap() {
+                println!("Rejected Passenger count: {}", rejected_passengers.len());
+                break;
+            }
 
             if *time_tick == 0 {
                 std::thread::sleep(std::time::Duration::from_millis(10));
@@ -875,107 +885,113 @@ fn main() {
                 );
 
                 previous_time_tick = *time_tick;
-            } else if *time_tick % 2 == 1 {
-                let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
-                println!("Passenger rejected thread time tick");
-
-                // No message is sent, so the program halts
-
-                let rejected_passenger_list_option = receiver_from_sync_thread.recv().unwrap();
-                if let Some(mut rejected_passenger_list) = rejected_passenger_list_option {
-                    println!("Some passengers were rejected");
-                    let mut nonboardable_passengers_list = vec![];
-                    let mut nonboardable_passenger_indeces = vec![];
-                    println!("Passenger loop started");
-                    for passenger in rejected_passenger_list.iter_mut() {
-                        match passenger.status {
-                            PassengerStatus::Waiting => {
-                                // If passenger is waiting for the bus, find out what bus will be able to take
-                                // the passenger to his destination at a time later than this time step
-                                // and send some message to the bus to pick him up
-
-                                if let Ok(bus_schedule) = find_bus_to_pick_up_passenger(
-                                    passenger,
-                                    *time_tick,
-                                    bus_route_list.clone(),
-                                ) {
-                                    passenger.bus_schedule = bus_schedule.clone();
-                                } else {
-                                    nonboardable_passengers_list.push(passenger);
-                                }
-                            }
-                            PassengerStatus::OnBus => {
-                                // If the passenger is on a bus, perhaps send a message to get off of bus
-                                // if the bus has arrived? That could also be done by the bus.
-                            }
-                            PassengerStatus::Arrived => {
-                                // If passenger is at destination, there is nothing to be done,
-                                // since the passenger has arrived and is not part of the bus route anymore
-                            }
-                        }
-                    }
-                    println!("Passenger Loop ended");
-
-                    for nonboardable_passenger in nonboardable_passengers_list {
-                        for (passenger_index, passenger) in passenger_list.iter().enumerate() {
-                            if nonboardable_passenger == passenger {
-                                nonboardable_passenger_indeces.push(passenger_index);
-                                break;
-                            }
-                        }
-                    }
-
-                    nonboardable_passenger_indeces.sort();
-
-                    // FIXME: sorting the passenger indeces and reversing them should ensure
-                    // that the indeces continue to line up with the same passengers,
-                    // but something must be wrong beause occasionally, the thread panics
-                    // because an invalid index tries to be accessed
-                    for passenger_index in nonboardable_passenger_indeces.into_iter().rev() {
-                        let rejected_passenger = passenger_list.remove(passenger_index);
-                        rejected_passengers.push(rejected_passenger);
-                    }
-
-                    println!("Non active passengers count: {}", rejected_passengers.len());
-
-                    let finished_passenger_count = passenger_list
-                        .iter()
-                        .filter(|passenger| passenger.status == PassengerStatus::Arrived)
-                        .count();
-                    println!(
-                        "{finished_passenger_count} passengers sucessfully arived at their destination"
-                    );
-
-                    assert_eq!(
-                        passenger_list.len() + rejected_passengers.len(),
-                        GLOBAL_PASSENGER_COUNT as usize
-                    );
-
-                    // Remove passengers who cannot get onto a bus, since if they cannot get on any bus
-                    // now, they will not be able to later, because the schedules will not change. I
-                    // might as well continue keeping track of them.
-
-                    // for passenger_index in rejected_passengers_indeces.into_iter().rev() {
-                    //     let rejected_passenger = rejected_passenger_list.remove(passenger_index);
-                    //     rejected_passengers.push(rejected_passenger);
-                    // }
-                }
-
-                passenger_thread_sender
-                    .send(BusMessages::RejectedPassengers(
-                        RejectedPassengersMessages::CompletedProcessing,
-                    ))
-                    .unwrap();
-
-                previous_time_tick = *time_tick;
+                continue;
             }
+            // Otherwise, the time tick is odd
 
+            let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
+            println!("Passenger rejected thread time tick: {}", time_tick);
+
+            // No message is sent, so the program halts
+
+            // How do I prevent the time tick from blocking the program from running?
+            // I use the time tick to on
+
+            // drop time_tick so that the lock is released before waiting for a message
             drop(time_tick);
 
-            if *passenger_thread_program_end_clone.lock().unwrap() {
-                println!("Rejected Passenger count: {}", rejected_passengers.len());
-                break;
+            let rejected_passenger_list_option = receiver_from_sync_thread.recv().unwrap();
+            let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
+
+            println!("Rejected Bus Process Finished Message Received");
+            if let Some(mut rejected_passenger_list) = rejected_passenger_list_option {
+                println!("Some passengers were rejected");
+                let mut nonboardable_passengers_list = vec![];
+                let mut nonboardable_passenger_indeces = vec![];
+                println!("Passenger loop started");
+                for passenger in rejected_passenger_list.iter_mut() {
+                    match passenger.status {
+                        PassengerStatus::Waiting => {
+                            // If passenger is waiting for the bus, find out what bus will be able to take
+                            // the passenger to his destination at a time later than this time step
+                            // and send some message to the bus to pick him up
+
+                            if let Ok(bus_schedule) = find_bus_to_pick_up_passenger(
+                                passenger,
+                                *time_tick,
+                                bus_route_list.clone(),
+                            ) {
+                                passenger.bus_schedule = bus_schedule.clone();
+                            } else {
+                                nonboardable_passengers_list.push(passenger);
+                            }
+                        }
+                        PassengerStatus::OnBus => {
+                            // If the passenger is on a bus, perhaps send a message to get off of bus
+                            // if the bus has arrived? That could also be done by the bus.
+                        }
+                        PassengerStatus::Arrived => {
+                            // If passenger is at destination, there is nothing to be done,
+                            // since the passenger has arrived and is not part of the bus route anymore
+                        }
+                    }
+                }
+                println!("Passenger Loop ended");
+
+                for nonboardable_passenger in nonboardable_passengers_list {
+                    for (passenger_index, passenger) in passenger_list.iter().enumerate() {
+                        if nonboardable_passenger == passenger {
+                            nonboardable_passenger_indeces.push(passenger_index);
+                            break;
+                        }
+                    }
+                }
+
+                nonboardable_passenger_indeces.sort();
+
+                // FIXME: sorting the passenger indeces and reversing them should ensure
+                // that the indeces continue to line up with the same passengers,
+                // but something must be wrong beause occasionally, the thread panics
+                // because an invalid index tries to be accessed
+                for passenger_index in nonboardable_passenger_indeces.into_iter().rev() {
+                    let rejected_passenger = passenger_list.remove(passenger_index);
+                    rejected_passengers.push(rejected_passenger);
+                }
+
+                println!("Non active passengers count: {}", rejected_passengers.len());
+
+                let finished_passenger_count = passenger_list
+                    .iter()
+                    .filter(|passenger| passenger.status == PassengerStatus::Arrived)
+                    .count();
+                println!(
+                    "{finished_passenger_count} passengers sucessfully arived at their destination"
+                );
+
+                assert_eq!(
+                    passenger_list.len() + rejected_passengers.len(),
+                    GLOBAL_PASSENGER_COUNT as usize
+                );
+
+                // Remove passengers who cannot get onto a bus, since if they cannot get on any bus
+                // now, they will not be able to later, because the schedules will not change. I
+                // might as well continue keeping track of them.
+
+                // for passenger_index in rejected_passengers_indeces.into_iter().rev() {
+                //     let rejected_passenger = rejected_passenger_list.remove(passenger_index);
+                //     rejected_passengers.push(rejected_passenger);
+                // }
             }
+
+            passenger_thread_sender
+                .send(BusMessages::RejectedPassengers(
+                    RejectedPassengersMessages::CompletedProcessing,
+                ))
+                .unwrap();
+
+            previous_time_tick = *time_tick;
+
+            drop(time_tick);
         }
     });
 
@@ -1009,6 +1025,7 @@ fn main() {
             loop {
                 // println!("Bus loop beginning");
                 let current_time_tick = current_time_tick_clone.lock().unwrap();
+                // println!("Bus thread start");
                 if *current_time_tick < 2 || *current_time_tick % 2 == 1 {
                     continue;
                 }
