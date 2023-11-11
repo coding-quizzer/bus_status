@@ -787,6 +787,8 @@ fn main() {
             }
         }
 
+        println!("Bus route loop found no routes");
+
         Err(passenger)
     }
 
@@ -849,6 +851,7 @@ fn main() {
                             ) {
                                 passenger.bus_schedule = bus_schedule.clone();
                             } else {
+                                println!("Some passengers were rejected");
                                 rejected_passengers_indeces.push(passenger_index);
                             }
                             println!("Passenger Loop ended on tick 1");
@@ -901,10 +904,12 @@ fn main() {
             drop(time_tick);
 
             let rejected_passenger_list_option = receiver_from_sync_thread.recv().unwrap();
+            println!("Rejected Passenger Option: {rejected_passenger_list_option:?}");
             let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
 
             println!("Rejected Bus Process Finished Message Received");
             if let Some(mut rejected_passenger_list) = rejected_passenger_list_option {
+                // Somehow, the message only prints out once, yet around 490 passengers were rejected. Something is probably off.
                 println!("Some passengers were rejected");
                 let mut nonboardable_passengers_list = vec![];
                 let mut nonboardable_passenger_indeces = vec![];
@@ -993,6 +998,9 @@ fn main() {
 
             drop(time_tick);
         }
+
+        let total_rejected_passengers = rejected_passengers.len();
+        println!("There were a total of {total_rejected_passengers} rejected passengers");
     });
 
     handle_list.push(passengers_thread_handle);
