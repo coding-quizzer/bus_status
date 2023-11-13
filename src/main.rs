@@ -322,7 +322,7 @@ impl Bus {
             // if self.passengers.len() >= self.capacity
             //     || passenger.status != PassengerStatus::Waiting
             if passenger.status != PassengerStatus::Waiting {
-                break;
+                continue;
             }
 
             let PassengerOnboardingBusSchedule {
@@ -338,10 +338,10 @@ impl Bus {
               if self.passengers.len() >= self.capacity {
                   println!("Passenger Rejected. Bus Overfull");
                   overflow_passengers.push(passenger.clone());
-                  break;
-              }
+              } else {
                 let onboard_passenger = passenger.convert_to_onboarded_passenger();
                 self.add_passenger(onboard_passenger);
+              }
             }
 
             // let mut cloned_locations = self.bus_route_iter.clone_box();
