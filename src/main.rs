@@ -807,8 +807,8 @@ fn main() {
         loop {
             // Wait for 1 milliseconds to give other threads a chance to use the time tick mutex
             std::thread::sleep(std::time::Duration::from_millis(1));
-            let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
             let mut rejected_passengers_indeces: Vec<usize> = Vec::new();
+            let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
             println!("Passenger loop beginning. Time tick: {}", time_tick);
 
             if *passenger_thread_program_end_clone.lock().unwrap() {
@@ -874,6 +874,7 @@ fn main() {
 
                 for passenger_index in rejected_passengers_indeces.into_iter().rev() {
                     let rejected_passenger = passenger_list.remove(passenger_index);
+                    println!("Rejected passenger removed");
                     rejected_passengers.push(rejected_passenger);
                 }
 
@@ -959,6 +960,7 @@ fn main() {
                 // but something must be wrong beause occasionally, the thread panics
                 // because an invalid index tries to be accessed
                 for passenger_index in nonboardable_passenger_indeces.into_iter().rev() {
+                    println!("Rejected passenger removed in later stage");
                     let rejected_passenger = passenger_list.remove(passenger_index);
                     rejected_passengers.push(rejected_passenger);
                 }
