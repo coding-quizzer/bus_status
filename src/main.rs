@@ -543,7 +543,7 @@ fn main() {
         let passenger_sender = tx_to_passengers;
         let mut bus_status_array = [BusThreadStatus::Uninitialized; NUM_OF_BUSES];
         // Bus that has unloaded passengers/ moving buses
-        let mut rejected_bus_received_count = 0;
+        let mut processed_bus_received_count = 0;
         let mut rejected_passengers_list = Vec::new();
         let mut processed_moving_bus_count = 0;
 
@@ -554,14 +554,14 @@ fn main() {
         // Buses are initialized on the first time tick, Passengers choose their bus route info on the second time tick, and the bus route happens on the third time tick
 
         loop {
-            println!("rejected bus received count: {rejected_bus_received_count}");
-            if rejected_bus_received_count
+            println!("processed bus received count: {processed_bus_received_count}");
+            if processed_bus_received_count
                 == bus_status_array
                     .iter()
                     .filter(|status| *status != &BusThreadStatus::BusFinishedRoute)
                     .count()
             {
-                rejected_bus_received_count = 0;
+                processed_bus_received_count = 0;
                 println!("Moving bus processed count: {}", processed_moving_bus_count);
                 processed_moving_bus_count = 0;
                 if rejected_passengers_list.is_empty() {
@@ -592,7 +592,7 @@ fn main() {
             println!("Message: {:?}", received_bus_stop_message);
             println!(
                 "Before time processing, bus processed count: {}",
-                rejected_bus_received_count
+                processed_bus_received_count
             );
             match received_bus_stop_message {
                 BusMessages::AdvanceTimeStep {
@@ -629,7 +629,7 @@ fn main() {
 
                 BusMessages::RejectedPassengers(RejectedPassengersMessages::MovingBus) => {
                     println!("Moving bus received");
-                    rejected_bus_received_count += 1;
+                    processed_bus_received_count += 1;
                     processed_moving_bus_count += 1;
                 }
 
@@ -638,7 +638,7 @@ fn main() {
                 }) => {
                     println!("Stopped Bus Received");
                     rejected_passengers_list.append(&mut rejected_passengers.clone());
-                    rejected_bus_received_count += 1;
+                    processed_bus_received_count += 1;
                 }
 
                 BusMessages::RejectedPassengers(
@@ -648,7 +648,7 @@ fn main() {
                     *current_time_tick += 1;
                 }
             }
-            println!("Rejected buses received: {rejected_bus_received_count}");
+            println!("Processed received: {processed_bus_received_count}");
             println!(
                 "{}",
                 bus_status_array
@@ -908,7 +908,7 @@ fn main() {
             println!("Rejected Passenger Option: {rejected_passenger_list_option:?}");
             let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
 
-            println!("Rejected Bus Process Finished Message Received");
+            println!("Processed Bus Process Finished Message Received");
             if let Some(mut rejected_passenger_list) = rejected_passenger_list_option {
                 // Somehow, the message only prints out once, yet around 490 passengers were rejected. Something is probably off.
                 println!("Some passengers were rejected");
@@ -954,6 +954,8 @@ fn main() {
                 }
 
                 nonboardable_passenger_indeces.sort();
+
+                // Could be duplicate passengers
 
                 // FIXME: sorting the passenger indeces and reversing them should ensure
                 // that the indeces continue to line up with the same passengers,
