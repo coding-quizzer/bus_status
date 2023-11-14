@@ -147,7 +147,7 @@ struct Bus {
     bus_route_vec: Vec<BusLocation>,
     capacity: usize,
     total_passenger_count: u32,
-    time_tick_num: u32,
+    // time_tick_num: u32,
     bus_num: usize,
 }
 
@@ -205,7 +205,7 @@ impl Bus {
             bus_route_vec,
             capacity,
             total_passenger_count: 0,
-            time_tick_num: 0,
+            // time_tick_num: 0,
             bus_num,
         }
     }
@@ -246,67 +246,61 @@ impl Bus {
             "Bus update. current time tick: {}",
             current_time_tick_number
         );
-        if self.time_tick_num < *current_time_tick_number {
-            // This might cause problems, since it sends a message for increaseing the time step
-            // before the operations have actually been performed. Hopefully keeping the timestep
-            // locked until after this function shoudl help?
-            println!(
-                "Bus Time tick sent. Time tick: {}",
-                current_time_tick_number
-            );
 
-            // Bus message
-            // Holding output in a variable can allow a single send directly before the return
-            // sender should be right before the
+        // This might cause problems, since it sends a message for increaseing the time step
+        // before the operations have actually been performed. Hopefully keeping the timestep
+        // locked until after this function shoudl help?
 
-            println!("Bus Number {} Sent", self.bus_num);
-            if let MovementState::Moving(distance) = self.status.movement {
-                if distance > 0 {
-                    println!("Bus {} distance to next stop: {}", self.bus_num, distance);
-                    self.status.movement = MovementState::Moving(distance - 1);
-                    // return Some(());
-                } else {
-                    println!("Bus {}, will stop at next time tick", self.bus_num);
-                    self.stop_at_destination_stop();
-                }
-                self.time_tick_num += 1;
+        // Bus message
+        // Holding output in a variable can allow a single send directly before the return
+        // sender should be right before the
+
+        println!("Bus Number {} Sent", self.bus_num);
+        if let MovementState::Moving(distance) = self.status.movement {
+            if distance > 0 {
+                println!("Bus {} distance to next stop: {}", self.bus_num, distance);
+                self.status.movement = MovementState::Moving(distance - 1);
+                // return Some(());
+            } else {
+                println!("Bus {}, will stop at next time tick", self.bus_num);
+                self.stop_at_destination_stop();
+            }
+            // self.time_tick_num += 1;
+            sender
+                .send(BusMessages::AdvanceTimeStep {
+                    //current_time_step: self.time_tick_num,
+                    bus_number: self.bus_num,
+                })
+                .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
+            return ControlFlow::Continue(UpdateOutput::MovingBus);
+        } else {
+            println!("Bus {} stopped", self.bus_num);
+            let more_locations_left = self.leave_for_next_location();
+
+            self.drop_off_passengers(passenger_stops_waited_list);
+            let rejected_passengers =
+                self.take_passengers(waiting_passengers, current_time_tick_number);
+
+            // self.time_tick_num += 1;
+
+            if more_locations_left.is_some() {
                 sender
                     .send(BusMessages::AdvanceTimeStep {
                         //current_time_step: self.time_tick_num,
                         bus_number: self.bus_num,
                     })
                     .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
-                return ControlFlow::Continue(UpdateOutput::MovingBus);
-            } else {
-                println!("Bus {} stopped", self.bus_num);
-                let more_locations_left = self.leave_for_next_location();
+                return ControlFlow::Continue(UpdateOutput::ReceivedPassengers {
+                    rejected_passengers,
+                });
+            };
 
-                self.drop_off_passengers(passenger_stops_waited_list);
-                let rejected_passengers =
-                    self.take_passengers(waiting_passengers, current_time_tick_number);
-
-                self.time_tick_num += 1;
-
-                if more_locations_left.is_some() {
-                    sender
-                        .send(BusMessages::AdvanceTimeStep {
-                            //current_time_step: self.time_tick_num,
-                            bus_number: self.bus_num,
-                        })
-                        .unwrap_or_else(|error| {
-                            panic!("Error from bus {}: {}", self.bus_num, error)
-                        });
-                    return ControlFlow::Continue(UpdateOutput::ReceivedPassengers {
-                        rejected_passengers,
-                    });
-                };
-
-                assert_eq!(self.passengers.len(), 0);
-                println!("Bus number {} is finished", self.bus_num);
-                self.status.movement = MovementState::Finished;
-                return ControlFlow::Break(());
-            }
+            assert_eq!(self.passengers.len(), 0);
+            println!("Bus number {} is finished", self.bus_num);
+            self.status.movement = MovementState::Finished;
+            return ControlFlow::Break(());
         }
+
         // ControlFlow::Continue(None) Means either this is the wrong timestep, or else the bus is moving
         ControlFlow::Continue(UpdateOutput::WrongTimeTick)
     }
@@ -489,7 +483,8 @@ fn generate_bus_route_locations_with_distances(
         .iter()
         .map(|location| BusLocation {
             location: *location,
-            distance_to_location: rng.gen_range(1..=5),
+            //distance_to_location: rng.gen_range(1..=5),
+            distance_to_location: 1,
         })
         .collect::<Vec<_>>();
     Ok(bus_route_list_to_bus_location_types)
@@ -503,11 +498,11 @@ fn initialize_location_list(count: u32) -> Vec<Location> {
     location_list
 }
 
-const GLOBAL_PASSENGER_COUNT: u32 = 500;
-const GLOBAL_LOCATION_COUNT: u32 = 10;
+const GLOBAL_PASSENGER_COUNT: u32 = 50;
+const GLOBAL_LOCATION_COUNT: u32 = 2;
 const BUS_CAPACITY: usize = 10;
-const NUM_OF_BUSES: usize = 4;
-const NUM_STOPS_PER_BUS: usize = 25;
+const NUM_OF_BUSES: usize = 2;
+const NUM_STOPS_PER_BUS: usize = 3;
 
 fn main() {
     let location_vector = initialize_location_list(GLOBAL_LOCATION_COUNT);
@@ -806,23 +801,19 @@ fn main() {
         let mut previous_time_tick = 0;
         loop {
             // Wait for 1 milliseconds to give other threads a chance to use the time tick mutex
-            std::thread::sleep(std::time::Duration::from_millis(1));
+            // std::thread::sleep(std::time::Duration::from_millis(1));
             let mut rejected_passengers_indeces: Vec<usize> = Vec::new();
             let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
-            println!("Passenger loop beginning. Time tick: {}", time_tick);
+            // println!("Passenger loop beginning. Time tick: {}", time_tick);
 
             if *passenger_thread_program_end_clone.lock().unwrap() {
                 println!("Rejected Passenger count: {}", rejected_passengers.len());
                 break;
             }
 
-            if *time_tick == 0 {
-                std::thread::sleep(std::time::Duration::from_millis(10));
-                thread::yield_now();
-                continue;
-            } else if *time_tick % 2 == 0 || previous_time_tick == *time_tick {
-                std::thread::sleep(std::time::Duration::from_millis(10));
-                std::thread::yield_now();
+            if *time_tick == 0 || *time_tick % 2 == 0 || previous_time_tick == *time_tick {
+                drop(time_tick);
+                std::thread::sleep(std::time::Duration::from_millis(1));
                 continue;
             }
             let bus_route_list = passenger_thread_bus_route_clone.lock().unwrap();
@@ -854,7 +845,7 @@ fn main() {
                                 println!("Some passengers were rejected");
                                 rejected_passengers_indeces.push(passenger_index);
                             }
-                            println!("Passenger Loop ended on tick 1");
+                            // println!("Passenger Loop ended on tick 1");
                         }
                         PassengerStatus::OnBus => {
                             // If the passenger is on a bus, perhaps send a message to get off of bus
@@ -890,117 +881,118 @@ fn main() {
 
                 previous_time_tick = *time_tick;
                 continue;
-            }
-            // Otherwise, the time tick is odd
+            } else {
+                // Otherwise, the time tick is odd
 
-            let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
-            println!("Passenger rejected thread time tick: {}", time_tick);
+                let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
+                println!("Passenger rejected thread time tick: {}", time_tick);
 
-            // No message is sent, so the program halts
+                // No message is sent, so the program halts
 
-            // How do I prevent the time tick from blocking the program from running?
-            // I use the time tick to on
+                // How do I prevent the time tick from blocking the program from running?
+                // I use the time tick to on
 
-            // drop time_tick so that the lock is released before waiting for a message
-            drop(time_tick);
+                // drop time_tick so that the lock is released before waiting for a message
+                drop(time_tick);
 
-            let rejected_passenger_list_option = receiver_from_sync_thread.recv().unwrap();
-            println!("Rejected Passenger Option: {rejected_passenger_list_option:?}");
-            let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
+                let rejected_passenger_list_option = receiver_from_sync_thread.recv().unwrap();
+                println!("Rejected Passenger Option: {rejected_passenger_list_option:?}");
+                let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
 
-            println!("Processed Bus Process Finished Message Received");
-            if let Some(mut rejected_passenger_list) = rejected_passenger_list_option {
-                // Somehow, the message only prints out once, yet around 490 passengers were rejected. Something is probably off.
-                println!("Some passengers were rejected");
-                let mut nonboardable_passengers_list = vec![];
-                let mut nonboardable_passenger_indeces = vec![];
-                println!("Passenger loop started");
-                for passenger in rejected_passenger_list.iter_mut() {
-                    match passenger.status {
-                        PassengerStatus::Waiting => {
-                            // If passenger is waiting for the bus, find out what bus will be able to take
-                            // the passenger to his destination at a time later than this time step
-                            // and send some message to the bus to pick him up
+                println!("Processed Bus Process Finished Message Received");
+                if let Some(mut rejected_passenger_list) = rejected_passenger_list_option {
+                    // Somehow, the message only prints out once, yet around 490 passengers were rejected. Something is probably off.
+                    println!("Some passengers were rejected");
+                    let mut nonboardable_passengers_list = vec![];
+                    let mut nonboardable_passenger_indeces = vec![];
+                    println!("Passenger loop started");
+                    for passenger in rejected_passenger_list.iter_mut() {
+                        match passenger.status {
+                            PassengerStatus::Waiting => {
+                                // If passenger is waiting for the bus, find out what bus will be able to take
+                                // the passenger to his destination at a time later than this time step
+                                // and send some message to the bus to pick him up
 
-                            if let Ok(bus_schedule) = find_bus_to_pick_up_passenger(
-                                passenger,
-                                *time_tick,
-                                bus_route_list.clone(),
-                            ) {
-                                passenger.bus_schedule = bus_schedule.clone();
-                            } else {
-                                nonboardable_passengers_list.push(passenger);
+                                if let Ok(bus_schedule) = find_bus_to_pick_up_passenger(
+                                    passenger,
+                                    *time_tick,
+                                    bus_route_list.clone(),
+                                ) {
+                                    passenger.bus_schedule = bus_schedule.clone();
+                                } else {
+                                    nonboardable_passengers_list.push(passenger);
+                                }
+                            }
+                            PassengerStatus::OnBus => {
+                                // If the passenger is on a bus, perhaps send a message to get off of bus
+                                // if the bus has arrived? That could also be done by the bus.
+                            }
+                            PassengerStatus::Arrived => {
+                                // If passenger is at destination, there is nothing to be done,
+                                // since the passenger has arrived and is not part of the bus route anymore
                             }
                         }
-                        PassengerStatus::OnBus => {
-                            // If the passenger is on a bus, perhaps send a message to get off of bus
-                            // if the bus has arrived? That could also be done by the bus.
-                        }
-                        PassengerStatus::Arrived => {
-                            // If passenger is at destination, there is nothing to be done,
-                            // since the passenger has arrived and is not part of the bus route anymore
+                    }
+                    println!("Passenger Loop ended");
+
+                    for nonboardable_passenger in nonboardable_passengers_list {
+                        for (passenger_index, passenger) in passenger_list.iter().enumerate() {
+                            if nonboardable_passenger == passenger {
+                                nonboardable_passenger_indeces.push(passenger_index);
+                                break;
+                            }
                         }
                     }
-                }
-                println!("Passenger Loop ended");
 
-                for nonboardable_passenger in nonboardable_passengers_list {
-                    for (passenger_index, passenger) in passenger_list.iter().enumerate() {
-                        if nonboardable_passenger == passenger {
-                            nonboardable_passenger_indeces.push(passenger_index);
-                            break;
-                        }
+                    nonboardable_passenger_indeces.sort();
+
+                    // Could be duplicate passengers
+
+                    // FIXME: sorting the passenger indeces and reversing them should ensure
+                    // that the indeces continue to line up with the same passengers,
+                    // but something must be wrong beause occasionally, the thread panics
+                    // because an invalid index tries to be accessed
+                    for passenger_index in nonboardable_passenger_indeces.into_iter().rev() {
+                        println!("Rejected passenger removed in later stage");
+                        let rejected_passenger = passenger_list.remove(passenger_index);
+                        rejected_passengers.push(rejected_passenger);
                     }
-                }
 
-                nonboardable_passenger_indeces.sort();
+                    println!("Non active passengers count: {}", rejected_passengers.len());
 
-                // Could be duplicate passengers
-
-                // FIXME: sorting the passenger indeces and reversing them should ensure
-                // that the indeces continue to line up with the same passengers,
-                // but something must be wrong beause occasionally, the thread panics
-                // because an invalid index tries to be accessed
-                for passenger_index in nonboardable_passenger_indeces.into_iter().rev() {
-                    println!("Rejected passenger removed in later stage");
-                    let rejected_passenger = passenger_list.remove(passenger_index);
-                    rejected_passengers.push(rejected_passenger);
-                }
-
-                println!("Non active passengers count: {}", rejected_passengers.len());
-
-                let finished_passenger_count = passenger_list
-                    .iter()
-                    .filter(|passenger| passenger.status == PassengerStatus::Arrived)
-                    .count();
-                println!(
+                    let finished_passenger_count = passenger_list
+                        .iter()
+                        .filter(|passenger| passenger.status == PassengerStatus::Arrived)
+                        .count();
+                    println!(
                     "{finished_passenger_count} passengers sucessfully arived at their destination"
                 );
 
-                assert_eq!(
-                    passenger_list.len() + rejected_passengers.len(),
-                    GLOBAL_PASSENGER_COUNT as usize
-                );
+                    assert_eq!(
+                        passenger_list.len() + rejected_passengers.len(),
+                        GLOBAL_PASSENGER_COUNT as usize
+                    );
 
-                // Remove passengers who cannot get onto a bus, since if they cannot get on any bus
-                // now, they will not be able to later, because the schedules will not change. I
-                // might as well continue keeping track of them.
+                    // Remove passengers who cannot get onto a bus, since if they cannot get on any bus
+                    // now, they will not be able to later, because the schedules will not change. I
+                    // might as well continue keeping track of them.
 
-                // for passenger_index in rejected_passengers_indeces.into_iter().rev() {
-                //     let rejected_passenger = rejected_passenger_list.remove(passenger_index);
-                //     rejected_passengers.push(rejected_passenger);
-                // }
+                    // for passenger_index in rejected_passengers_indeces.into_iter().rev() {
+                    //     let rejected_passenger = rejected_passenger_list.remove(passenger_index);
+                    //     rejected_passengers.push(rejected_passenger);
+                    // }
+                }
+
+                passenger_thread_sender
+                    .send(BusMessages::RejectedPassengers(
+                        RejectedPassengersMessages::CompletedProcessing,
+                    ))
+                    .unwrap();
+
+                previous_time_tick = *time_tick;
+
+                drop(time_tick);
             }
-
-            passenger_thread_sender
-                .send(BusMessages::RejectedPassengers(
-                    RejectedPassengersMessages::CompletedProcessing,
-                ))
-                .unwrap();
-
-            previous_time_tick = *time_tick;
-
-            drop(time_tick);
         }
 
         let total_rejected_passengers = rejected_passengers.len();
