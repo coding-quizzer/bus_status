@@ -5,7 +5,7 @@ use std::{
         mpsc::{self, Sender},
         Arc, Mutex,
     },
-    thread::{self, current},
+    thread,
 };
 use uuid::Uuid;
 
@@ -179,7 +179,7 @@ struct PassengerBusLocation {
     location_time_tick: u32,
 }
 enum UpdateOutput {
-    WrongTimeTick,
+    // WrongTimeTick,
     MovingBus,
     ReceivedPassengers { rejected_passengers: Vec<Passenger> },
 }
@@ -272,7 +272,7 @@ impl Bus {
                     bus_number: self.bus_num,
                 })
                 .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
-            return ControlFlow::Continue(UpdateOutput::MovingBus);
+            ControlFlow::Continue(UpdateOutput::MovingBus)
         } else {
             println!("Bus {} stopped", self.bus_num);
             let more_locations_left = self.leave_for_next_location();
@@ -298,11 +298,8 @@ impl Bus {
             assert_eq!(self.passengers.len(), 0);
             println!("Bus number {} is finished", self.bus_num);
             self.status.movement = MovementState::Finished;
-            return ControlFlow::Break(());
+            ControlFlow::Break(())
         }
-
-        // ControlFlow::Continue(None) Means either this is the wrong timestep, or else the bus is moving
-        ControlFlow::Continue(UpdateOutput::WrongTimeTick)
     }
 
     fn take_passengers(
@@ -476,8 +473,8 @@ fn generate_bus_route_locations_with_distances(
     location_list: &Vec<Location>,
     length: usize,
 ) -> Result<Vec<BusLocation>, String> {
-    use rand::Rng;
-    let mut rng = rand::thread_rng();
+    // use rand::Rng;
+    // let mut rng = rand::thread_rng();
     let bus_route_list = generate_bus_route_locations(location_list, length);
     let bus_route_list_to_bus_location_types = bus_route_list?
         .iter()
@@ -581,7 +578,6 @@ fn main() {
                 rejected_passengers_list.clear();
             }
             let received_bus_stop_message = rx_from_threads.recv().unwrap();
-            println!("Sync thread loop");
             let mut current_time_tick = current_time_tick_clone.lock().unwrap();
             println!("Message Received. Time tick: {}", current_time_tick);
             println!("Message: {:?}", received_bus_stop_message);
@@ -740,11 +736,11 @@ fn main() {
                             && (passenger_bus_location.location_time_tick * 2 + 2) > time_tick
                         {
                             for other_passenger_bus_location in bus_route {
-                                let PassengerBusLocation {
-                                    location: location_for_dest,
-                                    location_time_tick: time_tick_for_dest,
-                                } = other_passenger_bus_location;
-
+                                /* let PassengerBusLocation {
+                                                                   location: location_for_dest,
+                                                                   location_time_tick: time_tick_for_dest,
+                                                               } = other_passenger_bus_location;
+                                */
                                 if other_passenger_bus_location.location == destination_location
                                     && other_passenger_bus_location.location_time_tick
                                         > passenger_bus_location.location_time_tick
@@ -1055,7 +1051,7 @@ fn main() {
 
                 match update_option {
                     ControlFlow::Break(()) => break,
-                    ControlFlow::Continue(UpdateOutput::WrongTimeTick) => {}
+                    // ControlFlow::Continue(UpdateOutput::WrongTimeTick) => {}
                     ControlFlow::Continue(UpdateOutput::MovingBus) => sender
                         .send(BusMessages::RejectedPassengers(
                             RejectedPassengersMessages::MovingBus,
