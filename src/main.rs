@@ -233,12 +233,11 @@ impl Bus {
     // sync thread which can pretty easily track how many buses to be concerned about and have the sync thread send the passengers to the
     // passenger thread
 
-    // Why is the AdvanceTimeStep message sent twice for each bus?
     fn update(
         &mut self,
         waiting_passengers: &mut [Passenger],
         passenger_stops_waited_list: &mut Vec<u32>,
-        sender: &Sender<BusMessages>, // bus_num: u32,
+        sender: &Sender<BusMessages>,
         current_time_tick_number: &u32,
     ) -> ControlFlow<(), UpdateOutput> {
         println!("Update Beginning");
@@ -257,7 +256,11 @@ impl Bus {
 
         println!("Bus Number {} Sent", self.bus_num);
         if let MovementState::Moving(distance) = self.status.movement {
-            if distance > 0 {
+            println!(
+                "Bus {} Moving on time tick {}",
+                self.bus_num, current_time_tick_number
+            );
+            if distance > 1 {
                 println!("Bus {} distance to next stop: {}", self.bus_num, distance);
                 self.status.movement = MovementState::Moving(distance - 1);
                 // return Some(());
@@ -275,12 +278,12 @@ impl Bus {
             ControlFlow::Continue(UpdateOutput::MovingBus)
         } else {
             println!("Bus {} stopped", self.bus_num);
-            let more_locations_left = self.leave_for_next_location();
 
             self.drop_off_passengers(passenger_stops_waited_list);
             let rejected_passengers =
                 self.take_passengers(waiting_passengers, current_time_tick_number);
 
+            let more_locations_left = self.leave_for_next_location();
             // self.time_tick_num += 1;
 
             if more_locations_left.is_some() {
@@ -313,6 +316,7 @@ impl Bus {
             // if self.passengers.len() >= self.capacity
             //     || passenger.status != PassengerStatus::Waiting
             if passenger.status != PassengerStatus::Waiting {
+                println!("Waiting passenger");
                 continue;
             }
 
@@ -324,16 +328,21 @@ impl Bus {
                 .get(0)
                 .expect("Passenger schedule cannot be empty");
 
+            println!("Onboarding time tick: {onboarding_time_tick}.");
+            println!("Current time tick: {current_time_tick}");
             if onboarding_time_tick == current_time_tick && bus_num.expect("At this point, this cannot be the last bus loction, and thus the bus_num must exist") == self.bus_num {
               println!("This is the correct time tick and bus");
               if self.passengers.len() >= self.capacity {
                   println!("Passenger Rejected. Bus Overfull");
                   overflow_passengers.push(passenger.clone());
               } else {
+                println!("Onboarded Passenger: {:#?}", passenger);
                 let onboard_passenger = passenger.convert_to_onboarded_passenger();
                 self.add_passenger(onboard_passenger);
               }
             }
+
+            // println!("Passengers on the bus: {:#?}", self.passengers);
 
             // let mut cloned_locations = self.bus_route_iter.clone_box();
 
@@ -352,13 +361,25 @@ impl Bus {
             //     })
             // }
         }
+        println! {"Full Passenger list: {:#?}", self.passengers};
         overflow_passengers
     }
     fn drop_off_passengers(&mut self, passenger_passed_stops: &mut Vec<u32>) -> Option<()> {
         println!("Drop off Passengers");
+        println!(
+            "Bus {} current location: {:?}",
+            self.bus_num, self.current_location
+        );
+        println!(
+            "Remaining iterator: {:#?}",
+            self.bus_route_iter.clone_box().collect::<Vec<_>>()
+        );
+        // println!("Passengers on the bus: {:#?}", self.passengers);
+
         let current_location = self.current_location?;
         let bus_passengers = &mut *self.passengers;
         let mut new_bus_passengers = vec![];
+        println!("Bus Passengers: {:#?}", bus_passengers);
         for passenger in bus_passengers {
             if passenger.destination_location == current_location {
                 println!("Passenger left Bus {}", self.bus_num);
@@ -440,11 +461,12 @@ fn convert_bus_route_list_to_passenger_bus_route_list(
     let mut passenger_bus_route_list = vec![];
     for (index, bus_location) in bus_route_list.iter().enumerate() {
         let mut index_increment = 0;
-        if index != 0 {
+        if time_tick != 0 {
             // Add one to the index_increment for the time tick used at the previous stop
             index_increment += 1;
         }
 
+        // add time steps for the distance to the destination
         index_increment += bus_location.distance_to_location;
 
         time_tick += index_increment;
@@ -611,7 +633,8 @@ fn main() {
 
                 BusMessages::InitBus { bus_number } => {
                     bus_status_array[bus_number - 1] = BusThreadStatus::WaitingForTimeStep;
-                    println!("Bus {bus_number} Initialized")
+                    println!("Bus {bus_number} Initialized");
+                    // println!("Bus Route list: {:#?}", *bus_route_clone.lock().unwrap());
                 }
                 BusMessages::InitPassengers => {
                     *current_time_tick += 1;
@@ -715,6 +738,7 @@ fn main() {
     ) -> Result<Vec<PassengerOnboardingBusSchedule>, &Passenger> {
         // let start_plan: PassengerOnboardingBusSchedule;
         // let end_plan: PassengerOnboardingBusSchedule;
+        println!("Time tick: {time_tick}");
         let current_location = passenger.current_location;
         let destination_location = passenger.destination_location;
         let mut destination_route_hash: std::collections::HashMap<_, _> =
@@ -819,6 +843,8 @@ fn main() {
                 .map(convert_bus_route_list_to_passenger_bus_route_list)
                 .collect();
 
+            println!("Bus route list: {bus_route_list:#?}");
+
             if *time_tick == 1 {
                 println!("First time tick loop");
                 let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
@@ -829,13 +855,14 @@ fn main() {
                             // If passenger is waiting for the bus, find out what bus will be able to take
                             // the passenger to his destination at a time later than this time step
                             // and send some message to the bus to pick him up
-                            println!("Passenger Loop started on tick 1");
+                            // println!("Passenger Loop started on tick 1");
 
                             if let Ok(bus_schedule) = find_bus_to_pick_up_passenger(
                                 passenger,
                                 *time_tick,
                                 bus_route_list.clone(),
                             ) {
+                                println!("Passenger Schedule: {bus_schedule:?}");
                                 passenger.bus_schedule = bus_schedule.clone();
                             } else {
                                 println!("Some passengers were rejected");
@@ -892,7 +919,7 @@ fn main() {
                 drop(time_tick);
 
                 let rejected_passenger_list_option = receiver_from_sync_thread.recv().unwrap();
-                println!("Rejected Passenger Option: {rejected_passenger_list_option:?}");
+                println!("Rejected Passenger Option: {rejected_passenger_list_option:#?}");
                 let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
 
                 println!("Processed Bus Process Finished Message Received");
@@ -1004,6 +1031,8 @@ fn main() {
             NUM_STOPS_PER_BUS,
         )
         .unwrap();
+
+        println!("Bus {bus_num} bus route: {bus_route:#?}");
         let passenger_list_pointer_clone = passenger_list_pointer.clone();
         let passenger_stops_passed_pointer_clone = passenger_extra_stops_waited_pointer.clone();
         let current_time_tick_clone = current_time_tick.clone();
