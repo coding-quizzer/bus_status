@@ -279,6 +279,8 @@ impl Bus {
         } else {
             println!("Bus {} stopped", self.bus_num);
 
+            println!("Waiting Passengers: {:#?}", waiting_passengers);
+
             self.drop_off_passengers(passenger_stops_waited_list);
             let rejected_passengers =
                 self.take_passengers(waiting_passengers, current_time_tick_number);
@@ -521,7 +523,7 @@ const GLOBAL_PASSENGER_COUNT: u32 = 50;
 const GLOBAL_LOCATION_COUNT: u32 = 2;
 const BUS_CAPACITY: usize = 10;
 const NUM_OF_BUSES: usize = 2;
-const NUM_STOPS_PER_BUS: usize = 3;
+const NUM_STOPS_PER_BUS: usize = 5;
 
 fn main() {
     let location_vector = initialize_location_list(GLOBAL_LOCATION_COUNT);
@@ -749,7 +751,10 @@ fn main() {
             // let bus_route_iter = bus_route.iter();
 
             match hash_stored_route {
-                Some(route) => return Ok(route.clone()),
+                Some(route) => {
+                    println!("Hashed value used: {:#?}", route.clone());
+                    return Ok(route.clone());
+                }
                 None => {
                     for passenger_bus_location in bus_route {
                         // let PassengerBusLocation {
@@ -769,6 +774,11 @@ fn main() {
                                     && other_passenger_bus_location.location_time_tick
                                         > passenger_bus_location.location_time_tick
                                 {
+                                    println!(
+                                        "Passenger Bus Location: {:#?}",
+                                        passenger_bus_location
+                                    );
+                                    println!("Passenger id: {}", passenger.id);
                                     let destination_route = vec![
                                         PassengerOnboardingBusSchedule {
                                             bus_num: Some(bus_index + 1),
@@ -910,11 +920,6 @@ fn main() {
                 let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
                 println!("Passenger rejected thread time tick: {}", time_tick);
 
-                // No message is sent, so the program halts
-
-                // How do I prevent the time tick from blocking the program from running?
-                // I use the time tick to on
-
                 // drop time_tick so that the lock is released before waiting for a message
                 drop(time_tick);
 
@@ -925,7 +930,10 @@ fn main() {
                 println!("Processed Bus Process Finished Message Received");
                 if let Some(mut rejected_passenger_list) = rejected_passenger_list_option {
                     // Somehow, the message only prints out once, yet around 490 passengers were rejected. Something is probably off.
-                    println!("Some passengers were rejected");
+                    println!(
+                        "Some passengers were rejected. Count: {}",
+                        rejected_passenger_list.len()
+                    );
                     let mut nonboardable_passengers_list = vec![];
                     let mut nonboardable_passenger_indeces = vec![];
                     println!("Passenger loop started");
@@ -942,6 +950,13 @@ fn main() {
                                     bus_route_list.clone(),
                                 ) {
                                     passenger.bus_schedule = bus_schedule.clone();
+                                    println!("Accepted passenger: {:#?}", passenger);
+                                    passenger_list
+                                        .iter_mut()
+                                        .filter(|list_passenger| list_passenger.id == passenger.id)
+                                        .for_each(|filtered_passenger| {
+                                            filtered_passenger.bus_schedule = bus_schedule.clone()
+                                        });
                                 } else {
                                     nonboardable_passengers_list.push(passenger);
                                 }
@@ -958,6 +973,7 @@ fn main() {
                     }
                     println!("Passenger Loop ended");
 
+                    // take care of unsuccessfully recalculated passengers
                     for nonboardable_passenger in nonboardable_passengers_list {
                         for (passenger_index, passenger) in passenger_list.iter().enumerate() {
                             if nonboardable_passenger == passenger {
@@ -969,12 +985,10 @@ fn main() {
 
                     nonboardable_passenger_indeces.sort();
 
+                    println!("Passenger List: {:#?}", passenger_list);
+
                     // Could be duplicate passengers
 
-                    // FIXME: sorting the passenger indeces and reversing them should ensure
-                    // that the indeces continue to line up with the same passengers,
-                    // but something must be wrong beause occasionally, the thread panics
-                    // because an invalid index tries to be accessed
                     for passenger_index in nonboardable_passenger_indeces.into_iter().rev() {
                         println!("Rejected passenger removed in later stage");
                         let rejected_passenger = passenger_list.remove(passenger_index);
@@ -987,9 +1001,18 @@ fn main() {
                         .iter()
                         .filter(|passenger| passenger.status == PassengerStatus::Arrived)
                         .count();
+
+                    // This print statement seems useless becaure finished_passenger_count is always 0, for some reason
                     println!(
-                    "{finished_passenger_count} passengers sucessfully arived at their destination"
-                );
+                    "{finished_passenger_count} passengers successfully arived at their destination"
+                    );
+                    println!(
+                        "Passenger status list: {:#?}",
+                        passenger_list
+                            .iter()
+                            .map(|passenger| passenger.status)
+                            .collect::<Vec<_>>()
+                    );
 
                     assert_eq!(
                         passenger_list.len() + rejected_passengers.len(),
