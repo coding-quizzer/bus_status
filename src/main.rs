@@ -461,7 +461,7 @@ fn convert_bus_route_list_to_passenger_bus_route_list(
 ) -> Vec<PassengerBusLocation> {
     let mut time_tick = 0;
     let mut passenger_bus_route_list = vec![];
-    for (index, bus_location) in bus_route_list.iter().enumerate() {
+    for bus_location in bus_route_list.iter() {
         let mut index_increment = 0;
         if time_tick != 0 {
             // Add one to the index_increment for the time tick used at the previous stop
