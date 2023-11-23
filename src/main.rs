@@ -272,7 +272,7 @@ impl Bus {
             sender
                 .send(BusMessages::AdvanceTimeStep {
                     //current_time_step: self.time_tick_num,
-                    bus_number: self.bus_num,
+                    bus_index: self.bus_num,
                 })
                 .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
             ControlFlow::Continue(UpdateOutput::MovingBus)
@@ -292,7 +292,7 @@ impl Bus {
                 sender
                     .send(BusMessages::AdvanceTimeStep {
                         //current_time_step: self.time_tick_num,
-                        bus_number: self.bus_num,
+                        bus_index: self.bus_num,
                     })
                     .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
                 return ControlFlow::Continue(UpdateOutput::ReceivedPassengers {
@@ -412,15 +412,15 @@ enum RejectedPassengersMessages {
 #[derive(PartialEq, Debug)]
 enum BusMessages {
     InitBus {
-        bus_number: usize,
+        bus_index: usize,
     },
     InitPassengers,
     AdvanceTimeStep {
         // current_time_step: u32,
-        bus_number: usize,
+        bus_index: usize,
     },
     BusFinished {
-        bus_number: usize,
+        bus_index: usize,
     },
 
     RejectedPassengers(RejectedPassengersMessages),
@@ -613,19 +613,19 @@ fn main() {
             match received_bus_stop_message {
                 BusMessages::AdvanceTimeStep {
                     // current_time_step,
-                    bus_number,
+                    bus_index,
                     ..
                 } => {
                     // println!(
                     //     "Time step recieved from Bus {}. Time tick {}",
                     //     bus_number, &current_time_tick
                     // );
-                    bus_status_array[bus_number - 1] = BusThreadStatus::CompletedTimeStep;
+                    bus_status_array[bus_index] = BusThreadStatus::CompletedTimeStep;
                 }
 
-                BusMessages::BusFinished { bus_number } => {
-                    bus_status_array[bus_number - 1] = BusThreadStatus::BusFinishedRoute;
-                    println!("Bus {} Finished Route", bus_number);
+                BusMessages::BusFinished { bus_index } => {
+                    bus_status_array[bus_index] = BusThreadStatus::BusFinishedRoute;
+                    println!("Bus {} Finished Route", bus_index);
                     let finished_buses = bus_status_array
                         .iter()
                         .filter(|status| *status == &BusThreadStatus::BusFinishedRoute)
@@ -634,9 +634,9 @@ fn main() {
                     println!("There are now {active_buses} active buses.");
                 }
 
-                BusMessages::InitBus { bus_number } => {
-                    bus_status_array[bus_number - 1] = BusThreadStatus::WaitingForTimeStep;
-                    println!("Bus {bus_number} Initialized");
+                BusMessages::InitBus { bus_index } => {
+                    bus_status_array[bus_index] = BusThreadStatus::WaitingForTimeStep;
+                    println!("Bus {bus_index} Initialized");
                     // println!("Bus Route list: {:#?}", *bus_route_clone.lock().unwrap());
                 }
                 BusMessages::InitPassengers => {
@@ -782,7 +782,7 @@ fn main() {
                                     println!("Passenger id: {}", passenger.id);
                                     let destination_route = vec![
                                         PassengerOnboardingBusSchedule {
-                                            bus_num: Some(bus_index + 1),
+                                            bus_num: Some(bus_index),
                                             // multiply by two to skip time when passengers are generated
                                             // and add two to skip the initial two time ticks
                                             // TODO: Adjust again when a seperat time tick is used for loading and unloading
@@ -1044,7 +1044,7 @@ fn main() {
 
     handle_list.push(passengers_thread_handle);
 
-    for bus_num in 1..=NUM_OF_BUSES {
+    for bus_index in 0..NUM_OF_BUSES {
         let sender = tx_from_threads.clone();
         let bus_route = generate_bus_route_locations_with_distances(
             location_vector_arc.clone().as_ref(),
@@ -1052,21 +1052,21 @@ fn main() {
         )
         .unwrap();
 
-        println!("Bus {bus_num} bus route: {bus_route:#?}");
+        println!("Bus {bus_index} bus route: {bus_route:#?}");
         let passenger_list_pointer_clone = passenger_list_pointer.clone();
         let passenger_stops_passed_pointer_clone = passenger_extra_stops_waited_pointer.clone();
         let current_time_tick_clone = current_time_tick.clone();
         let mut time_clone_check = 1;
         let bus_route_vec_clone = bus_route_vec_arc.clone();
         let handle = thread::spawn(move || {
-            let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY, bus_num);
+            let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY, bus_index);
             let mut bus_route_array = bus_route_vec_clone.lock().unwrap();
-            bus_route_array[simulated_bus.bus_num - 1] = simulated_bus.get_bus_route();
+            bus_route_array[simulated_bus.bus_num] = simulated_bus.get_bus_route();
             // Release the lock on bus_route_vec by dropping it
             drop(bus_route_array);
             sender
                 .send(BusMessages::InitBus {
-                    bus_number: simulated_bus.bus_num,
+                    bus_index: simulated_bus.bus_num,
                 })
                 .unwrap();
             println!("Bus message sent");
@@ -1120,7 +1120,7 @@ fn main() {
             }
             sender
                 .send(BusMessages::BusFinished {
-                    bus_number: simulated_bus.bus_num,
+                    bus_index: simulated_bus.bus_num,
                 })
                 .unwrap();
         });
