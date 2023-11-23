@@ -459,17 +459,18 @@ fn generate_passenger_list(
 fn convert_bus_route_list_to_passenger_bus_route_list(
     bus_route_list: Vec<BusLocation>,
 ) -> Vec<PassengerBusLocation> {
-    let mut time_tick = 0;
+    let mut time_tick = 2;
     let mut passenger_bus_route_list = vec![];
     for bus_location in bus_route_list.iter() {
         let mut index_increment = 0;
-        if time_tick != 0 {
+        // If this is the not the first location, add two time ticks for waiting at the last station
+        if time_tick != 2 {
             // Add one to the index_increment for the time tick used at the previous stop
-            index_increment += 1;
+            index_increment += 2;
         }
 
         // add time steps for the distance to the destination
-        index_increment += bus_location.distance_to_location;
+        index_increment += bus_location.distance_to_location * 2;
 
         time_tick += index_increment;
 
@@ -504,7 +505,8 @@ fn generate_bus_route_locations_with_distances(
         .iter()
         .map(|location| BusLocation {
             location: *location,
-            distance_to_location: rng.gen_range(1..=5),
+            // distance_to_location: rng.gen_range(1..=5),
+            distance_to_location: 1,
         })
         .collect::<Vec<_>>();
     Ok(bus_route_list_to_bus_location_types)
@@ -518,11 +520,11 @@ fn initialize_location_list(count: u32) -> Vec<Location> {
     location_list
 }
 
-const GLOBAL_PASSENGER_COUNT: u32 = 500;
-const GLOBAL_LOCATION_COUNT: u32 = 10;
+const GLOBAL_PASSENGER_COUNT: u32 = 50;
+const GLOBAL_LOCATION_COUNT: u32 = 2;
 const BUS_CAPACITY: usize = 10;
-const NUM_OF_BUSES: usize = 10;
-const NUM_STOPS_PER_BUS: usize = 4;
+const NUM_OF_BUSES: usize = 2;
+const NUM_STOPS_PER_BUS: usize = 3;
 
 fn main() {
     let location_vector = initialize_location_list(GLOBAL_LOCATION_COUNT);
@@ -761,7 +763,7 @@ fn main() {
                         //     location_time_tick,
                         // } = passenger_bus_location;
                         if passenger_bus_location.location == current_location.unwrap()
-                            && (passenger_bus_location.location_time_tick * 2 + 2) > time_tick
+                            && (passenger_bus_location.location_time_tick) > time_tick
                         {
                             for other_passenger_bus_location in bus_route {
                                 /* let PassengerBusLocation {
@@ -784,17 +786,13 @@ fn main() {
                                             // multiply by two to skip time when passengers are generated
                                             // and add two to skip the initial two time ticks
                                             // TODO: Adjust again when a seperat time tick is used for loading and unloading
-                                            time_tick: (passenger_bus_location.location_time_tick)
-                                                * 2
-                                                + 2,
+                                            time_tick: passenger_bus_location.location_time_tick,
                                         },
                                         PassengerOnboardingBusSchedule {
                                             bus_num: None,
                                             // See above
                                             time_tick: (other_passenger_bus_location
-                                                .location_time_tick)
-                                                * 2
-                                                + 2,
+                                                .location_time_tick),
                                         },
                                     ];
 
