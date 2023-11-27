@@ -497,6 +497,7 @@ fn generate_bus_route_locations(
 fn generate_bus_route_locations_with_distances(
     location_list: &Vec<Location>,
     length: usize,
+    max_distance: u32,
 ) -> Result<Vec<BusLocation>, String> {
     use rand::Rng;
     let mut rng = rand::thread_rng();
@@ -505,8 +506,7 @@ fn generate_bus_route_locations_with_distances(
         .iter()
         .map(|location| BusLocation {
             location: *location,
-            // distance_to_location: rng.gen_range(1..=5),
-            distance_to_location: 1,
+            distance_to_location: rng.gen_range(1..=max_distance),
         })
         .collect::<Vec<_>>();
     Ok(bus_route_list_to_bus_location_types)
@@ -525,6 +525,7 @@ const GLOBAL_LOCATION_COUNT: u32 = 2;
 const BUS_CAPACITY: usize = 10;
 const NUM_OF_BUSES: usize = 2;
 const NUM_STOPS_PER_BUS: usize = 3;
+const MAX_LOCATION_DISTANCE: u32 = 5;
 
 fn main() {
     let location_vector = initialize_location_list(GLOBAL_LOCATION_COUNT);
@@ -1049,6 +1050,7 @@ fn main() {
         let bus_route = generate_bus_route_locations_with_distances(
             location_vector_arc.clone().as_ref(),
             NUM_STOPS_PER_BUS,
+            MAX_LOCATION_DISTANCE,
         )
         .unwrap();
 
