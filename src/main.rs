@@ -402,6 +402,11 @@ impl Bus {
     }
 }
 
+struct Station {
+    docked_buses: Vec<Bus>,
+    passengers: Vec<Passenger>,
+}
+
 #[derive(PartialEq, Debug)]
 enum RejectedPassengersMessages {
     MovingBus,
