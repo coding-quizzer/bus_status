@@ -1,8 +1,9 @@
 use std::{
+    collections::VecDeque,
     hash::Hash,
     ops::ControlFlow,
     sync::{
-        mpsc::{self, Sender},
+        mpsc::{self, Receiver, Sender},
         Arc, Mutex,
     },
     thread,
@@ -44,12 +45,16 @@ fn generate_list_of_random_elements_from_list<T: Copy>(
 
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
 struct Location {
+    index: usize,
     id: Uuid,
 }
 
 impl Location {
-    fn new() -> Location {
-        Location { id: Uuid::new_v4() }
+    fn new(index: usize) -> Location {
+        Location {
+            id: Uuid::new_v4(),
+            index,
+        }
     }
 }
 
@@ -402,9 +407,21 @@ impl Bus {
     }
 }
 
+#[derive(Debug)]
 struct Station {
+    location: Location,
     docked_buses: Vec<Bus>,
     passengers: Vec<Passenger>,
+}
+
+impl Station {
+    fn new(location: Location) -> Self {
+        Station {
+            location: location,
+            docked_buses: Vec::new(),
+            passengers: Vec::new(),
+        }
+    }
 }
 
 #[derive(PartialEq, Debug)]
@@ -517,23 +534,36 @@ fn generate_bus_route_locations_with_distances(
     Ok(bus_route_list_to_bus_location_types)
 }
 
-fn initialize_location_list(count: u32) -> Vec<Location> {
+fn initialize_location_list(count: usize) -> Vec<Location> {
     let mut location_list = vec![];
-    for _ in 0..count {
-        location_list.push(Location::new());
+    for index in 0..count {
+        location_list.push(Location::new(index));
     }
     location_list
 }
+fn initialize_station_channels(
+    station_count: u32,
+) -> (Vec<Sender<Vec<Passenger>>>, Vec<Receiver<Vec<Passenger>>>) {
+    let mut sender_vector = Vec::new();
+    let mut receiver_vector = Vec::new();
+    for _ in 0..station_count {
+        let (current_sender, current_receiver) = mpsc::channel();
+        sender_vector.push(current_sender);
+        receiver_vector.push(current_receiver);
+    }
+
+    (sender_vector, receiver_vector)
+}
 
 const GLOBAL_PASSENGER_COUNT: u32 = 50;
-const GLOBAL_LOCATION_COUNT: u32 = 2;
+const GLOBAL_LOCATION_COUNT: u32 = 5;
 const BUS_CAPACITY: usize = 10;
 const NUM_OF_BUSES: usize = 2;
 const NUM_STOPS_PER_BUS: usize = 3;
 const MAX_LOCATION_DISTANCE: u32 = 5;
 
 fn main() {
-    let location_vector = initialize_location_list(GLOBAL_LOCATION_COUNT);
+    let location_vector = initialize_location_list(GLOBAL_LOCATION_COUNT as usize);
 
     let total_passenger_list =
         generate_passenger_list(GLOBAL_PASSENGER_COUNT, &location_vector).unwrap();
@@ -559,6 +589,12 @@ fn main() {
     let (tx_from_threads, rx_from_threads) = mpsc::channel();
 
     let (tx_to_passengers, rx_to_passengers) = mpsc::channel();
+
+    let (send_to_station_channels, receive_in_station_channels) =
+        initialize_station_channels(GLOBAL_LOCATION_COUNT);
+
+    // let send_to_station_channels_arc = Arc::new(send_to_station_channels);
+    let receive_in_station_channels_arc = Arc::new(Mutex::new(receive_in_station_channels));
 
     let current_time_tick_clone = current_time_tick.clone();
 
@@ -829,6 +865,7 @@ fn main() {
     let passenger_thread_time_tick_clone = current_time_tick.clone();
     let passenger_thread_sender = tx_from_threads.clone();
     let passengers_thread_handle = thread::spawn(move || {
+        let station_sender_list = send_to_station_channels;
         let mut rejected_passengers: Vec<Passenger> = Vec::new();
         let receiver_from_sync_thread = rx_to_passengers;
         let mut previous_time_tick = 0;
@@ -838,6 +875,7 @@ fn main() {
             let mut rejected_passengers_indeces: Vec<usize> = Vec::new();
             let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
             // println!("Passenger loop beginning. Time tick: {}", time_tick);
+            println!("Passenger thread start.");
 
             if *passenger_thread_program_end_clone.lock().unwrap() {
                 println!("Rejected Passenger count: {}", rejected_passengers.len());
@@ -862,7 +900,7 @@ fn main() {
                 println!("First time tick loop");
                 let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
                 println!("Beginning of tick one passenger calculations");
-                for (passenger_index, passenger) in passenger_list.iter_mut().enumerate() {
+                /* for (passenger_index, passenger) in passenger_list.iter_mut().enumerate() {
                     match passenger.status {
                         PassengerStatus::Waiting => {
                             // If passenger is waiting for the bus, find out what bus will be able to take
@@ -892,7 +930,32 @@ fn main() {
                             // since the passenger has arrived and is not part of the bus route anymore
                         }
                     }
+                } */
+
+                let mut passenger_location_list: Vec<Vec<Passenger>> = Vec::new();
+                for _ in 0..GLOBAL_LOCATION_COUNT {
+                    passenger_location_list.push(Vec::new());
                 }
+                /* for (passenger_index, passenger) in passenger_list.iter().enumerate() {
+                    let current_location_index = passenger.current_location.unwrap().index;
+                    passenger_location_list[current_location_index].push(passenger.clone())
+                } */
+
+                let mut location_vec_dequeue = VecDeque::from(passenger_list.clone());
+
+                while let Some(passenger) = location_vec_dequeue.pop_back() {
+                    let current_location_index = passenger.current_location.unwrap().index;
+                    passenger_location_list[current_location_index].push(passenger);
+                }
+
+                for (index, passengers_in_location) in
+                    passenger_location_list.into_iter().enumerate()
+                {
+                    station_sender_list[index]
+                        .send(passengers_in_location)
+                        .unwrap();
+                }
+
                 println!("End of tick one passenger calculations");
 
                 // Remove passengers who cannot get onto a bus, since if they cannot get on any bus
@@ -1049,6 +1112,41 @@ fn main() {
     });
 
     handle_list.push(passengers_thread_handle);
+
+    let station_location_list = location_vector_arc.clone();
+
+    // Station index and location index are equivilant
+    for (location_index, location) in station_location_list.iter().enumerate() {
+        let station_index = location_index;
+        let station_time_tick = current_time_tick.clone();
+        let current_location = *location;
+        let station_channels = receive_in_station_channels_arc.clone();
+
+        let station_handle = thread::spawn(move || {
+            let current_receiver = station_channels.lock().unwrap().remove(0);
+            let current_station = Station::new(current_location);
+            let previous_time_tick = 0;
+
+            loop {
+                let time_tick = station_time_tick.lock().unwrap();
+                // println!("Station {location_index}. time tick: {}", *time_tick);
+                // if previous_time_tick != *time_tick {
+                //     let previous_time_tick = time_tick;
+                // } else {
+                //     continue;
+                // }
+
+                if *time_tick == 1 {
+                    drop(time_tick);
+                    let received_message = current_receiver.recv().unwrap();
+                    println!("Station {location_index} Message: {received_message:#?}");
+                    println!("total passenger_count: {}", received_message.len());
+                }
+            }
+        });
+
+        handle_list.push(station_handle);
+    }
 
     for bus_index in 0..NUM_OF_BUSES {
         let sender = tx_from_threads.clone();
