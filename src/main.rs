@@ -444,6 +444,10 @@ enum RejectedPassengersMessages {
     StoppedBus { rejected_passengers: Vec<Passenger> },
     CompletedProcessing,
 }
+#[derive(Debug)]
+enum StationMessages {
+    InitPassengerList(Vec<Passenger>),
+}
 
 #[derive(PartialEq, Debug)]
 enum BusMessages {
@@ -962,7 +966,7 @@ fn main() {
                     passenger_location_list.into_iter().enumerate()
                 {
                     station_sender_list[index]
-                        .send(passengers_in_location)
+                        .send(StationMessages::InitPassengerList(passengers_in_location))
                         .unwrap();
                 }
 
@@ -1153,8 +1157,12 @@ fn main() {
                 if *time_tick == 1 {
                     drop(time_tick);
                     let received_message = current_receiver.recv().unwrap();
-                    println!("Station {location_index} Message: {received_message:#?}");
-                    println!("total passenger_count: {}", received_message.len());
+                    match received_message {
+                        StationMessages::InitPassengerList(list) => {
+                            println!("Station {location_index} Message: {list:#?}");
+                            println!("total passenger_count: {}", list.len());
+                        }
+                    }
                 }
             }
         });
