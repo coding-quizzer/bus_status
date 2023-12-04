@@ -632,12 +632,10 @@ fn initialize_location_list(count: usize) -> Vec<Location> {
     }
     location_list
 }
-fn initialize_station_channels(
-    station_count: u32,
-) -> (Vec<Sender<Vec<Passenger>>>, Vec<Receiver<Vec<Passenger>>>) {
+fn initialize_channel_list<T>(channel_count: u32) -> (Vec<Sender<T>>, Vec<Receiver<T>>) {
     let mut sender_vector = Vec::new();
     let mut receiver_vector = Vec::new();
-    for _ in 0..station_count {
+    for _ in 0..channel_count {
         let (current_sender, current_receiver) = mpsc::channel();
         sender_vector.push(current_sender);
         receiver_vector.push(current_receiver);
@@ -677,12 +675,12 @@ fn main() {
 
     let sync_handle_program_end_clone = program_end.clone();
 
-    let (tx_from_threads, rx_from_threads) = mpsc::channel();
+    let (tx_from_bus_threads, rx_from_threads) = mpsc::channel();
 
     let (tx_to_passengers, rx_to_passengers) = mpsc::channel();
 
     let (send_to_station_channels, receive_in_station_channels) =
-        initialize_station_channels(GLOBAL_LOCATION_COUNT);
+        initialize_channel_list(GLOBAL_LOCATION_COUNT);
 
     // let send_to_station_channels_arc = Arc::new(send_to_station_channels);
     let receive_in_station_channels_arc = Arc::new(Mutex::new(receive_in_station_channels));
@@ -875,7 +873,7 @@ fn main() {
     let passenger_thread_program_end_clone = program_end.clone();
 
     let passenger_thread_time_tick_clone = current_time_tick.clone();
-    let passenger_thread_sender = tx_from_threads.clone();
+    let passenger_thread_sender = tx_from_bus_threads.clone();
     let passengers_thread_handle = thread::spawn(move || {
         let station_sender_list = send_to_station_channels;
         let mut rejected_passengers: Vec<Passenger> = Vec::new();
@@ -1164,8 +1162,13 @@ fn main() {
         handle_list.push(station_handle);
     }
 
+    let (send_to_bus_channels, receive_in_bus_channels) =
+        initialize_channel_list::<BusMessages>(NUM_OF_BUSES as u32);
+
+    let bus_receiver_channels_arc = Arc::new(Mutex::new(receive_in_bus_channels));
     for bus_index in 0..NUM_OF_BUSES {
-        let sender = tx_from_threads.clone();
+        let sender = tx_from_bus_threads.clone();
+        let bus_receiver_channels = bus_receiver_channels_arc.clone();
         let bus_route = generate_bus_route_locations_with_distances(
             location_vector_arc.clone().as_ref(),
             NUM_STOPS_PER_BUS,
@@ -1180,6 +1183,7 @@ fn main() {
         let mut time_clone_check = 1;
         let bus_route_vec_clone = bus_route_vec_arc.clone();
         let handle = thread::spawn(move || {
+            let current_bus_receiver = bus_receiver_channels.lock().unwrap().remove(0);
             let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY, bus_index);
             let mut bus_route_array = bus_route_vec_clone.lock().unwrap();
             bus_route_array[simulated_bus.bus_num] = simulated_bus.get_bus_route();
