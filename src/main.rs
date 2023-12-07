@@ -144,6 +144,8 @@ where
 
 // The current bus route data the buses impliment may not be the same format the passengers would want
 // It's hard to compare the positions of the buses at each time tick.s
+
+// #[derive(Clone)]
 struct Bus {
     status: BusStatus,
     passengers: Vec<Passenger>,
@@ -166,6 +168,21 @@ impl std::fmt::Debug for Bus {
             .field("current_location", &self.current_location)
             .field("location_vec", &&self.bus_route_vec)
             .finish()
+    }
+}
+
+impl Clone for Bus {
+    fn clone(&self) -> Self {
+        Bus {
+            status: self.status.clone(),
+            passengers: self.passengers.clone(),
+            current_location: self.current_location.clone(),
+            bus_route_iter: self.bus_route_iter.clone_box(),
+            bus_route_vec: self.bus_route_vec.clone(),
+            capacity: self.capacity.clone(),
+            total_passenger_count: self.total_passenger_count.clone(),
+            bus_num: self.bus_num.clone(),
+        }
     }
 }
 
@@ -338,7 +355,15 @@ impl Bus {
                     bus_index: self.bus_num,
                 })
                 .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
+            return;
         } else {
+            println!("Bus {} Arrived", self.bus_num);
+            let current_location_index = self.current_location.unwrap().index;
+            let next_station_sender = &station_senders[current_location_index];
+            next_station_sender
+                .send(StationMessages::BusArrived(self.clone().into()))
+                .unwrap();
+            println!("Arrived Message sent.");
         }
         assert_eq!(self.passengers.len(), 0);
         println!("Bus number {} is finished", self.bus_num);
@@ -480,7 +505,7 @@ impl From<Bus> for SendableBus {
 #[derive(Debug)]
 struct Station {
     location: Location,
-    docked_buses: Vec<Bus>,
+    docked_buses: Vec<SendableBus>,
     passengers: Vec<Passenger>,
 }
 
@@ -519,8 +544,13 @@ enum StationMessages {
     InitPassengerList(Vec<Passenger>),
     BusArrived(SendableBus),
 }
-enum StationToBusMessages<'a> {
-    AcknowledgeArrival(&'a SendableBus),
+
+#[derive(Debug, PartialEq, Eq)]
+enum StationToPassengersMessages {
+    ConfirmInitPassengerList(usize),
+}
+enum StationToBusMessages {
+    AcknowledgeArrival(),
 }
 
 #[derive(PartialEq, Debug)]
@@ -727,7 +757,7 @@ const GLOBAL_LOCATION_COUNT: u32 = 5;
 const BUS_CAPACITY: usize = 10;
 const NUM_OF_BUSES: usize = 2;
 const NUM_STOPS_PER_BUS: usize = 3;
-const MAX_LOCATION_DISTANCE: u32 = 5;
+const MAX_LOCATION_DISTANCE: u32 = 1;
 
 fn main() {
     let location_vector = initialize_location_list(GLOBAL_LOCATION_COUNT as usize);
@@ -757,11 +787,18 @@ fn main() {
 
     let (tx_to_passengers, rx_to_passengers) = mpsc::channel();
 
+    let (tx_stations_to_passengers, rx_stations_to_passengers) = mpsc::channel();
     let (send_to_station_channels, receive_in_station_channels) =
         initialize_channel_list(GLOBAL_LOCATION_COUNT);
 
     let send_to_station_channels_arc = Arc::new(send_to_station_channels);
     let receive_in_station_channels_arc = Arc::new(Mutex::new(receive_in_station_channels));
+
+    let (send_to_bus_channels, receive_in_bus_channels) =
+        initialize_channel_list(NUM_OF_BUSES as u32);
+
+    let bus_receiver_channels_arc = Arc::new(Mutex::new(receive_in_bus_channels));
+    let send_to_bus_channels_arc = Arc::new(send_to_bus_channels);
 
     let current_time_tick_clone = current_time_tick.clone();
 
@@ -930,6 +967,7 @@ fn main() {
                 *current_time_tick += 1;
                 // buses_finished_at_stops = 0;
             }
+            println!("End of sync loop");
         }
     });
 
@@ -954,6 +992,7 @@ fn main() {
     let passenger_thread_sender = tx_from_bus_threads.clone();
     let station_sender_list = send_to_station_channels_arc.clone();
     let passengers_thread_handle = thread::spawn(move || {
+        let stations_receiver = rx_stations_to_passengers;
         let mut rejected_passengers: Vec<Passenger> = Vec::new();
         let receiver_from_sync_thread = rx_to_passengers;
         let mut previous_time_tick = 0;
@@ -1042,6 +1081,15 @@ fn main() {
                     station_sender_list.as_ref()[index]
                         .send(StationMessages::InitPassengerList(passengers_in_location))
                         .unwrap();
+                }
+
+                for _ in 0..GLOBAL_LOCATION_COUNT {
+                    let sync_message = stations_receiver.recv().unwrap();
+                    if let StationToPassengersMessages::ConfirmInitPassengerList(station_number) =
+                        sync_message
+                    {
+                        println!("Passenger Init Confirmed from Station {station_number}");
+                    }
                 }
 
                 println!("End of tick one passenger calculations");
@@ -1212,30 +1260,54 @@ fn main() {
         let station_index = location_index;
         let station_time_tick = current_time_tick.clone();
         let current_location = *location;
+        let send_to_bus_channels = send_to_bus_channels_arc.clone();
         let station_channels = receive_in_station_channels_arc.clone();
+        // let send_to_bus_channels =
 
+        let to_passengers_sender_clone = tx_stations_to_passengers.clone();
         let station_handle = thread::spawn(move || {
             let current_receiver = station_channels.lock().unwrap().remove(0);
-            let current_station = Station::new(current_location);
-            let previous_time_tick = 0;
+            let mut current_station = Station::new(current_location);
+            let mut previous_time_tick = 0;
 
             loop {
                 let time_tick = station_time_tick.lock().unwrap();
                 // println!("Station {location_index}. time tick: {}", *time_tick);
-                // if previous_time_tick != *time_tick {
-                //     let previous_time_tick = time_tick;
-                // } else {
-                //     continue;
-                // }
+                if previous_time_tick != *time_tick {
+                    previous_time_tick = *time_tick;
+                } else {
+                    continue;
+                }
 
                 if *time_tick == 1 {
                     drop(time_tick);
                     let received_message = current_receiver.recv().unwrap();
                     if let StationMessages::InitPassengerList(list) = received_message {
-                        println!("Station {location_index} Message: {list:#?}");
+                        println!("Station {station_index} Message: {list:#?}");
                         println!("total passenger_count: {}", list.len());
+                        to_passengers_sender_clone
+                            .send(StationToPassengersMessages::ConfirmInitPassengerList(
+                                station_index,
+                            ))
+                            .unwrap();
                     } else {
                         panic!("{received_message:?} should not be sent at time tick 1.");
+                    }
+                    continue;
+                }
+
+                let received_message = current_receiver.recv().unwrap();
+                match received_message {
+                    StationMessages::InitPassengerList(message) => panic!(
+                        "PassengerInit message should not be sent on any time tick besides tick 1. Time tick: {}, List sent: {:#?}", time_tick, message 
+                    ),
+                    StationMessages::BusArrived(bus) => {
+                        let bus_index = bus.bus_num;
+                        println!("Bus {bus_index} arrived at station {station_index}.");
+                        current_station.docked_buses.push(bus);
+                        (send_to_bus_channels.as_ref())[bus_index]
+                            .send(StationToBusMessages::AcknowledgeArrival())
+                            .unwrap();
                     }
                 }
             }
@@ -1244,10 +1316,6 @@ fn main() {
         handle_list.push(station_handle);
     }
 
-    let (send_to_bus_channels, receive_in_bus_channels) =
-        initialize_channel_list::<BusMessages>(NUM_OF_BUSES as u32);
-
-    let bus_receiver_channels_arc = Arc::new(Mutex::new(receive_in_bus_channels));
     for bus_index in 0..NUM_OF_BUSES {
         let station_senders_clone = send_to_station_channels_arc.clone();
         let sender = tx_from_bus_threads.clone();
@@ -1333,13 +1401,28 @@ fn main() {
                 })
                 .unwrap(); */
             loop {
+                println!("Bus Loop Beginning");
                 let current_time_tick = current_time_tick_clone.lock().unwrap();
-
-                let update_result = simulated_bus.update(
-                    station_senders_clone.as_ref(),
-                    &sender,
-                    &current_time_tick,
+                if *current_time_tick < 2 {
+                    drop(current_time_tick);
+                    continue;
+                }
+                println!(
+                    // Note, only one bus ever prints this at a time
+                    "Bus {} bus route loop. Time tick: {}",
+                    { simulated_bus.bus_num },
+                    current_time_tick
                 );
+                if time_clone_check == *current_time_tick {
+                    println!("Time tick skipped");
+                    drop(current_time_tick);
+                    continue;
+                } else {
+                    time_clone_check = *current_time_tick;
+                }
+
+                simulated_bus.update(station_senders_clone.as_ref(), &sender, &current_time_tick);
+                drop(current_time_tick);
             }
         });
         handle_list.push(handle);
