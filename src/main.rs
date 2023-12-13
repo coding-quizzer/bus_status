@@ -1,3 +1,4 @@
+use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 use std::{
     collections::VecDeque,
     hash::Hash,
@@ -43,9 +44,11 @@ fn generate_list_of_random_elements_from_list<T: Copy>(
     Ok(output_list)
 }
 
-#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
 struct Location {
+    #[serde(rename = "id")]
     index: usize,
+    #[serde(skip)]
     id: Uuid,
 }
 
@@ -58,21 +61,47 @@ impl Location {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
 enum PassengerStatus {
     OnBus,
     Waiting,
     Arrived,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
 struct PassengerOnboardingBusSchedule {
     time_tick: u32,
     // the last destination will not include a bus number because the passenger will be at his destination
     bus_num: Option<usize>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize)]
+struct SerializedPassenger {
+    id: Uuid,
+    destination_location: Location,
+    current_location: Option<Location>,
+}
+
+impl From<SerializedPassenger> for Passenger {
+    fn from(serialized_passenger_input: SerializedPassenger) -> Passenger {
+        let SerializedPassenger {
+            id,
+            destination_location,
+            current_location,
+        } = serialized_passenger_input;
+
+        Passenger {
+            id,
+            destination_location,
+            status: PassengerStatus::Waiting,
+            current_location,
+            passed_stops: 0,
+            bus_schedule: Vec::new(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 // Passenger should eventually contain the index and the time tick for the bus
 // I'm not sure how recalculating the route should work if the passenger doesn't get on the bus
 // I wonder if some sort of priority system would be useful sometime
@@ -105,7 +134,7 @@ impl Passenger {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Deserialize, Serialize)]
 enum MovementState {
     // Moving contains the distance to the next location
     Moving(u32),
@@ -119,7 +148,7 @@ impl Default for MovementState {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 struct BusStatus {
     movement: MovementState,
 }
@@ -145,7 +174,6 @@ where
 // The current bus route data the buses impliment may not be the same format the passengers would want
 // It's hard to compare the positions of the buses at each time tick.s
 
-// #[derive(Clone)]
 struct Bus {
     status: BusStatus,
     passengers: Vec<Passenger>,
@@ -188,7 +216,7 @@ impl Clone for Bus {
 
 // let passengers take the most efficient route
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 struct BusLocation {
     location: Location,
     // distance_to_next is None for the last location
@@ -465,7 +493,13 @@ impl Bus {
     }
 }
 
-#[derive(Debug)]
+/* #[derive(Debug, Serialize, Deserialize)]
+struct SerializableBus {
+    id: u32,
+    destination: Location,
+    current_location: Option<Location>,
+} */
+#[derive(Debug, Serialize, Deserialize)]
 struct SendableBus {
     status: BusStatus,
     passengers: Vec<Passenger>,
@@ -1041,10 +1075,11 @@ fn main() {
             println!("Bus route list: {bus_route_list:#?}");
             drop(bus_route_list);
 
+            // It may not be neccessary to do this on the first time tick
             if *time_tick == 1 {
                 drop(time_tick);
                 println!("First time tick loop");
-                let mut passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
+                let passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
                 println!("Beginning of tick one passenger calculations");
                 /* for (passenger_index, passenger) in passenger_list.iter_mut().enumerate() {
                     match passenger.status {
@@ -1298,6 +1333,9 @@ fn main() {
                 //     station_index, time_tick
                 // );
                 // println!("Station {location_index}. time tick: {}", *time_tick);
+
+                // When time tick is 0, previous_time_tick is 0, so the loop is skipped. This is fine, since the station
+                // does not do anything on time tick 0.
                 if previous_time_tick != *time_tick {
                     previous_time_tick = *time_tick;
                 } else {

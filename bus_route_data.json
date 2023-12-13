@@ -1,0 +1,45 @@
+{
+  "bus_routes": [
+    {
+      "bus_route_vec": [
+        { "id": 1, "distance_to_location": 2 },
+        { "id": 2, "distance_to_location": 1 },
+        { "id": 4, "distance_to_location": 3 },
+        { "id": 5, "distance_to_location": 2 }
+      ]
+    },
+    {
+      "bus_route_vec": [
+        { "id": 2, "distance_to_location": 1 },
+        { "id": 3, "distance_to_location": 1 },
+        { "id": 4, "distance_to_location": 1 },
+        { "id": 1, "distance_to_location": 1 }
+      ]
+    },
+    {
+      "bus_route_vec": [
+        { "id": 2, "distance_to_location": 1 },
+        { "id": 4, "distance_to_location": 4 },
+        { "id": 3, "distance_to_location": 2 },
+        { "id": 1, "distance_to_location": 3 }
+      ]
+    }
+  ],
+  "passengers": [
+    { "id": 1, "destination": { "id": 3 }, "current_location": { "id": 2 } },
+    { "id": 2, "destination": { "id": 2 }, "current_location": { "id": 3 } },
+    { "id": 3, "destination": { "id": 1 }, "current_location": { "id": 4 } },
+    { "id": 4, "destination": { "id": 4 }, "current_location": { "id": 1 } },
+    { "id": 5, "destination": { "id": 5 }, "current_location": { "id": 3 } },
+    { "id": 6, "destination": { "id": 3 }, "current_location": { "id": 4 } },
+    { "id": 7, "destination": { "id": 1 }, "current_location": { "id": 5 } },
+    { "id": 8, "destination": { "id": 4 }, "current_location": { "id": 2 } },
+    { "id": 9, "destination": { "id": 5 }, "current_location": { "id": 2 } },
+    { "id": 10, "destination": { "id": 3 }, "current_location": { "id": 1 } },
+    { "id": 11, "destination": { "id": 2 }, "current_location": { "id": 4 } },
+    { "id": 12, "destination": { "id": 5 }, "current_location": { "id": 3 } }
+  ],
+
+  "location_count": 5,
+  "bus_count": 3
+}
