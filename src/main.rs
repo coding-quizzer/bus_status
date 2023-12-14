@@ -1,8 +1,12 @@
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 use std::{
     collections::VecDeque,
+    error::Error,
+    fs::File,
     hash::Hash,
+    io::{BufReader, BufWriter},
     ops::ControlFlow,
+    path::Path,
     sync::{
         mpsc::{self, Receiver, Sender},
         Arc, Mutex,
@@ -46,9 +50,7 @@ fn generate_list_of_random_elements_from_list<T: Copy>(
 
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
 struct Location {
-    #[serde(rename = "id")]
     index: usize,
-    #[serde(skip)]
     id: Uuid,
 }
 
@@ -97,6 +99,25 @@ impl From<SerializedPassenger> for Passenger {
             current_location,
             passed_stops: 0,
             bus_schedule: Vec::new(),
+        }
+    }
+}
+
+impl From<Passenger> for SerializedPassenger {
+    fn from(passenger: Passenger) -> SerializedPassenger {
+        let Passenger {
+            id,
+            destination_location,
+            status: _status,
+            current_location,
+            passed_stops: _passed_stops,
+            bus_schedule: _bus_schedule,
+        } = passenger;
+
+        SerializedPassenger {
+            id,
+            destination_location,
+            current_location,
         }
     }
 }
@@ -786,14 +807,51 @@ fn initialize_channel_list<T>(channel_count: u32) -> (Vec<Sender<T>>, Vec<Receiv
     (sender_vector, receiver_vector)
 }
 
+#[derive(Serialize, Deserialize)]
+struct InputDataStructure {
+    bus_routes: Vec<Vec<BusLocation>>,
+    passengers: Vec<SerializedPassenger>,
+    location_count: u32,
+    bus_count: usize,
+}
+
+/* struct ConvertedInputDataStructure {
+  bus_routes: Vec<Vec<BusLocation>>,
+
+} */
+
+fn read_data_from_file(path: &Path) -> Result<InputDataStructure, Box<dyn Error>> {
+    // Open the file in read-only mode with buffer.
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+
+    // Read the JSON contents of the file as an instance of `Data`.
+    let u = serde_json::from_reader(reader)?;
+
+    // Return the `Data`.
+    Ok(u)
+}
+
+fn write_data_to_file(data: InputDataStructure, path: &Path) -> Result<(), Box<dyn Error>> {
+    // Open the file in read-only mode with buffer.
+    let file = File::create(path)?;
+    let writer = BufWriter::new(file);
+
+    // Read the JSON contents of the file as an instance of `Data`.
+    serde_json::to_writer_pretty(writer, &data)?;
+
+    // Return the `Data`.
+    Ok(())
+}
 const GLOBAL_PASSENGER_COUNT: u32 = 50;
-const GLOBAL_LOCATION_COUNT: u32 = 5;
+const GLOBAL_LOCATION_COUNT: u32 = 3;
 const BUS_CAPACITY: usize = 10;
 const NUM_OF_BUSES: usize = 2;
 const NUM_STOPS_PER_BUS: usize = 3;
 const MAX_LOCATION_DISTANCE: u32 = 1;
 
 fn main() {
+    let initial_data = read_data_from_file(Path::new("bus_route_data.json")).unwrap();
     let location_vector = initialize_location_list(GLOBAL_LOCATION_COUNT as usize);
 
     let total_passenger_list =
@@ -838,6 +896,9 @@ fn main() {
     let send_to_bus_channels_arc = Arc::new(send_to_bus_channels);
 
     let current_time_tick_clone = current_time_tick.clone();
+
+    let route_sync_bus_route_vec_arc = bus_route_vec_arc.clone();
+    let route_sync_passenger_list_arc = passenger_list_pointer.clone();
 
     let route_sync_handle = thread::spawn(move || {
         let passenger_sender = tx_to_passengers;
@@ -971,6 +1032,22 @@ fn main() {
                     == 0
             {
                 *current_time_tick += 1;
+                let passenger_list: Vec<SerializedPassenger> = route_sync_passenger_list_arc
+                    .lock()
+                    .unwrap()
+                    .clone()
+                    .iter()
+                    .map(|passenger| passenger.clone().into())
+                    .collect();
+                let bus_route_list: Vec<Vec<BusLocation>> =
+                    route_sync_bus_route_vec_arc.lock().unwrap().clone().into();
+                let json_structure = InputDataStructure {
+                    bus_routes: bus_route_list,
+                    passengers: passenger_list,
+                    location_count: GLOBAL_LOCATION_COUNT,
+                    bus_count: NUM_OF_BUSES,
+                };
+                write_data_to_file(json_structure, Path::new("bus_route_data.json")).unwrap();
                 println!(
                     "All Buses Initialized. Time tick 0 message: {:?}",
                     received_bus_stop_message
