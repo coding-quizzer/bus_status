@@ -866,22 +866,41 @@ const READ_JSON: bool = true;
 fn main() {
     let initial_data = read_data_from_file(Path::new("bus_route_data.json")).unwrap();
 
-    // How do I retrieve locations from the already produced list so that the locations are the same?
-    let location_vector = initialize_location_list(GLOBAL_LOCATION_COUNT);
+    let InputDataStructure {
+        bus_routes,
+        passengers,
+        location_vector,
+    } = initial_data;
 
-    let total_passenger_list =
-        generate_random_passenger_list(GLOBAL_PASSENGER_COUNT, &location_vector).unwrap();
+    // How do I retrieve locations from the already produced list so that the locations are the same?
+    let location_vector = if READ_JSON {
+        location_vector
+    } else {
+        initialize_location_list(GLOBAL_LOCATION_COUNT)
+    };
+
+    let total_passenger_list = if READ_JSON {
+        passengers
+            .into_iter()
+            .map(|passenger| passenger.into())
+            .collect()
+    } else {
+        generate_random_passenger_list(GLOBAL_PASSENGER_COUNT, &location_vector).unwrap()
+    };
 
     let mut bus_route_array: [Vec<BusLocation>; NUM_OF_BUSES] = std::array::from_fn(|_| Vec::new());
+    if READ_JSON {
+        bus_route_array = bus_routes;
+    } else {
+        for bus_route in bus_route_array.iter_mut() {
+            let next_bus_route = generate_bus_route_locations_with_distances(
+                &location_vector,
+                NUM_STOPS_PER_BUS,
+                MAX_LOCATION_DISTANCE,
+            );
 
-    for bus_route in bus_route_array.iter_mut() {
-        let next_bus_route = generate_bus_route_locations_with_distances(
-            &location_vector,
-            NUM_STOPS_PER_BUS,
-            MAX_LOCATION_DISTANCE,
-        );
-
-        *bus_route = next_bus_route.unwrap();
+            *bus_route = next_bus_route.unwrap();
+        }
     }
 
     let passenger_list_pointer = Arc::new(Mutex::new(total_passenger_list));
