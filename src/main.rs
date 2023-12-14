@@ -77,7 +77,7 @@ struct PassengerOnboardingBusSchedule {
     bus_num: Option<usize>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 struct SerializedPassenger {
     id: Uuid,
     destination_location: Location,
@@ -720,8 +720,8 @@ fn generate_passenger(location_list: &Vec<Location>) -> Result<Passenger, String
     Ok(Passenger::new(old_location, new_location))
 }
 
-fn generate_passenger_list(
-    count: u32,
+fn generate_random_passenger_list(
+    count: usize,
     location_list: &Vec<Location>,
 ) -> Result<Vec<Passenger>, String> {
     let mut passenger_list = vec![];
@@ -788,6 +788,8 @@ fn generate_bus_route_locations_with_distances(
     Ok(bus_route_list_to_bus_location_types)
 }
 
+// fn generate_bus_route_arr
+
 fn initialize_location_list(count: usize) -> Vec<Location> {
     let mut location_list = vec![];
     for index in 0..count {
@@ -795,7 +797,7 @@ fn initialize_location_list(count: usize) -> Vec<Location> {
     }
     location_list
 }
-fn initialize_channel_list<T>(channel_count: u32) -> (Vec<Sender<T>>, Vec<Receiver<T>>) {
+fn initialize_channel_list<T>(channel_count: usize) -> (Vec<Sender<T>>, Vec<Receiver<T>>) {
     let mut sender_vector = Vec::new();
     let mut receiver_vector = Vec::new();
     for _ in 0..channel_count {
@@ -807,12 +809,11 @@ fn initialize_channel_list<T>(channel_count: u32) -> (Vec<Sender<T>>, Vec<Receiv
     (sender_vector, receiver_vector)
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct InputDataStructure {
-    bus_routes: Vec<Vec<BusLocation>>,
+    bus_routes: [Vec<BusLocation>; NUM_OF_BUSES],
     passengers: Vec<SerializedPassenger>,
-    location_count: u32,
-    bus_count: usize,
+    location_vector: Vec<Location>,
 }
 
 /* struct ConvertedInputDataStructure {
@@ -826,10 +827,20 @@ fn read_data_from_file(path: &Path) -> Result<InputDataStructure, Box<dyn Error>
     let reader = BufReader::new(file);
 
     // Read the JSON contents of the file as an instance of `Data`.
-    let u = serde_json::from_reader(reader)?;
+    let data: InputDataStructure = serde_json::from_reader(reader)?;
+
+    let InputDataStructure {
+        bus_routes,
+        passengers,
+        location_vector,
+    } = data.clone();
+
+    assert_eq!(location_vector.len(), GLOBAL_LOCATION_COUNT);
+    assert_eq!(bus_routes.len(), NUM_OF_BUSES);
+    assert_eq!(passengers.len(), GLOBAL_PASSENGER_COUNT);
 
     // Return the `Data`.
-    Ok(u)
+    Ok(data)
 }
 
 fn write_data_to_file(data: InputDataStructure, path: &Path) -> Result<(), Box<dyn Error>> {
@@ -843,26 +854,42 @@ fn write_data_to_file(data: InputDataStructure, path: &Path) -> Result<(), Box<d
     // Return the `Data`.
     Ok(())
 }
-const GLOBAL_PASSENGER_COUNT: u32 = 50;
-const GLOBAL_LOCATION_COUNT: u32 = 3;
+const GLOBAL_PASSENGER_COUNT: usize = 50;
+const GLOBAL_LOCATION_COUNT: usize = 3;
 const BUS_CAPACITY: usize = 10;
 const NUM_OF_BUSES: usize = 2;
 const NUM_STOPS_PER_BUS: usize = 3;
 const MAX_LOCATION_DISTANCE: u32 = 1;
+const WRITE_TO_JSON: bool = true;
+const READ_JSON: bool = true;
 
 fn main() {
     let initial_data = read_data_from_file(Path::new("bus_route_data.json")).unwrap();
-    let location_vector = initialize_location_list(GLOBAL_LOCATION_COUNT as usize);
+
+    // How do I retrieve locations from the already produced list so that the locations are the same?
+    let location_vector = initialize_location_list(GLOBAL_LOCATION_COUNT);
 
     let total_passenger_list =
-        generate_passenger_list(GLOBAL_PASSENGER_COUNT, &location_vector).unwrap();
+        generate_random_passenger_list(GLOBAL_PASSENGER_COUNT, &location_vector).unwrap();
+
+    let mut bus_route_array: [Vec<BusLocation>; NUM_OF_BUSES] = std::array::from_fn(|_| Vec::new());
+
+    for bus_route in bus_route_array.iter_mut() {
+        let next_bus_route = generate_bus_route_locations_with_distances(
+            &location_vector,
+            NUM_STOPS_PER_BUS,
+            MAX_LOCATION_DISTANCE,
+        );
+
+        *bus_route = next_bus_route.unwrap();
+    }
 
     let passenger_list_pointer = Arc::new(Mutex::new(total_passenger_list));
 
     let location_vector_arc = Arc::new(location_vector);
 
     let bus_route_vec_arc: Arc<Mutex<[Vec<BusLocation>; NUM_OF_BUSES]>> =
-        Arc::new(Mutex::new(std::array::from_fn(|_| vec![])));
+        Arc::new(Mutex::new(bus_route_array));
 
     let passenger_bus_route_arc: Arc<Mutex<Vec<Vec<PassengerBusLocation>>>> =
         Arc::new(Mutex::new(Vec::new()));
@@ -889,8 +916,7 @@ fn main() {
     let send_to_station_channels_arc = Arc::new(send_to_station_channels);
     let receive_in_station_channels_arc = Arc::new(Mutex::new(receive_in_station_channels));
 
-    let (send_to_bus_channels, receive_in_bus_channels) =
-        initialize_channel_list(NUM_OF_BUSES as u32);
+    let (send_to_bus_channels, receive_in_bus_channels) = initialize_channel_list(NUM_OF_BUSES);
 
     let bus_receiver_channels_arc = Arc::new(Mutex::new(receive_in_bus_channels));
     let send_to_bus_channels_arc = Arc::new(send_to_bus_channels);
@@ -899,6 +925,7 @@ fn main() {
 
     let route_sync_bus_route_vec_arc = bus_route_vec_arc.clone();
     let route_sync_passenger_list_arc = passenger_list_pointer.clone();
+    let route_sync_location_vec_arc = location_vector_arc.clone();
 
     let route_sync_handle = thread::spawn(move || {
         let passenger_sender = tx_to_passengers;
@@ -1032,22 +1059,23 @@ fn main() {
                     == 0
             {
                 *current_time_tick += 1;
-                let passenger_list: Vec<SerializedPassenger> = route_sync_passenger_list_arc
-                    .lock()
-                    .unwrap()
-                    .clone()
-                    .iter()
-                    .map(|passenger| passenger.clone().into())
-                    .collect();
-                let bus_route_list: Vec<Vec<BusLocation>> =
-                    route_sync_bus_route_vec_arc.lock().unwrap().clone().into();
-                let json_structure = InputDataStructure {
-                    bus_routes: bus_route_list,
-                    passengers: passenger_list,
-                    location_count: GLOBAL_LOCATION_COUNT,
-                    bus_count: NUM_OF_BUSES,
-                };
-                write_data_to_file(json_structure, Path::new("bus_route_data.json")).unwrap();
+                if WRITE_TO_JSON {
+                    let location_vector = route_sync_location_vec_arc.as_ref();
+                    let passenger_list: Vec<SerializedPassenger> = route_sync_passenger_list_arc
+                        .lock()
+                        .unwrap()
+                        .clone()
+                        .iter()
+                        .map(|passenger| passenger.clone().into())
+                        .collect();
+                    let bus_route_list = route_sync_bus_route_vec_arc.lock().unwrap().clone();
+                    let json_structure = InputDataStructure {
+                        bus_routes: bus_route_list,
+                        passengers: passenger_list,
+                        location_vector: location_vector.clone(),
+                    };
+                    write_data_to_file(json_structure, Path::new("bus_route_data.json")).unwrap();
+                }
                 println!(
                     "All Buses Initialized. Time tick 0 message: {:?}",
                     received_bus_stop_message
@@ -1117,13 +1145,13 @@ fn main() {
         let receiver_from_sync_thread = rx_to_passengers;
         let mut previous_time_tick = 0;
         loop {
-            println!("Passenger loop start");
+            // println!("Passenger loop start");
             // Wait for 1 milliseconds to give other threads a chance to use the time tick mutex
             // std::thread::sleep(std::time::Duration::from_millis(1));
             // let mut rejected_passengers_indeces: Vec<usize> = Vec::new();
             let time_tick = passenger_thread_time_tick_clone.lock().unwrap();
             // println!("Passenger loop beginning. Time tick: {}", time_tick);
-            println!("Passenger thread start.");
+            // println!("Passenger thread start.");
 
             if *passenger_thread_program_end_clone.lock().unwrap() {
                 println!("Rejected Passenger count: {}", rejected_passengers.len());
@@ -1479,26 +1507,22 @@ fn main() {
     }
 
     for bus_index in 0..NUM_OF_BUSES {
+        let bus_route_array_clone = bus_route_vec_arc.clone();
         let station_senders_clone = send_to_station_channels_arc.clone();
         let sender = tx_from_bus_threads.clone();
         let bus_receiver_channels = bus_receiver_channels_arc.clone();
-        let bus_route = generate_bus_route_locations_with_distances(
-            location_vector_arc.clone().as_ref(),
-            NUM_STOPS_PER_BUS,
-            MAX_LOCATION_DISTANCE,
-        )
-        .unwrap();
 
-        println!("Bus {bus_index} bus route: {bus_route:#?}");
         // let passenger_list_pointer_clone = passenger_list_pointer.clone();
         // let passenger_stops_passed_pointer_clone = passenger_extra_stops_waited_pointer.clone();
         let current_time_tick_clone = current_time_tick.clone();
         let mut time_clone_check = 1;
-        let bus_route_vec_clone = bus_route_vec_arc.clone();
         let handle = thread::spawn(move || {
+            let mut bus_route_array = bus_route_array_clone.lock().unwrap();
+            let bus_route = bus_route_array.get(bus_index).unwrap();
+            println!("Bus {bus_index} bus route: {bus_route:#?}");
             let current_bus_receiver = bus_receiver_channels.lock().unwrap().remove(0);
             let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY, bus_index);
-            let mut bus_route_array = bus_route_vec_clone.lock().unwrap();
+            println!("Bus {bus_index} created");
             bus_route_array[simulated_bus.bus_num] = simulated_bus.get_bus_route();
             // Release the lock on bus_route_array by dropping it
             drop(bus_route_array);
@@ -1600,7 +1624,7 @@ fn main() {
     let total_passengers = passenger_extra_stops_waited.len();
 
     // let passengers_remaining = passenger_list_pointer.lock().unwrap().len();
-    let passengers_remaining = GLOBAL_PASSENGER_COUNT - total_passengers as u32;
+    let passengers_remaining = GLOBAL_PASSENGER_COUNT - total_passengers;
 
     println!("{passengers_remaining} passengers did not get onto any bus");
 
