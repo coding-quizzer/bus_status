@@ -860,12 +860,10 @@ const BUS_CAPACITY: usize = 10;
 const NUM_OF_BUSES: usize = 2;
 const NUM_STOPS_PER_BUS: usize = 3;
 const MAX_LOCATION_DISTANCE: u32 = 1;
-
-use std::env;
+const READ_JSON: bool = option_env!("READ_DATA").is_some();
+const WRITE_JSON: bool = option_env!("WRITE_DATA").is_some();
 
 fn main() {
-    let read_json = env::var("READ_DATA").is_ok();
-    let write_json = env::var("WRITE_DATA").is_ok();
     let initial_data = read_data_from_file(Path::new("bus_route_data.json")).unwrap();
 
     let InputDataStructure {
@@ -875,13 +873,13 @@ fn main() {
     } = initial_data;
 
     // How do I retrieve locations from the already produced list so that the locations are the same?
-    let location_vector = if read_json {
+    let location_vector = if READ_JSON {
         location_vector
     } else {
         initialize_location_list(GLOBAL_LOCATION_COUNT)
     };
 
-    let total_passenger_list = if read_json {
+    let total_passenger_list = if READ_JSON {
         passengers
             .into_iter()
             .map(|passenger| passenger.into())
@@ -891,7 +889,7 @@ fn main() {
     };
 
     let mut bus_route_array: [Vec<BusLocation>; NUM_OF_BUSES] = std::array::from_fn(|_| Vec::new());
-    if read_json {
+    if READ_JSON {
         bus_route_array = bus_routes;
     } else {
         for bus_route in bus_route_array.iter_mut() {
@@ -1080,7 +1078,7 @@ fn main() {
                     == 0
             {
                 *current_time_tick += 1;
-                if write_json {
+                if WRITE_JSON {
                     let location_vector = route_sync_location_vec_arc.as_ref();
                     let passenger_list: Vec<SerializedPassenger> = route_sync_passenger_list_arc
                         .lock()
