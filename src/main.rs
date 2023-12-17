@@ -854,9 +854,9 @@ fn write_data_to_file(data: InputDataStructure, path: &Path) -> Result<(), Box<d
     // Return the `Data`.
     Ok(())
 }
-const GLOBAL_PASSENGER_COUNT: usize = 50;
-const GLOBAL_LOCATION_COUNT: usize = 3;
-const BUS_CAPACITY: usize = 10;
+const GLOBAL_PASSENGER_COUNT: usize = 10;
+const GLOBAL_LOCATION_COUNT: usize = 4;
+const BUS_CAPACITY: usize = 5;
 const NUM_OF_BUSES: usize = 2;
 const NUM_STOPS_PER_BUS: usize = 3;
 const MAX_LOCATION_DISTANCE: u32 = 1;
@@ -864,7 +864,17 @@ const READ_JSON: bool = option_env!("READ_DATA").is_some();
 const WRITE_JSON: bool = option_env!("WRITE_DATA").is_some();
 
 fn main() {
-    let initial_data = read_data_from_file(Path::new("bus_route_data.json")).unwrap();
+    let initial_data: InputDataStructure = if READ_JSON {
+        read_data_from_file(Path::new("bus_route_data.json")).unwrap()
+    } else {
+        let bus_routes = std::array::from_fn(|_| Vec::new());
+        // bus_routes is only used if READ_JSON
+        InputDataStructure {
+            bus_routes,
+            passengers: Vec::new(),
+            location_vector: Vec::new(),
+        }
+    };
 
     let InputDataStructure {
         bus_routes,
