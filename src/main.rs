@@ -913,6 +913,8 @@ fn main() {
         }
     }
 
+    let rejected_passengers_pointer = Arc::new(Mutex::new(Vec::new()));
+
     let passenger_list_pointer = Arc::new(Mutex::new(total_passenger_list));
 
     let location_vector_arc = Arc::new(location_vector);
@@ -1452,6 +1454,7 @@ fn main() {
         let bus_route_list = bus_route_vec_arc.clone();
         let station_thread_passenger_bus_route_list = passenger_bus_route_arc.clone();
         // let send_to_bus_channels =
+        let rejected_passenger_clone = rejected_passengers_pointer.clone();
 
         let to_passengers_sender_clone = tx_stations_to_passengers.clone();
         let station_handle = thread::spawn(move || {
@@ -1482,9 +1485,10 @@ fn main() {
                     drop(time_tick);
                     let received_message = current_receiver.recv().unwrap();
                     let time_tick = station_time_tick.lock().unwrap();
-                    if let StationMessages::InitPassengerList(list) = received_message {
+                    if let StationMessages::InitPassengerList(mut list) = received_message {
                         println!("Station {station_index} Message: {list:#?}");
-                        for passenger in list.iter() {
+                        let mut rejected_passenger_indeces = Vec::new();
+                        for (index, passenger) in list.iter().enumerate() {
                             // let passenger_bus_route_list =
                             //     station_thread_passenger_bus_route_list.lock().unwrap();
                             println!("Passenger will be added to station {}", station_index);
@@ -1495,8 +1499,14 @@ fn main() {
                                     &station_thread_passenger_bus_route_list.lock().unwrap(),
                                 )
                                 .unwrap_or_else(|passenger| {
+                                    rejected_passenger_indeces.push(index);
                                     println!("Passenger {:?} had no valid routes", passenger)
                                 });
+                        }
+
+                        for passenger_index in rejected_passenger_indeces.into_iter().rev() {
+                            let removed_passenger = list.remove(passenger_index);
+                            (*rejected_passenger_clone.lock().unwrap()).push(removed_passenger);
                         }
                         println!("Passengers added to station {}", station_index);
                         drop(time_tick);
