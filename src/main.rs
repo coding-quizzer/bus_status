@@ -1,9 +1,10 @@
-use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
+use serde::{de, ser::SerializeStruct, Deserialize, Serialize, Serializer};
 use std::{
     collections::VecDeque,
     error::Error,
+    ffi::FromVecWithNulError,
     fs::File,
-    hash::Hash,
+    hash::{BuildHasher, Hash},
     io::{BufReader, BufWriter},
     ops::ControlFlow,
     path::Path,
@@ -75,6 +76,7 @@ struct PassengerOnboardingBusSchedule {
     time_tick: u32,
     // the last destination will not include a bus number because the passenger will be at his destination
     bus_num: Option<usize>,
+    stop_location: Location,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -435,6 +437,7 @@ impl Bus {
             }
 
             let PassengerOnboardingBusSchedule {
+                stop_location: _,
                 time_tick: onboarding_time_tick,
                 bus_num,
             } = passenger
@@ -580,8 +583,13 @@ impl Station {
         time_tick: u32,
         bus_route_list: &Vec<Vec<PassengerBusLocation>>,
     ) -> Result<(), Passenger> {
+        let updated_bus_route =
+            calculate_passenger_bus_schedule_new(new_passenger.clone(), time_tick, bus_route_list);
+        println!("Updated Bus Route: {:#?}", updated_bus_route);
         let new_bus_schedule =
             calculate_passenger_bus_schedule(new_passenger.clone(), time_tick, bus_route_list)?;
+        println!("New Bus Schedule: {:#?}", new_bus_schedule);
+        println!("Passengers added.");
         new_passenger.bus_schedule = new_bus_schedule;
         self.passengers.push(new_passenger);
         Ok(())
@@ -679,6 +687,7 @@ fn calculate_passenger_bus_schedule(
                                 let destination_route = vec![
                                     PassengerOnboardingBusSchedule {
                                         bus_num: Some(bus_index),
+                                        stop_location: current_location.unwrap(),
                                         // multiply by two to skip time when passengers are generated
                                         // and add two to skip the initial two time ticks
                                         // TODO: Adjust again when a seperat time tick is used for loading and unloading
@@ -687,6 +696,7 @@ fn calculate_passenger_bus_schedule(
                                     PassengerOnboardingBusSchedule {
                                         bus_num: None,
                                         // See above
+                                        stop_location: destination_location,
                                         time_tick: (other_passenger_bus_location
                                             .location_time_tick),
                                     },
@@ -708,6 +718,125 @@ fn calculate_passenger_bus_schedule(
     println!("Bus route loop found no routes");
 
     Err(passenger)
+}
+
+fn calculate_passenger_bus_schedule_new(
+    passenger: Passenger,
+    current_time_tick: u32,
+    bus_route_list: &Vec<Vec<PassengerBusLocation>>,
+) -> Option<VecDeque<PassengerOnboardingBusSchedule>> {
+    calculate_passenger_bus_schedule_with_memory(
+        passenger.current_location.unwrap(),
+        passenger.destination_location,
+        None,
+        current_time_tick,
+        bus_route_list,
+        Vec::new(),
+        None,
+    )
+}
+
+fn calculate_passenger_bus_schedule_with_memory(
+    initial_location: Location,
+    destination_location: Location,
+    destination_time_tick: Option<u32>,
+    current_time_tick: u32,
+    bus_route_list: &Vec<Vec<PassengerBusLocation>>,
+    visited_locations: Vec<Location>,
+    next_bus_index: Option<usize>,
+) -> Option<VecDeque<PassengerOnboardingBusSchedule>> {
+    let mut destination_list = Vec::new();
+    // let mut bus_schedule: VecDeque<PassengerOnboardingBusSchedule> = VecDeque::new();
+
+    // Find the index of the bus route containing the destination location and the bus location containting the location and the time tick
+    for (bus_index, bus_route) in bus_route_list.iter().enumerate() {
+        for bus_location in bus_route {
+            if bus_location.location == destination_location
+                && current_time_tick <= bus_location.location_time_tick
+                // The new destination is not identical to the old destination
+                && !((next_bus_index.is_some() && (next_bus_index.unwrap() == bus_index))
+                    && (destination_time_tick.is_some()
+                        && destination_time_tick.unwrap() == bus_location.location_time_tick))
+                && (destination_time_tick.is_none()
+                    || destination_time_tick.unwrap() >= bus_location.location_time_tick)
+            {
+                destination_list.push((bus_index, bus_location));
+
+                /* bus schedule should not contain both potential destinations */
+                // bus_schedule.push_front(PassengerOnboardingBusSchedule {
+                //     time_tick: bus_location.location_time_tick,
+                //     bus_num: Some(bus_index),
+                // });
+            }
+        }
+    }
+
+    for destination in destination_list.iter() {
+        let mut bus_schedule = VecDeque::new();
+        let mut visited_locations = visited_locations.clone();
+
+        let (destination_bus_index, destination_passenger_bus_location) = destination;
+        let trial_destination_time_tick = destination_passenger_bus_location.location_time_tick;
+        bus_schedule.push_front(PassengerOnboardingBusSchedule {
+            stop_location: destination_passenger_bus_location.location,
+            time_tick: trial_destination_time_tick,
+            bus_num: next_bus_index,
+        });
+        visited_locations.push(destination_passenger_bus_location.location);
+        // Currently, current_bus_index and destination_bus_index mean the same thing
+        // let current_bus_index = destination.0;
+        let bus_route_for_destination_bus = &bus_route_list[*destination_bus_index];
+
+        for bus_location in bus_route_for_destination_bus {
+            // exclude the destination location just added
+            if bus_location.location_time_tick <= trial_destination_time_tick
+                && (destination_time_tick.is_none()
+                    || (destination_time_tick.unwrap() >= current_time_tick))
+                && (bus_location.location == initial_location)
+            {
+                bus_schedule.push_front(PassengerOnboardingBusSchedule {
+                    time_tick: bus_location.location_time_tick,
+                    stop_location: bus_location.location,
+                    bus_num: Some(*destination_bus_index),
+                });
+
+                return Some(bus_schedule);
+            } else if ((bus_location.location_time_tick < destination_passenger_bus_location.location_time_tick)
+                    &&
+                    // exclude locations in visited locations
+                    visited_locations
+                        .clone()
+                        .iter()
+                        .filter(|location| -> bool { location == &&bus_location.location })
+                        .collect::<Vec<_>>()
+                        .is_empty())
+            {
+                let extension_bus_route = calculate_passenger_bus_schedule_with_memory(
+                    initial_location,
+                    bus_location.location,
+                    Some(bus_location.location_time_tick),
+                    current_time_tick,
+                    bus_route_list,
+                    visited_locations.clone(),
+                    Some(*destination_bus_index),
+                );
+
+                match extension_bus_route {
+                    Some(mut bus_route) => {
+                        println!("Some base condition was reached");
+                        bus_route.push_front(PassengerOnboardingBusSchedule {
+                            time_tick: destination_passenger_bus_location.location_time_tick,
+                            stop_location: destination_passenger_bus_location.location,
+                            bus_num: Some(*destination_bus_index),
+                        });
+                        return Some(bus_route);
+                    }
+                    None => continue,
+                }
+            }
+        }
+    }
+    None
 }
 
 fn generate_passenger(location_list: &Vec<Location>) -> Result<Passenger, String> {
@@ -855,9 +984,9 @@ fn write_data_to_file(data: InputDataStructure, path: &Path) -> Result<(), Box<d
     Ok(())
 }
 const GLOBAL_PASSENGER_COUNT: usize = 10;
-const GLOBAL_LOCATION_COUNT: usize = 4;
-const BUS_CAPACITY: usize = 5;
-const NUM_OF_BUSES: usize = 2;
+const GLOBAL_LOCATION_COUNT: usize = 5;
+const BUS_CAPACITY: usize = 10;
+const NUM_OF_BUSES: usize = 3;
 const NUM_STOPS_PER_BUS: usize = 3;
 const MAX_LOCATION_DISTANCE: u32 = 1;
 const READ_JSON: bool = option_env!("READ_DATA").is_some();
