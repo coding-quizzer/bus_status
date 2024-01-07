@@ -64,6 +64,12 @@ impl Location {
     }
 }
 
+impl std::fmt::Display for Location {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Location {}", self.index)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
 enum PassengerStatus {
     OnBus,
@@ -583,6 +589,11 @@ impl Station {
         time_tick: u32,
         bus_route_list: &Vec<Vec<PassengerBusLocation>>,
     ) -> Result<(), Passenger> {
+        println!(
+            "Calculating Route from {} to {}.",
+            new_passenger.current_location.unwrap(),
+            new_passenger.destination_location
+        );
         let updated_bus_route =
             calculate_passenger_bus_schedule_new(new_passenger.clone(), time_tick, bus_route_list);
         println!("Updated Bus Route: {:#?}", updated_bus_route);
@@ -724,7 +735,7 @@ fn calculate_passenger_bus_schedule_new(
     passenger: Passenger,
     current_time_tick: u32,
     bus_route_list: &Vec<Vec<PassengerBusLocation>>,
-) -> Option<VecDeque<PassengerOnboardingBusSchedule>> {
+) -> Option<Vec<PassengerOnboardingBusSchedule>> {
     calculate_passenger_bus_schedule_with_memory(
         passenger.current_location.unwrap(),
         passenger.destination_location,
@@ -734,6 +745,7 @@ fn calculate_passenger_bus_schedule_new(
         Vec::new(),
         None,
     )
+    .map(|schedule| schedule.into())
 }
 
 fn calculate_passenger_bus_schedule_with_memory(
@@ -823,11 +835,11 @@ fn calculate_passenger_bus_schedule_with_memory(
 
                 match extension_bus_route {
                     Some(mut bus_route) => {
-                        println!("Some base condition was reached");
-                        bus_route.push_front(PassengerOnboardingBusSchedule {
+                        // Tack the destination location to the end of the returned list
+                        bus_route.push_back(PassengerOnboardingBusSchedule {
                             time_tick: destination_passenger_bus_location.location_time_tick,
                             stop_location: destination_passenger_bus_location.location,
-                            bus_num: Some(*destination_bus_index),
+                            bus_num: next_bus_index,
                         });
                         return Some(bus_route);
                     }
