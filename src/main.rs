@@ -748,6 +748,45 @@ fn calculate_passenger_bus_schedule_new(
     .map(|schedule| schedule.into())
 }
 
+struct PassengerScheduleWithDistance {
+    passenger_schedule: VecDeque<PassengerOnboardingBusSchedule>,
+    distance: u32,
+}
+
+impl From<VecDeque<PassengerOnboardingBusSchedule>> for PassengerScheduleWithDistance {
+    fn from(
+        passenger_schedule: VecDeque<PassengerOnboardingBusSchedule>,
+    ) -> PassengerScheduleWithDistance {
+        let distance = passenger_schedule
+            .back()
+            .expect("Passenger Schedule must not be empty")
+            .time_tick;
+        PassengerScheduleWithDistance {
+            passenger_schedule,
+            distance,
+        }
+    }
+}
+
+fn reset_bus_schedule(
+    mut bus_schedule: VecDeque<PassengerOnboardingBusSchedule>,
+    destination: &(usize, &PassengerBusLocation),
+    next_bus_index: Option<usize>,
+) -> VecDeque<PassengerOnboardingBusSchedule> {
+    bus_schedule.clear();
+
+    let (destination_bus_index, destination_passenger_bus_location) = destination;
+    let trial_destination_time_tick = destination_passenger_bus_location.location_time_tick;
+
+    bus_schedule.push_front(PassengerOnboardingBusSchedule {
+        stop_location: destination_passenger_bus_location.location,
+        time_tick: trial_destination_time_tick,
+        bus_num: next_bus_index,
+    });
+
+    bus_schedule
+}
+
 fn calculate_passenger_bus_schedule_with_memory(
     initial_location: Location,
     destination_location: Location,
@@ -757,6 +796,7 @@ fn calculate_passenger_bus_schedule_with_memory(
     visited_locations: Vec<Location>,
     next_bus_index: Option<usize>,
 ) -> Option<VecDeque<PassengerOnboardingBusSchedule>> {
+    let mut valid_schedules: Vec<PassengerScheduleWithDistance> = Vec::new();
     let mut destination_list = Vec::new();
     // let mut bus_schedule: VecDeque<PassengerOnboardingBusSchedule> = VecDeque::new();
 
@@ -787,13 +827,17 @@ fn calculate_passenger_bus_schedule_with_memory(
         let mut bus_schedule = VecDeque::new();
         let mut visited_locations = visited_locations.clone();
 
+        // let (destination_bus_index, destination_passenger_bus_location) = destination;
+        // let trial_destination_time_tick = destination_passenger_bus_location.location_time_tick;
+        // bus_schedule.push_front(PassengerOnboardingBusSchedule {
+        //     stop_location: destination_passenger_bus_location.location,
+        //     time_tick: trial_destination_time_tick,
+        //     bus_num: next_bus_index,
+        // });
+        bus_schedule = reset_bus_schedule(bus_schedule, destination, next_bus_index);
         let (destination_bus_index, destination_passenger_bus_location) = destination;
         let trial_destination_time_tick = destination_passenger_bus_location.location_time_tick;
-        bus_schedule.push_front(PassengerOnboardingBusSchedule {
-            stop_location: destination_passenger_bus_location.location,
-            time_tick: trial_destination_time_tick,
-            bus_num: next_bus_index,
-        });
+
         visited_locations.push(destination_passenger_bus_location.location);
         // Currently, current_bus_index and destination_bus_index mean the same thing
         // let current_bus_index = destination.0;
@@ -812,7 +856,10 @@ fn calculate_passenger_bus_schedule_with_memory(
                     bus_num: Some(*destination_bus_index),
                 });
 
-                return Some(bus_schedule);
+                valid_schedules.push(bus_schedule.clone().into());
+                bus_schedule = reset_bus_schedule(bus_schedule, destination, next_bus_index);
+
+                continue;
             } else if ((bus_location.location_time_tick < destination_passenger_bus_location.location_time_tick)
                     &&
                     // exclude locations in visited locations
@@ -841,14 +888,26 @@ fn calculate_passenger_bus_schedule_with_memory(
                             stop_location: destination_passenger_bus_location.location,
                             bus_num: next_bus_index,
                         });
-                        return Some(bus_route);
+                        valid_schedules.push(bus_route.into());
+                        continue;
                     }
                     None => continue,
                 }
             }
         }
     }
-    None
+    if valid_schedules.is_empty() {
+        None
+    } else {
+        let optimal_schedule = valid_schedules
+            .into_iter()
+            .min_by(|longer_schedule, shorter_schedule| {
+                (longer_schedule.distance).cmp(&shorter_schedule.distance)
+            })
+            .expect("Schedule must contain elements at this point");
+
+        Some(optimal_schedule.passenger_schedule)
+    }
 }
 
 fn generate_passenger(location_list: &Vec<Location>) -> Result<Passenger, String> {
