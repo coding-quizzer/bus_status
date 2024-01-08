@@ -594,9 +594,7 @@ impl Station {
             new_passenger.current_location.unwrap(),
             new_passenger.destination_location
         );
-        let updated_bus_route =
-            calculate_passenger_bus_schedule_new(new_passenger.clone(), time_tick, bus_route_list);
-        println!("Updated Bus Route: {:#?}", updated_bus_route);
+
         let new_bus_schedule =
             calculate_passenger_bus_schedule(new_passenger.clone(), time_tick, bus_route_list)?;
         println!("New Bus Schedule: {:#?}", new_bus_schedule);
@@ -654,88 +652,9 @@ enum BusThreadStatus {
 
 fn calculate_passenger_bus_schedule(
     passenger: Passenger,
-    time_tick: u32,
-    bus_route_list: &Vec<Vec<PassengerBusLocation>>,
-) -> Result<Vec<PassengerOnboardingBusSchedule>, Passenger> {
-    // let start_plan: PassengerOnboardingBusSchedule;
-    // let end_plan: PassengerOnboardingBusSchedule;
-    println!("Time tick: {time_tick}");
-    let current_location = passenger.current_location;
-    let destination_location = passenger.destination_location;
-    let mut destination_route_hash: std::collections::HashMap<_, _> =
-        std::collections::HashMap::new();
-    for (bus_index, bus_route) in bus_route_list.iter().enumerate() {
-        let hash_stored_route: Option<&Vec<PassengerOnboardingBusSchedule>> =
-            destination_route_hash.get(&(current_location, destination_location));
-        // let bus_route_iter = bus_route.iter();
-
-        match hash_stored_route {
-            Some(route) => {
-                println!("Hashed value used: {:#?}", route.clone());
-                return Ok(route.clone());
-            }
-            None => {
-                for passenger_bus_location in bus_route {
-                    // let PassengerBusLocation {
-                    //     location,
-                    //     location_time_tick,
-                    // } = passenger_bus_location;
-                    if passenger_bus_location.location == current_location.unwrap()
-                        && (passenger_bus_location.location_time_tick) > time_tick
-                    {
-                        for other_passenger_bus_location in bus_route {
-                            /* let PassengerBusLocation {
-                                                               location: location_for_dest,
-                                                               location_time_tick: time_tick_for_dest,
-                                                           } = other_passenger_bus_location;
-                            */
-                            if other_passenger_bus_location.location == destination_location
-                                && other_passenger_bus_location.location_time_tick
-                                    > passenger_bus_location.location_time_tick
-                            {
-                                println!("Passenger Bus Location: {:#?}", passenger_bus_location);
-                                println!("Passenger id: {}", passenger.id);
-                                let destination_route = vec![
-                                    PassengerOnboardingBusSchedule {
-                                        bus_num: Some(bus_index),
-                                        stop_location: current_location.unwrap(),
-                                        // multiply by two to skip time when passengers are generated
-                                        // and add two to skip the initial two time ticks
-                                        // TODO: Adjust again when a seperat time tick is used for loading and unloading
-                                        time_tick: passenger_bus_location.location_time_tick,
-                                    },
-                                    PassengerOnboardingBusSchedule {
-                                        bus_num: None,
-                                        // See above
-                                        stop_location: destination_location,
-                                        time_tick: (other_passenger_bus_location
-                                            .location_time_tick),
-                                    },
-                                ];
-
-                                destination_route_hash.insert(
-                                    (current_location, destination_location),
-                                    destination_route.clone(),
-                                );
-                                return Ok(destination_route);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    println!("Bus route loop found no routes");
-
-    Err(passenger)
-}
-
-fn calculate_passenger_bus_schedule_new(
-    passenger: Passenger,
     current_time_tick: u32,
     bus_route_list: &Vec<Vec<PassengerBusLocation>>,
-) -> Option<Vec<PassengerOnboardingBusSchedule>> {
+) -> Result<Vec<PassengerOnboardingBusSchedule>, Passenger> {
     calculate_passenger_bus_schedule_with_memory(
         passenger.current_location.unwrap(),
         passenger.destination_location,
@@ -746,6 +665,7 @@ fn calculate_passenger_bus_schedule_new(
         None,
     )
     .map(|schedule| schedule.into())
+    .ok_or(passenger)
 }
 
 struct PassengerScheduleWithDistance {
