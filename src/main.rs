@@ -688,25 +688,6 @@ impl From<VecDeque<PassengerOnboardingBusSchedule>> for PassengerScheduleWithDis
     }
 }
 
-fn reset_bus_schedule(
-    mut bus_schedule: VecDeque<PassengerOnboardingBusSchedule>,
-    destination: &(usize, &PassengerBusLocation),
-    next_bus_index: Option<usize>,
-) -> VecDeque<PassengerOnboardingBusSchedule> {
-    bus_schedule.clear();
-
-    let (destination_bus_index, destination_passenger_bus_location) = destination;
-    let trial_destination_time_tick = destination_passenger_bus_location.location_time_tick;
-
-    bus_schedule.push_front(PassengerOnboardingBusSchedule {
-        stop_location: destination_passenger_bus_location.location,
-        time_tick: trial_destination_time_tick,
-        bus_num: next_bus_index,
-    });
-
-    bus_schedule
-}
-
 fn calculate_passenger_schedule_for_bus_with_recursion(
     initial_location: Location,
     destination_location: Location,
@@ -762,9 +743,6 @@ fn calculate_passenger_schedule_for_bus_with_recursion(
             time_tick: trial_destination_time_tick,
             bus_num: next_bus_index,
         });
-        let (destination_bus_index, destination_passenger_bus_location) = destination;
-        let trial_destination_time_tick = destination_passenger_bus_location.location_time_tick;
-
         visited_locations.push(destination_passenger_bus_location.location);
         // Currently, current_bus_index and destination_bus_index mean the same thing
         // let current_bus_index = destination.0;
@@ -777,14 +755,15 @@ fn calculate_passenger_schedule_for_bus_with_recursion(
                     || (destination_time_tick.unwrap() >= current_time_tick))
                 && (bus_location.location == initial_location)
             {
-                bus_schedule.push_front(PassengerOnboardingBusSchedule {
+                let mut final_bus_schedule = bus_schedule.clone();
+
+                final_bus_schedule.push_front(PassengerOnboardingBusSchedule {
                     time_tick: bus_location.location_time_tick,
                     stop_location: bus_location.location,
                     bus_num: Some(*destination_bus_index),
                 });
 
-                valid_schedules.push(bus_schedule.clone().into());
-                bus_schedule = reset_bus_schedule(bus_schedule, destination, next_bus_index);
+                valid_schedules.push(final_bus_schedule.into());
 
                 continue;
             } else if ((bus_location.location_time_tick < destination_passenger_bus_location.location_time_tick)
