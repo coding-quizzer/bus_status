@@ -596,7 +596,7 @@ impl Station {
         );
 
         let new_bus_schedule =
-            calculate_passenger_bus_schedule(new_passenger.clone(), time_tick, bus_route_list)?;
+            calculate_passenger_schedule_for_bus(new_passenger.clone(), time_tick, bus_route_list)?;
         println!("New Bus Schedule: {:#?}", new_bus_schedule);
         println!("Passengers added.");
         new_passenger.bus_schedule = new_bus_schedule;
@@ -650,12 +650,12 @@ enum BusThreadStatus {
     CompletedTimeStep,
 }
 
-fn calculate_passenger_bus_schedule(
+fn calculate_passenger_schedule_for_bus(
     passenger: Passenger,
     current_time_tick: u32,
     bus_route_list: &Vec<Vec<PassengerBusLocation>>,
 ) -> Result<Vec<PassengerOnboardingBusSchedule>, Passenger> {
-    calculate_passenger_bus_schedule_with_memory(
+    calculate_passenger_schedule_for_bus_with_recursion(
         passenger.current_location.unwrap(),
         passenger.destination_location,
         None,
@@ -707,7 +707,7 @@ fn reset_bus_schedule(
     bus_schedule
 }
 
-fn calculate_passenger_bus_schedule_with_memory(
+fn calculate_passenger_schedule_for_bus_with_recursion(
     initial_location: Location,
     destination_location: Location,
     destination_time_tick: Option<u32>,
@@ -754,7 +754,14 @@ fn calculate_passenger_bus_schedule_with_memory(
         //     time_tick: trial_destination_time_tick,
         //     bus_num: next_bus_index,
         // });
-        bus_schedule = reset_bus_schedule(bus_schedule, destination, next_bus_index);
+        let (destination_bus_index, destination_passenger_bus_location) = destination;
+        let trial_destination_time_tick = destination_passenger_bus_location.location_time_tick;
+
+        bus_schedule.push_front(PassengerOnboardingBusSchedule {
+            stop_location: destination_passenger_bus_location.location,
+            time_tick: trial_destination_time_tick,
+            bus_num: next_bus_index,
+        });
         let (destination_bus_index, destination_passenger_bus_location) = destination;
         let trial_destination_time_tick = destination_passenger_bus_location.location_time_tick;
 
@@ -783,14 +790,12 @@ fn calculate_passenger_bus_schedule_with_memory(
             } else if ((bus_location.location_time_tick < destination_passenger_bus_location.location_time_tick)
                     &&
                     // exclude locations in visited locations
-                    visited_locations
+                    !visited_locations
                         .clone()
                         .iter()
-                        .filter(|location| -> bool { location == &&bus_location.location })
-                        .collect::<Vec<_>>()
-                        .is_empty())
+                        .any(|location| -> bool { location == &bus_location.location }))
             {
-                let extension_bus_route = calculate_passenger_bus_schedule_with_memory(
+                let extension_bus_route = calculate_passenger_schedule_for_bus_with_recursion(
                     initial_location,
                     bus_location.location,
                     Some(bus_location.location_time_tick),
@@ -821,9 +826,7 @@ fn calculate_passenger_bus_schedule_with_memory(
     } else {
         let optimal_schedule = valid_schedules
             .into_iter()
-            .min_by(|longer_schedule, shorter_schedule| {
-                (longer_schedule.distance).cmp(&shorter_schedule.distance)
-            })
+            .min_by(|trial_schedule, accum| (trial_schedule.distance).cmp(&accum.distance))
             .expect("Schedule must contain elements at this point");
 
         Some(optimal_schedule.passenger_schedule)
