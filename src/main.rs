@@ -923,6 +923,18 @@ struct InputDataStructure {
 
 } */
 
+fn locations_are_all_valid(
+    mut locations_to_test: impl Iterator<Item = Location>,
+    location_master_list: &[Location],
+) -> bool {
+    // test every location
+    !locations_to_test.any(|tested_location| {
+        !location_master_list
+            .iter()
+            .any(|master_list| master_list == &tested_location)
+    })
+}
+
 fn read_data_from_file(path: &Path) -> Result<InputDataStructure, Box<dyn Error>> {
     // Open the file in read-only mode with buffer.
     let file = File::open(path)?;
@@ -940,6 +952,27 @@ fn read_data_from_file(path: &Path) -> Result<InputDataStructure, Box<dyn Error>
     assert_eq!(location_vector.len(), GLOBAL_LOCATION_COUNT);
     assert_eq!(bus_routes.len(), NUM_OF_BUSES);
     assert_eq!(passengers.len(), GLOBAL_PASSENGER_COUNT);
+
+    let bus_locations = bus_routes
+        .iter()
+        .flatten()
+        .map(|bus_location| bus_location.location);
+    // .collect::<Vec<_>>();
+    assert!(locations_are_all_valid(bus_locations, &location_vector));
+
+    let passenger_iter = passengers.iter();
+
+    let passenger_locations = passenger_iter.flat_map(|passenger| {
+        [
+            (passenger.current_location).unwrap(),
+            passenger.destination_location,
+        ]
+    });
+
+    assert!(locations_are_all_valid(
+        passenger_locations,
+        &location_vector
+    ));
 
     // Return the `Data`.
     Ok(data)
