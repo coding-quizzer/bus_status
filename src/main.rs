@@ -993,8 +993,8 @@ const GLOBAL_PASSENGER_COUNT: usize = 10;
 const GLOBAL_LOCATION_COUNT: usize = 5;
 const BUS_CAPACITY: usize = 10;
 const NUM_OF_BUSES: usize = 3;
-const NUM_STOPS_PER_BUS: usize = 3;
-const MAX_LOCATION_DISTANCE: u32 = 1;
+const NUM_STOPS_PER_BUS: usize = 4;
+const MAX_LOCATION_DISTANCE: u32 = 3;
 const READ_JSON: bool = option_env!("READ_DATA").is_some();
 const WRITE_JSON: bool = option_env!("WRITE_DATA").is_some();
 
