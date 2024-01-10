@@ -899,13 +899,21 @@ fn initialize_location_list(count: usize) -> Vec<Location> {
     }
     location_list
 }
-fn initialize_channel_list<T>(channel_count: usize) -> (Vec<Sender<T>>, Vec<Receiver<T>>) {
+
+struct ReceiverWithIndex<T> {
+    receiver: Receiver<T>,
+    index: usize,
+}
+fn initialize_channel_list<T>(channel_count: usize) -> (Vec<Sender<T>>, Vec<ReceiverWithIndex<T>>) {
     let mut sender_vector = Vec::new();
     let mut receiver_vector = Vec::new();
-    for _ in 0..channel_count {
+    for index in 0..channel_count {
         let (current_sender, current_receiver) = mpsc::channel();
         sender_vector.push(current_sender);
-        receiver_vector.push(current_receiver);
+        receiver_vector.push(ReceiverWithIndex {
+            receiver: current_receiver,
+            index,
+        });
     }
 
     (sender_vector, receiver_vector)
@@ -1580,8 +1588,7 @@ fn main() {
     let station_location_list = location_vector_arc.clone();
 
     // Station index and location index are equivilant
-    for (location_index, location) in station_location_list.iter().enumerate() {
-        let station_index = location_index;
+    for location in station_location_list.as_ref() {
         let station_time_tick = current_time_tick.clone();
         let current_location = *location;
         let send_to_bus_channels = send_to_bus_channels_arc.clone();
@@ -1595,7 +1602,9 @@ fn main() {
         let station_handle = thread::spawn(move || {
             let mut current_station = Station::new(current_location);
             let mut previous_time_tick = 0;
-            let current_receiver = station_channels.lock().unwrap().remove(0);
+            let current_receiver_with_index = station_channels.lock().unwrap().remove(0);
+            let station_index = current_receiver_with_index.index;
+            let current_receiver = current_receiver_with_index.receiver;
 
             loop {
                 // println!("Station {} loop beginning", station_index);
