@@ -1,12 +1,10 @@
-use serde::{de, ser::SerializeStruct, Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use std::{
     collections::VecDeque,
     error::Error,
-    ffi::FromVecWithNulError,
     fs::File,
-    hash::{BuildHasher, Hash},
+    hash::Hash,
     io::{BufReader, BufWriter},
-    ops::ControlFlow,
     path::Path,
     sync::{
         mpsc::{self, Receiver, Sender},
@@ -183,7 +181,7 @@ struct Station {
 impl Station {
     fn new(location: Location) -> Self {
         Station {
-            location: location,
+            location,
             docked_buses: Vec::new(),
             passengers: Vec::new(),
         }
@@ -357,6 +355,7 @@ fn calculate_passenger_schedule_for_bus_with_recursion(
 
         for bus_location in bus_route_for_destination_bus {
             // exclude the destination location just added
+            #[allow(unused_parens)]
             if bus_location.location_time_tick <= trial_destination_time_tick
                 && (destination_time_tick.is_none()
                     || (destination_time_tick.unwrap() >= current_time_tick))
@@ -1051,7 +1050,7 @@ fn main() {
                 // break;
                 assert_eq!(
                     passenger_list.len() + rejected_passengers.len(),
-                    GLOBAL_PASSENGER_COUNT as usize
+                    GLOBAL_PASSENGER_COUNT
                 );
 
                 break;

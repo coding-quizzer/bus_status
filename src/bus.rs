@@ -1,4 +1,3 @@
-
 use crate::Location;
 use crate::{BusMessages, StationMessages};
 use crate::{Passenger, PassengerOnboardingBusSchedule, PassengerStatus};
@@ -75,12 +74,12 @@ impl Clone for Bus {
         Bus {
             status: self.status.clone(),
             passengers: self.passengers.clone(),
-            current_location: self.current_location.clone(),
+            current_location: self.current_location,
             bus_route_iter: self.bus_route_iter.clone_box(),
             bus_route_vec: self.bus_route_vec.clone(),
-            capacity: self.capacity.clone(),
-            total_passenger_count: self.total_passenger_count.clone(),
-            bus_num: self.bus_num.clone(),
+            capacity: self.capacity,
+            total_passenger_count: self.total_passenger_count,
+            bus_num: self.bus_num,
         }
     }
 }
