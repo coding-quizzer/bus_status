@@ -1,6 +1,7 @@
 use crate::Location;
 use crate::{BusMessages, StationMessages};
 use crate::{Passenger, PassengerOnboardingBusSchedule, PassengerStatus};
+// use bus_system::Location;
 use serde::{Deserialize, Serialize};
 use std::sync::mpsc::Sender;
 
@@ -273,10 +274,6 @@ impl Bus {
             // Don't take a passenger if the bus is full or the passenger is either already on a bus or at his destination
             // if self.passengers.len() >= self.capacity
             //     || passenger.status != PassengerStatus::Waiting
-            if passenger.status != PassengerStatus::Waiting {
-                println!("Waiting passenger");
-                continue;
-            }
 
             let PassengerOnboardingBusSchedule {
                 stop_location: _,
@@ -296,8 +293,7 @@ impl Bus {
                   overflow_passengers.push(passenger.clone());
               } else {
                 println!("Onboarded Passenger: {:#?}", passenger);
-                let onboard_passenger = passenger.convert_to_onboarded_passenger();
-                self.add_passenger(onboard_passenger);
+                self.add_passenger(passenger);
               }
             }
 
@@ -343,7 +339,6 @@ impl Bus {
             if passenger.destination_location == current_location {
                 println!("Passenger left Bus {}", self.bus_num);
                 passenger_passed_stops.push(passenger.passed_stops);
-                passenger.status = PassengerStatus::Arrived;
                 self.total_passenger_count += 1;
             } else {
                 passenger.passed_stops += 1;
