@@ -9,21 +9,12 @@ use bus_system::{
     StationToPassengersMessages,
 };
 use bus_system::{Location, PassengerBusLocation};
-use serde::{Deserialize, Serialize};
 use std::{
     collections::VecDeque,
-    error::Error,
-    fs::File,
-    hash::Hash,
-    io::{BufReader, BufWriter},
     path::Path,
-    sync::{
-        mpsc::{self, Receiver, Sender},
-        Arc, Mutex,
-    },
+    sync::{mpsc, Arc, Mutex},
     thread,
 };
-use uuid::Uuid;
 
 use bus_system::bus::{Bus, BusLocation};
 use bus_system::consts::*;
