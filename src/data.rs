@@ -1,6 +1,6 @@
 use crate::consts::{GLOBAL_LOCATION_COUNT, GLOBAL_PASSENGER_COUNT, NUM_OF_BUSES};
+use crate::Passenger;
 use crate::{BusLocation, Location};
-use crate::{Passenger, PassengerStatus};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fs::File;

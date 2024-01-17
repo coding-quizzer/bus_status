@@ -1,14 +1,13 @@
 use bus_system::convert_bus_route_list_to_passenger_bus_route_list;
-use bus_system::BusThreadStatus;
-use bus_system::Passenger;
-use bus_system::Station;
-use bus_system::{generate_bus_route_locations_with_distances, generate_random_passenger_list};
-use bus_system::{initialize_channel_list, initialize_location_list};
-use bus_system::{
+use bus_system::passenger::Passenger;
+use bus_system::station::Station;
+use bus_system::thread::BusThreadStatus;
+use bus_system::thread::{
     BusMessages, RejectedPassengersMessages, StationMessages, StationToBusMessages,
     StationToPassengersMessages,
 };
-use bus_system::{Location, PassengerBusLocation};
+use bus_system::{generate_bus_route_locations_with_distances, generate_random_passenger_list};
+use bus_system::{initialize_channel_list, initialize_location_list};
 use std::{
     collections::VecDeque,
     path::Path,
@@ -19,6 +18,7 @@ use std::{
 use bus_system::bus::{Bus, BusLocation};
 use bus_system::consts::*;
 use bus_system::data::{self, InputDataStructure};
+use bus_system::location::{Location, PassengerBusLocation};
 
 fn main() {
     let initial_data: InputDataStructure = if READ_JSON {

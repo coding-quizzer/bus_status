@@ -1,9 +1,12 @@
-use crate::Location;
-use crate::{BusMessages, StationMessages};
-use crate::{Passenger, PassengerOnboardingBusSchedule, PassengerStatus};
+use crate::passenger::Passenger;
+use crate::passenger::PassengerOnboardingBusSchedule;
+use crate::thread::{BusMessages, StationMessages};
 // use bus_system::Location;
+pub use crate::location::BusLocation;
 use serde::{Deserialize, Serialize};
 use std::sync::mpsc::Sender;
+
+use crate::location::Location;
 
 #[derive(Clone, PartialEq, Eq, Debug, Deserialize, Serialize)]
 enum MovementState {
@@ -86,13 +89,6 @@ impl Clone for Bus {
 }
 
 // let passengers take the most efficient route
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct BusLocation {
-    pub location: Location,
-    // distance_to_next is None for the last location
-    pub distance_to_location: u32,
-}
 
 enum UpdateOutput {
     // WrongTimeTick,
