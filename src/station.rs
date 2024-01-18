@@ -25,7 +25,7 @@ impl From<VecDeque<PassengerOnboardingBusSchedule>> for PassengerScheduleWithDis
 
 use std::collections::VecDeque;
 
-fn calculate_passenger_schedule_for_bus(
+pub fn calculate_passenger_schedule_for_bus(
     passenger: Passenger,
     current_time_tick: u32,
     bus_route_list: &Vec<Vec<PassengerBusLocation>>,

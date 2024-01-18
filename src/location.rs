@@ -3,7 +3,7 @@ use uuid::Uuid;
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub struct Location {
     pub index: usize,
-    id: Uuid,
+    pub id: Uuid,
 }
 
 impl Location {
