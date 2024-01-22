@@ -6,7 +6,8 @@ pub mod passenger;
 pub mod station;
 pub mod thread;
 
-use passenger::{Passenger, PassengerOnboardingBusSchedule, PassengerScheduleWithDistance};
+use passenger::{Passenger, PassengerOnboardingBusSchedule};
+use station::PassengerScheduleWithDistance;
 use std::collections::VecDeque;
 
 use bus::BusLocation;

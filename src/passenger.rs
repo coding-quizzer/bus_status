@@ -39,23 +39,3 @@ pub struct PassengerOnboardingBusSchedule {
     pub bus_num: Option<usize>,
     pub stop_location: Location,
 }
-
-pub struct PassengerScheduleWithDistance {
-    pub passenger_schedule: VecDeque<PassengerOnboardingBusSchedule>,
-    pub distance: u32,
-}
-
-impl From<VecDeque<PassengerOnboardingBusSchedule>> for PassengerScheduleWithDistance {
-    fn from(
-        passenger_schedule: VecDeque<PassengerOnboardingBusSchedule>,
-    ) -> PassengerScheduleWithDistance {
-        let distance = passenger_schedule
-            .back()
-            .expect("Passenger Schedule must not be empty")
-            .time_tick;
-        PassengerScheduleWithDistance {
-            passenger_schedule,
-            distance,
-        }
-    }
-}
