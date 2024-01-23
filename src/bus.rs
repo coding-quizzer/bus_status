@@ -223,7 +223,7 @@ impl Bus {
         &mut self,
         station_senders: &[Sender<StationMessages>],
         sync_sender: &Sender<BusMessages>,
-        // current_time_tick_number: &u32,
+        current_time_tick_number: &u32,
     ) {
         if let MovementState::Moving(distance) = self.status.movement {
             // println!(
@@ -257,10 +257,12 @@ impl Bus {
                     passenger
                         .bus_schedule
                         .clone()
-                        .last()
-                        .expect("Passenger on the bus should have a non-empty bus schedule")
-                        .stop_location
-                        == current_location
+                        .iter()
+                        // the schedules should only include any location once, so if this location comes up,
+                        .any(|passenger_location| {
+                            passenger_location.stop_location == current_location
+                                && &passenger_location.time_tick >= current_time_tick_number
+                        })
                 });
             self.passengers = remaining_passengers;
             let current_passenger_count = self.passengers.len();

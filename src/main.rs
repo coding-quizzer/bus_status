@@ -807,9 +807,11 @@ fn main() {
                 } else {
                     time_clone_check = *current_time_tick;
                 }
+                let time_tick = *current_time_tick;
 
                 drop(current_time_tick);
-                simulated_bus.update(station_senders_clone.as_ref(), &sender); //&current_time_tick);
+
+                simulated_bus.update(station_senders_clone.as_ref(), &sender, &time_tick);
             }
         });
         handle_list.push(handle);
