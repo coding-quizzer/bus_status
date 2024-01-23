@@ -690,12 +690,14 @@ fn main() {
                         "PassengerInit message should not be sent on any time tick besides tick 1. Time tick: {}, List sent: {:#?}", time_tick, message 
                     ),
                     StationMessages::BusArrived(bus) => {
-                        let bus_index = bus.bus_num;
+                        let bus_index = bus.bus_index;
                         println!("Bus {bus_index} arrived at station {station_index}.");
                         current_station.docked_buses.push(bus);
                         (send_to_bus_channels.as_ref())[bus_index]
                             .send(StationToBusMessages::AcknowledgeArrival())
                             .unwrap();
+
+                        
                     }
                 }
             }
@@ -721,12 +723,12 @@ fn main() {
             let current_bus_receiver = bus_receiver_channels.lock().unwrap().remove(0);
             let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY, bus_index);
             println!("Bus {bus_index} created");
-            bus_route_array[simulated_bus.bus_num] = simulated_bus.get_bus_route();
+            bus_route_array[simulated_bus.bus_index] = simulated_bus.get_bus_route();
             // Release the lock on bus_route_array by dropping it
             drop(bus_route_array);
             sender
                 .send(BusMessages::InitBus {
-                    bus_index: simulated_bus.bus_num,
+                    bus_index: simulated_bus.bus_index,
                 })
                 .unwrap();
             println!("Bus message sent");

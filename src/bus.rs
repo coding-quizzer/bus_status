@@ -57,7 +57,7 @@ pub struct Bus {
     capacity: usize,
     total_passenger_count: u32,
     // time_tick_num: u32,
-    pub bus_num: usize,
+    pub bus_index: usize,
 }
 
 // manually impliment Debug, so that the iterator field can be skipped, eliminating the complicaiton of requiring
@@ -83,7 +83,7 @@ impl Clone for Bus {
             bus_route_vec: self.bus_route_vec.clone(),
             capacity: self.capacity,
             total_passenger_count: self.total_passenger_count,
-            bus_num: self.bus_num,
+            bus_index: self.bus_index,
         }
     }
 }
@@ -118,7 +118,7 @@ impl Bus {
             capacity,
             total_passenger_count: 0,
             // time_tick_num: 0,
-            bus_num,
+            bus_index: bus_num,
         }
     }
 
@@ -231,32 +231,53 @@ impl Bus {
             //     self.bus_num, current_time_tick_number
             // );
             if distance > 1 {
-                println!("Bus {} distance to next stop: {}", self.bus_num, distance);
+                println!("Bus {} distance to next stop: {}", self.bus_index, distance);
                 self.status.movement = MovementState::Moving(distance - 1);
                 // return Some(());
             } else {
-                println!("Bus {}, will stop at next time tick", self.bus_num);
+                println!("Bus {}, will stop at next time tick", self.bus_index);
                 self.stop_at_destination_stop();
             }
             // self.time_tick_num += 1;
             sync_sender
                 .send(BusMessages::AdvanceTimeStep {
                     //current_time_step: self.time_tick_num,
-                    bus_index: self.bus_num,
+                    bus_index: self.bus_index,
                 })
-                .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_num, error));
+                .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_index, error));
             return;
         } else {
-            println!("Bus {} Arrived", self.bus_num);
+            println!("Bus {} Arrived", self.bus_index);
             let current_location_index = self.current_location.unwrap().index;
             let next_station_sender = &station_senders[current_location_index];
+            let current_location = self.current_location.unwrap();
+            // Remove passengers getting off at
+            let (outgoing_passengers, remaining_passengers) =
+                self.passengers.clone().into_iter().partition(|passenger| {
+                    passenger
+                        .bus_schedule
+                        .clone()
+                        .last()
+                        .expect("Passenger on the bus should have a non-empty bus schedule")
+                        .stop_location
+                        == current_location
+                });
+            self.passengers = remaining_passengers;
+            let current_passenger_count = self.passengers.len();
+            let capacity_remaining = self.capacity - current_passenger_count;
+            let bus_info_for_station = SendableBus {
+                outgoing_passengers,
+                capacity_remaining,
+                bus_index: self.bus_index,
+            };
             next_station_sender
-                .send(StationMessages::BusArrived(self.clone().into()))
+                // TODO: Bus should ultimately send just the relevent information, what passengers are getting off the bus, how much capacity is left, and the bus id/index
+                .send(StationMessages::BusArrived(bus_info_for_station))
                 .unwrap();
             println!("Arrived Message sent.");
         }
         assert_eq!(self.passengers.len(), 0);
-        println!("Bus number {} is finished", self.bus_num);
+        println!("Bus number {} is finished", self.bus_index);
         self.status.movement = MovementState::Finished;
     }
 
@@ -282,7 +303,7 @@ impl Bus {
 
             println!("Onboarding time tick: {onboarding_time_tick}.");
             println!("Current time tick: {current_time_tick}");
-            if onboarding_time_tick == current_time_tick && bus_num.expect("At this point, this cannot be the last bus loction, and thus the bus_num must exist") == self.bus_num {
+            if onboarding_time_tick == current_time_tick && bus_num.expect("At this point, this cannot be the last bus loction, and thus the bus_num must exist") == self.bus_index {
               println!("This is the correct time tick and bus");
               if self.passengers.len() >= self.capacity {
                   println!("Passenger Rejected. Bus Overfull");
@@ -319,7 +340,7 @@ impl Bus {
         println!("Drop off Passengers");
         println!(
             "Bus {} current location: {:?}",
-            self.bus_num, self.current_location
+            self.bus_index, self.current_location
         );
         println!(
             "Remaining iterator: {:#?}",
@@ -333,7 +354,7 @@ impl Bus {
         println!("Bus Passengers: {:#?}", bus_passengers);
         for passenger in bus_passengers {
             if passenger.destination_location == current_location {
-                println!("Passenger left Bus {}", self.bus_num);
+                println!("Passenger left Bus {}", self.bus_index);
                 passenger_passed_stops.push(passenger.passed_stops);
                 self.total_passenger_count += 1;
             } else {
@@ -356,8 +377,8 @@ struct SerializableBus {
     destination: Location,
     current_location: Option<Location>,
 } */
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SendableBus {
+#[derive(Debug)]
+/* pub struct SendableBus {
     status: BusStatus,
     passengers: Vec<Passenger>,
     current_location: Option<Location>,
@@ -366,9 +387,15 @@ pub struct SendableBus {
     total_passenger_count: u32,
     // time_tick_num: u32,
     pub bus_num: usize,
+} */
+
+pub struct SendableBus {
+    pub outgoing_passengers: Vec<Passenger>,
+    pub capacity_remaining: usize,
+    pub bus_index: usize,
 }
 
-impl From<Bus> for SendableBus {
+/* impl From<Bus> for SendableBus {
     fn from(bus: Bus) -> SendableBus {
         let Bus {
             status,
@@ -391,4 +418,4 @@ impl From<Bus> for SendableBus {
             bus_num,
         }
     }
-}
+} */
