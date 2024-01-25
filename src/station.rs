@@ -1,8 +1,8 @@
 use crate::bus::SendableBus;
 use crate::calculate_passenger_schedule_for_bus;
 use crate::location::{Location, PassengerBusLocation};
-use crate::passenger::Passenger;
 use crate::passenger::PassengerOnboardingBusSchedule;
+use crate::passenger::{Passenger, PassengerInfo};
 
 pub struct PassengerScheduleWithDistance {
     pub passenger_schedule: VecDeque<PassengerOnboardingBusSchedule>,
@@ -30,7 +30,7 @@ use std::collections::VecDeque;
 pub struct Station {
     pub location: Location,
     pub docked_buses: Vec<SendableBus>,
-    passengers: Vec<Passenger>,
+    pub passengers: Vec<PassengerInfo>,
 }
 
 impl Station {
@@ -45,10 +45,11 @@ impl Station {
     // TODO: Convert to a function returning an Option, figure out
     pub fn add_passenger(
         &mut self,
-        mut new_passenger: Passenger,
+        mut new_passenger_info: PassengerInfo,
         time_tick: u32,
         bus_route_list: &Vec<Vec<PassengerBusLocation>>,
     ) -> Result<(), Passenger> {
+        let mut new_passenger = new_passenger_info.passenger;
         println!(
             "Calculating Route from {} to {}.",
             new_passenger.current_location.unwrap(),
@@ -56,11 +57,12 @@ impl Station {
         );
 
         let new_bus_schedule =
-            calculate_passenger_schedule_for_bus(new_passenger.clone(), time_tick, bus_route_list)?;
+            calculate_passenger_schedule_for_bus(&new_passenger, time_tick, bus_route_list)?;
         println!("New Bus Schedule: {:#?}", new_bus_schedule);
         println!("Passengers added.");
         new_passenger.bus_schedule = new_bus_schedule;
-        self.passengers.push(new_passenger);
+        new_passenger_info.passenger = new_passenger;
+        self.passengers.push(new_passenger_info);
         Ok(())
     }
 }

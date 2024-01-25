@@ -1,5 +1,5 @@
-use crate::passenger::Passenger;
 use crate::passenger::PassengerOnboardingBusSchedule;
+use crate::passenger::{Passenger, PassengerInfo};
 use crate::thread::{BusMessages, StationMessages};
 // use bus_system::Location;
 pub use crate::location::BusLocation;
@@ -251,30 +251,57 @@ impl Bus {
             let current_location_index = self.current_location.unwrap().index;
             let next_station_sender = &station_senders[current_location_index];
             let current_location = self.current_location.unwrap();
+            let mut passenger_current_location_indeces = Vec::new();
+            let mut current_passenger_location_index: usize = 0;
             // Remove passengers getting off at
-            let (outgoing_passengers, remaining_passengers) =
+            let (outgoing_passengers, remaining_passengers): (Vec<_>, Vec<_>) =
                 self.passengers.clone().into_iter().partition(|passenger| {
-                    passenger
+                    let is_offboarding = passenger
                         .bus_schedule
                         .clone()
                         .iter()
+                        .enumerate()
                         // the schedules should only include any location once, so if this location comes up,
-                        .any(|passenger_location| {
+                        .any(|(location_index, passenger_location)| {
+                            // FIX: find a better way to get the list of location indeces that doesn't involve misusing any
+                            current_passenger_location_index = location_index;
                             passenger_location.stop_location == current_location
                                 && &passenger_location.time_tick >= current_time_tick_number
-                        })
+                        });
+
+                    if is_offboarding {
+                        passenger_current_location_indeces.push(current_passenger_location_index);
+                    }
+                    is_offboarding
                 });
+            assert_eq!(
+                outgoing_passengers.len(),
+                passenger_current_location_indeces.len(),
+                "List of indeces for next locations of valid passengers must be the same length as valid passengers"
+            );
+
+            let passenger_info_list: Vec<_> =
+                std::iter::zip(outgoing_passengers, passenger_current_location_indeces)
+                    .map(|(passenger, location_index)| PassengerInfo {
+                        current_location_index: location_index,
+                        passenger,
+                    })
+                    .collect();
+
             self.passengers = remaining_passengers;
             let current_passenger_count = self.passengers.len();
             let capacity_remaining = self.capacity - current_passenger_count;
             let bus_info_for_station = SendableBus {
-                outgoing_passengers,
                 capacity_remaining,
                 bus_index: self.bus_index,
             };
+
             next_station_sender
                 // TODO: Bus should ultimately send just the relevent information, what passengers are getting off the bus, how much capacity is left, and the bus id/index
-                .send(StationMessages::BusArrived(bus_info_for_station))
+                .send(StationMessages::BusArrived {
+                    passengers_onboarding: passenger_info_list,
+                    bus_info: bus_info_for_station,
+                })
                 .unwrap();
             println!("Arrived Message sent.");
         }
@@ -392,7 +419,6 @@ struct SerializableBus {
 } */
 
 pub struct SendableBus {
-    pub outgoing_passengers: Vec<Passenger>,
     pub capacity_remaining: usize,
     pub bus_index: usize,
 }

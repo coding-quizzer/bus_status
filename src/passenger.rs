@@ -39,3 +39,27 @@ pub struct PassengerOnboardingBusSchedule {
     pub bus_num: Option<usize>,
     pub stop_location: Location,
 }
+
+#[derive(Clone, Debug)]
+pub struct PassengerInfo {
+    pub passenger: Passenger,
+    pub current_location_index: usize,
+}
+
+impl PassengerInfo {
+    pub fn new(passenger: Passenger, current_location_index: usize) -> PassengerInfo {
+        PassengerInfo {
+            passenger,
+            current_location_index,
+        }
+    }
+}
+
+impl From<Passenger> for PassengerInfo {
+    fn from(passenger: Passenger) -> PassengerInfo {
+        PassengerInfo {
+            passenger,
+            current_location_index: 0,
+        }
+    }
+}

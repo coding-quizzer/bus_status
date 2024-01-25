@@ -1,5 +1,5 @@
 use crate::bus::SendableBus;
-use crate::Passenger;
+use crate::passenger::{Passenger, PassengerInfo};
 #[derive(PartialEq, Debug)]
 pub enum RejectedPassengersMessages {
     MovingBus,
@@ -10,7 +10,10 @@ pub enum RejectedPassengersMessages {
 #[derive(Debug)]
 pub enum StationMessages {
     InitPassengerList(Vec<Passenger>),
-    BusArrived(SendableBus),
+    BusArrived {
+        passengers_onboarding: Vec<PassengerInfo>,
+        bus_info: SendableBus,
+    },
 }
 
 #[derive(Debug, PartialEq, Eq)]

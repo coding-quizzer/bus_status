@@ -1,5 +1,5 @@
 use bus_system::convert_bus_route_list_to_passenger_bus_route_list;
-use bus_system::passenger::Passenger;
+use bus_system::passenger::{Passenger, PassengerInfo};
 use bus_system::station::Station;
 use bus_system::thread::BusThreadStatus;
 use bus_system::thread::{
@@ -653,7 +653,7 @@ fn main() {
                             println!("Passenger will be added to station {}", station_index);
                             current_station
                                 .add_passenger(
-                                    passenger.clone(),
+                                    passenger.clone().into(),
                                     *time_tick,
                                     &station_thread_passenger_bus_route_list.lock().unwrap(),
                                 )
@@ -689,10 +689,11 @@ fn main() {
                     StationMessages::InitPassengerList(message) => panic!(
                         "PassengerInit message should not be sent on any time tick besides tick 1. Time tick: {}, List sent: {:#?}", time_tick, message 
                     ),
-                    StationMessages::BusArrived(bus) => {
-                        let bus_index = bus.bus_index;
+                    StationMessages::BusArrived{passengers_onboarding, bus_info}=> {
+                        current_station.passengers.extend(passengers_onboarding);
+                        let bus_index = bus_info.bus_index;
                         println!("Bus {bus_index} arrived at station {station_index}.");
-                        current_station.docked_buses.push(bus);
+                        current_station.docked_buses.push(bus_info);
                         (send_to_bus_channels.as_ref())[bus_index]
                             .send(StationToBusMessages::AcknowledgeArrival())
                             .unwrap();
