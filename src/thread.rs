@@ -8,6 +8,7 @@ pub enum RejectedPassengersMessages {
 }
 
 #[derive(Debug)]
+// Messages to the station
 pub enum StationMessages {
     InitPassengerList(Vec<Passenger>),
     BusArrived {
@@ -22,6 +23,7 @@ pub enum StationToPassengersMessages {
 }
 pub enum StationToBusMessages {
     AcknowledgeArrival(),
+    SendPassengers(Vec<Passenger>),
 }
 
 #[derive(PartialEq, Debug)]

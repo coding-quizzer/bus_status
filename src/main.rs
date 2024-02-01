@@ -8,6 +8,7 @@ use bus_system::thread::{
 };
 use bus_system::{generate_bus_route_locations_with_distances, generate_random_passenger_list};
 use bus_system::{initialize_channel_list, initialize_location_list};
+use std::collections::HashMap;
 use std::{
     collections::VecDeque,
     path::Path,
@@ -620,6 +621,7 @@ fn main() {
             let current_receiver_with_index = station_channels.lock().unwrap().remove(0);
             let station_index = current_receiver_with_index.index;
             let current_receiver = current_receiver_with_index.receiver;
+            
 
             loop {
                 // println!("Station {} loop beginning", station_index);
@@ -697,11 +699,57 @@ fn main() {
                         (send_to_bus_channels.as_ref())[bus_index]
                             .send(StationToBusMessages::AcknowledgeArrival())
                             .unwrap();
+                        
 
                         
-                    }
-                }
-            }
+                        }
+                      }
+                      let mut next_passengers_for_buses_hash_map = current_station.docked_buses.iter().map(|bus| (bus.bus_index, Vec::<Passenger>::new())).collect::<HashMap<_, _>>();
+                      
+                      // Somehow, bus needs to send passengers to currently docked buses
+                      let (arrived_passengers, passengers_for_next_destination): (Vec<_>, Vec<_>) = current_station.passengers.clone().into_iter().partition(|passenger_info| passenger_info.passenger.bus_schedule.get(passenger_info.current_location_index + 1).is_some());
+                      let mut remaining_passengers: Vec<PassengerInfo> = Vec::new();
+                      // overflowed passengers have their own list so that they can be recalculated
+                      let mut passengers_overflowed = Vec::new();
+                      for passenger_info in passengers_for_next_destination {
+                        let passenger = passenger_info.passenger.clone();
+                        // let next_location = passenger.bus_schedule[passenger_info.current_location_index + 1];
+                        let current_location = passenger.bus_schedule[passenger_info.current_location_index];
+                        let next_bus_index = current_location.bus_num.expect("Since there is a location after this, the next bus index should not be null");
+                        
+                        if next_passengers_for_buses_hash_map.contains_key(&next_bus_index) {
+                          next_passengers_for_buses_hash_map.entry(next_bus_index).and_modify(|passenger_list| passenger_list.push(passenger));
+                        } else {remaining_passengers.push(passenger_info)}
+                        
+                        
+                      }
+                      
+                      for bus in &(current_station.docked_buses) {
+                        let mut passengers_to_send = Vec::new();
+                        let bus_index = bus.bus_index;
+                        let new_passenger_list_entry = next_passengers_for_buses_hash_map.entry(bus_index);
+                        let remaining_capacity = bus.capacity_remaining;
+                        let new_passenger_list = new_passenger_list_entry.or_default();
+                        if new_passenger_list.len() > remaining_capacity {
+                          let (passengers_to_add, rejected_passengers) = new_passenger_list.split_at(remaining_capacity);
+                          passengers_overflowed.append(rejected_passengers.to_vec().as_mut());
+                          passengers_to_send.append(passengers_to_add.to_vec().as_mut());
+                        } else {
+                          passengers_to_send.append(new_passenger_list);
+                        }
+
+                        send_to_bus_channels.as_ref()[bus_index].send(StationToBusMessages::SendPassengers(passengers_to_send)).unwrap();
+
+
+
+                        // deal with overflowed passengers
+
+                      }
+                      // current_station.passengers = passengers_for_next_destination;
+
+            
+
+              }
         });
 
         handle_list.push(station_handle);
