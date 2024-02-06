@@ -755,7 +755,7 @@ fn main() {
         handle_list.push(station_handle);
     }
 
-    for bus_index in 0..NUM_OF_BUSES {
+    for _ in 0..NUM_OF_BUSES {
         let bus_route_array_clone = bus_route_vec_arc.clone();
         let station_senders_clone = send_to_station_channels_arc.clone();
         let sender = tx_from_bus_threads.clone();
@@ -766,10 +766,13 @@ fn main() {
         let current_time_tick_clone = current_time_tick.clone();
         let mut time_clone_check = 1;
         let handle = thread::spawn(move || {
+            let current_bus_receiver_with_index = bus_receiver_channels.lock().unwrap().remove(0);
+            // Since the receiver obtained is not deterministic, set the bus index based on what what channel was obtained
+            let bus_index = current_bus_receiver_with_index.index;
+            let bus_receiver = current_bus_receiver_with_index.receiver;
             let mut bus_route_array = bus_route_array_clone.lock().unwrap();
             let bus_route = bus_route_array.get(bus_index).unwrap();
             println!("Bus {bus_index} bus route: {bus_route:#?}");
-            let current_bus_receiver = bus_receiver_channels.lock().unwrap().remove(0);
             let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY, bus_index);
             println!("Bus {bus_index} created");
             bus_route_array[simulated_bus.bus_index] = simulated_bus.get_bus_route();
@@ -860,7 +863,7 @@ fn main() {
 
                 drop(current_time_tick);
 
-                simulated_bus.update(station_senders_clone.as_ref(), &sender, &time_tick);
+                simulated_bus.update(station_senders_clone.as_ref(), &bus_receiver, &sender, &time_tick);
             }
         });
         handle_list.push(handle);

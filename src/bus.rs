@@ -1,10 +1,11 @@
 use crate::passenger::PassengerOnboardingBusSchedule;
 use crate::passenger::{Passenger, PassengerInfo};
-use crate::thread::{BusMessages, StationMessages};
+use crate::station::Station;
+use crate::thread::{BusMessages, StationMessages, StationToBusMessages};
 // use bus_system::Location;
 pub use crate::location::BusLocation;
 use serde::{Deserialize, Serialize};
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{Receiver, Sender};
 
 use crate::location::Location;
 
@@ -222,6 +223,7 @@ impl Bus {
     pub fn update(
         &mut self,
         station_senders: &[Sender<StationMessages>],
+        station_receiver: &Receiver<StationToBusMessages>,
         sync_sender: &Sender<BusMessages>,
         current_time_tick_number: &u32,
     ) {
@@ -304,6 +306,30 @@ impl Bus {
                 })
                 .unwrap();
             println!("Arrived Message sent.");
+            let received_message = station_receiver.recv().unwrap();
+            match received_message {
+                StationToBusMessages::AcknowledgeArrival() => {
+                    println!("Bus {} acknowledgement received", self.bus_index);
+                }
+                _ => {
+                    panic!("Should received arrival acknowledgement before any other messages")
+                }
+            }
+
+            let received_message = station_receiver.recv().unwrap();
+            match received_message {
+                StationToBusMessages::AcknowledgeArrival() => {}
+                StationToBusMessages::SendPassengers(passenger_list) => {
+                    println!(
+                        "{} passengers added to bus {}",
+                        passenger_list.len(),
+                        self.bus_index
+                    );
+                    for passenger in passenger_list.iter() {
+                        self.add_passenger(passenger);
+                    }
+                }
+            }
         }
         assert_eq!(self.passengers.len(), 0);
         println!("Bus number {} is finished", self.bus_index);
