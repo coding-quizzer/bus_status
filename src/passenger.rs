@@ -1,8 +1,7 @@
-use crate::location::Location;
+use crate::{bus, location::Location};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use uuid::Uuid;
-#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 // Passenger should eventually contain the index and the time tick for the bus
 // I'm not sure how recalculating the route should work if the passenger doesn't get on the bus
 // I wonder if some sort of priority system would be useful sometime
@@ -19,15 +18,73 @@ pub struct Passenger {
     pub current_location: Option<Location>,
     pub passed_stops: u32,
     pub bus_schedule: Vec<PassengerOnboardingBusSchedule>,
+    // Add a peekable iterator for the current location
+    pub archived_stop_list: Vec<PassengerOnboardingBusSchedule>,
+
+    pub bus_schedule_iterator: Box<dyn bus::CloneIterator<Item = PassengerOnboardingBusSchedule>>,
 }
+impl std::fmt::Debug for Passenger {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        f.debug_struct("Passenger")
+            .field("id", &self.id)
+            .field("destination_location", &self.destination_location)
+            .field("current_location", &self.current_location)
+            .field("passed_stops", &self.passed_stops)
+            .field("bus_schedule", &self.bus_schedule)
+            .field("archived_stop_list", &self.archived_stop_list)
+            .finish()
+    }
+}
+
+impl Clone for Passenger {
+    fn clone(&self) -> Self {
+        let Self {
+            id,
+            destination_location,
+            current_location,
+            passed_stops,
+            bus_schedule,
+            archived_stop_list,
+            bus_schedule_iterator,
+        } = self;
+        Self {
+            id: id.clone(),
+            destination_location: destination_location.clone(),
+            current_location: current_location.clone(),
+            passed_stops: passed_stops.clone(),
+            bus_schedule: bus_schedule.clone(),
+            archived_stop_list: archived_stop_list.clone(),
+            bus_schedule_iterator: bus_schedule_iterator.clone_box(),
+        }
+    }
+}
+
+impl PartialEq for Passenger {
+    fn eq(&self, other: &Passenger) -> bool {
+        self.id == other.id
+            && self.destination_location == other.destination_location
+            && self.current_location == other.current_location
+            && self.passed_stops == other.passed_stops
+            && self.bus_schedule == other.bus_schedule
+            && self.archived_stop_list == other.archived_stop_list
+    }
+}
+
+impl<'a> Eq for Passenger {}
+
 impl Passenger {
     pub fn new(current_location: Location, destination_location: Location) -> Self {
+        let bus_schedule: Vec<PassengerOnboardingBusSchedule> = Vec::new();
+        // Since bus_schedule is cloned for bus_schedul_iter, the values do not actually correlate with each other
+        let bus_schedule_iter = bus_schedule.clone().into_iter();
         Self {
             id: Uuid::new_v4(),
             current_location: Some(current_location),
             destination_location,
             passed_stops: 0,
-            bus_schedule: Vec::new(),
+            bus_schedule,
+            archived_stop_list: Vec::new(),
+            bus_schedule_iterator: Box::new(bus_schedule_iter),
         }
     }
 }

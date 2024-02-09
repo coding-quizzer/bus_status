@@ -100,12 +100,17 @@ impl From<SerializedPassenger> for Passenger {
             current_location,
         } = serialized_passenger_input;
 
+        let bus_schedule = Vec::new();
+        let bus_schedule_iterator = bus_schedule.clone().into_iter();
+
         Passenger {
             id,
             destination_location,
             current_location,
             passed_stops: 0,
-            bus_schedule: Vec::new(),
+            bus_schedule,
+            archived_stop_list: Vec::new(),
+            bus_schedule_iterator: Box::new(bus_schedule_iterator),
         }
     }
 }
@@ -118,6 +123,8 @@ impl From<Passenger> for SerializedPassenger {
             current_location,
             passed_stops: _passed_stops,
             bus_schedule: _bus_schedule,
+            archived_stop_list: _,
+            bus_schedule_iterator: _,
         } = passenger;
 
         SerializedPassenger {

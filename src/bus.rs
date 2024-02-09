@@ -29,18 +29,20 @@ struct BusStatus {
 }
 
 // clone iterator from: https://stackoverflow.com/questions/49594732/how-to-return-a-boxed-clonable-iterator-in-rust/49599226#49599226
-trait CloneIterator: Iterator {
+pub trait CloneIterator: Iterator + Send {
     fn clone_box(&self) -> Box<dyn CloneIterator<Item = Self::Item>>;
 }
 
 impl<T> CloneIterator for T
 where
-    T: 'static + Iterator + Clone,
+    T: 'static + Iterator + Clone + Send,
 {
     fn clone_box(&self) -> Box<dyn CloneIterator<Item = Self::Item>> {
         Box::new(self.clone())
     }
 }
+
+// impl<T> Send for dyn CloneIterator<Item = T> where T: Send {}
 
 // Evantually, Passengers will need to somehow access the bus timetable to determine what bus will reach
 // their destination. So far, the bus has decided what passengers can get on, but at this point
@@ -256,6 +258,8 @@ impl Bus {
             let mut passenger_current_location_indeces = Vec::new();
             let mut current_passenger_location_index: usize = 0;
             // Remove passengers getting off at
+
+            // Make into a sub function
             let (outgoing_passengers, remaining_passengers): (Vec<_>, Vec<_>) =
                 self.passengers.clone().into_iter().partition(|passenger| {
                     let is_offboarding = passenger
@@ -282,6 +286,8 @@ impl Bus {
                 "List of indeces for next locations of valid passengers must be the same length as valid passengers"
             );
 
+            // Passenger
+
             let passenger_info_list: Vec<_> =
                 std::iter::zip(outgoing_passengers, passenger_current_location_indeces)
                     .map(|(passenger, location_index)| PassengerInfo {
@@ -299,7 +305,6 @@ impl Bus {
             };
 
             next_station_sender
-                // TODO: Bus should ultimately send just the relevent information, what passengers are getting off the bus, how much capacity is left, and the bus id/index
                 .send(StationMessages::BusArrived {
                     passengers_onboarding: passenger_info_list,
                     bus_info: bus_info_for_station,
