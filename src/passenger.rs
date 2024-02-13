@@ -1,6 +1,9 @@
-use crate::{bus, location::Location};
+use crate::{
+    bus::{self, CloneIterator},
+    location::Location,
+};
 use serde::{Deserialize, Serialize};
-use std::collections::VecDeque;
+use std::{collections::VecDeque, iter::Peekable};
 use uuid::Uuid;
 // Passenger should eventually contain the index and the time tick for the bus
 // I'm not sure how recalculating the route should work if the passenger doesn't get on the bus
@@ -21,7 +24,8 @@ pub struct Passenger {
     // Add a peekable iterator for the current location
     pub archived_stop_list: Vec<PassengerOnboardingBusSchedule>,
 
-    pub bus_schedule_iterator: Box<dyn bus::CloneIterator<Item = PassengerOnboardingBusSchedule>>,
+    pub bus_schedule_iterator:
+        std::iter::Peekable<Box<dyn bus::CloneIterator<Item = PassengerOnboardingBusSchedule>>>,
 }
 impl std::fmt::Debug for Passenger {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
@@ -54,7 +58,7 @@ impl Clone for Passenger {
             passed_stops: passed_stops.clone(),
             bus_schedule: bus_schedule.clone(),
             archived_stop_list: archived_stop_list.clone(),
-            bus_schedule_iterator: bus_schedule_iterator.clone_box(),
+            bus_schedule_iterator: bus_schedule_iterator.clone(),
         }
     }
 }
@@ -70,13 +74,14 @@ impl PartialEq for Passenger {
     }
 }
 
-impl<'a> Eq for Passenger {}
+impl Eq for Passenger {}
 
 impl Passenger {
     pub fn new(current_location: Location, destination_location: Location) -> Self {
         let bus_schedule: Vec<PassengerOnboardingBusSchedule> = Vec::new();
         // Since bus_schedule is cloned for bus_schedul_iter, the values do not actually correlate with each other
-        let bus_schedule_iter = bus_schedule.clone().into_iter();
+        let bus_schedule_iter: Peekable<Box<std::vec::IntoIter<PassengerOnboardingBusSchedule>>> =
+            Box::new(bus_schedule.clone().into_iter()).peekable();
         Self {
             id: Uuid::new_v4(),
             current_location: Some(current_location),
@@ -84,7 +89,7 @@ impl Passenger {
             passed_stops: 0,
             bus_schedule,
             archived_stop_list: Vec::new(),
-            bus_schedule_iterator: Box::new(bus_schedule_iter),
+            bus_schedule_iterator: bus_schedule_iter,
         }
     }
 }

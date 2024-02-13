@@ -692,6 +692,11 @@ fn main() {
                         "PassengerInit message should not be sent on any time tick besides tick 1. Time tick: {}, List sent: {:#?}", time_tick, message 
                     ),
                     StationMessages::BusArrived{passengers_onboarding, bus_info}=> {
+                        for passenger_info in passengers_onboarding.clone() {
+                          let mut passenger = passenger_info.passenger;
+                          let passenger_location = passenger.bus_schedule_iterator.next().unwrap();
+                          passenger.archived_stop_list.push(passenger_location);
+                        }
                         current_station.passengers.extend(passengers_onboarding);
                         let bus_index = bus_info.bus_index;
                         println!("Bus {bus_index} arrived at station {station_index}.");
@@ -714,7 +719,7 @@ fn main() {
                       for passenger_info in passengers_for_next_destination {
                         let passenger = passenger_info.passenger.clone();
                         // let next_location = passenger.bus_schedule[passenger_info.current_location_index + 1];
-                        let current_location = passenger.bus_schedule[passenger_info.current_location_index];
+                        let current_location = passenger.bus_schedule_iterator.peek();
                         let next_bus_index = current_location.bus_num.expect("Since there is a location after this, the next bus index should not be null");
                         
                         if next_passengers_for_buses_hash_map.contains_key(&next_bus_index) {

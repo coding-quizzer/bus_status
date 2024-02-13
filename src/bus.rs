@@ -33,14 +33,31 @@ pub trait CloneIterator: Iterator + Send {
     fn clone_box(&self) -> Box<dyn CloneIterator<Item = Self::Item>>;
 }
 
+impl<T> Clone for Box<dyn CloneIterator<Item = T>>
+where
+    T: Clone,
+{
+    fn clone(&self) -> Self {
+        (**self).clone_box()
+    }
+}
+
 impl<T> CloneIterator for T
 where
-    T: 'static + Iterator + Clone + Send,
+    T: Clone + Iterator + Send,
 {
-    fn clone_box(&self) -> Box<dyn CloneIterator<Item = Self::Item>> {
+    fn clone_box(&self) -> Box<dyn CloneIterator<Item = T::Item>> {
         Box::new(self.clone())
     }
 }
+
+// where
+//     T: 'static + Iterator + Clone + Send,
+// {
+//     fn clone_box(&self) -> Box<dyn CloneIterator<Item = Self::Item>> {
+//         Box::new(self.clone())
+//     }
+// }
 
 // impl<T> Send for dyn CloneIterator<Item = T> where T: Send {}
 
