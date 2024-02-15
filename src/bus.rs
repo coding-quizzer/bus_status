@@ -1,7 +1,8 @@
+use crate::passenger::Passenger;
 use crate::passenger::PassengerOnboardingBusSchedule;
-use crate::passenger::{Passenger, PassengerInfo};
 use crate::station::Station;
 use crate::thread::{BusMessages, StationMessages, StationToBusMessages};
+use std::vec;
 // use bus_system::Location;
 pub use crate::location::BusLocation;
 use serde::{Deserialize, Serialize};
@@ -44,7 +45,7 @@ where
 
 impl<T> CloneIterator for T
 where
-    T: Clone + Iterator + Send,
+    T: Clone + Iterator + Send + 'static,
 {
     fn clone_box(&self) -> Box<dyn CloneIterator<Item = T::Item>> {
         Box::new(self.clone())
@@ -68,11 +69,12 @@ where
 // The current bus route data the buses impliment may not be the same format the passengers would want
 // It's hard to compare the positions of the buses at each time tick.s
 
+#[derive(Clone, Debug)]
 pub struct Bus {
     status: BusStatus,
     passengers: Vec<Passenger>,
     current_location: Option<Location>,
-    bus_route_iter: Box<dyn CloneIterator<Item = BusLocation>>,
+    bus_route_iter: Box<vec::IntoIter<BusLocation>>,
     bus_route_vec: Vec<BusLocation>,
     capacity: usize,
     total_passenger_count: u32,
@@ -82,31 +84,6 @@ pub struct Bus {
 
 // manually impliment Debug, so that the iterator field can be skipped, eliminating the complicaiton of requiring
 // the iterator to impliment Debug
-impl std::fmt::Debug for Bus {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        f.debug_struct("Bus")
-            .field("status", &self.status)
-            .field("passengers", &self.passengers)
-            .field("current_location", &self.current_location)
-            .field("location_vec", &&self.bus_route_vec)
-            .finish()
-    }
-}
-
-impl Clone for Bus {
-    fn clone(&self) -> Self {
-        Bus {
-            status: self.status.clone(),
-            passengers: self.passengers.clone(),
-            current_location: self.current_location,
-            bus_route_iter: self.bus_route_iter.clone_box(),
-            bus_route_vec: self.bus_route_vec.clone(),
-            capacity: self.capacity,
-            total_passenger_count: self.total_passenger_count,
-            bus_index: self.bus_index,
-        }
-    }
-}
 
 // let passengers take the most efficient route
 
@@ -305,13 +282,13 @@ impl Bus {
 
             // Passenger
 
-            let passenger_info_list: Vec<_> =
-                std::iter::zip(outgoing_passengers, passenger_current_location_indeces)
-                    .map(|(passenger, location_index)| PassengerInfo {
-                        current_location_index: location_index,
-                        passenger,
-                    })
-                    .collect();
+            // let passenger_info_list: Vec<_> =
+            //     std::iter::zip(outgoing_passengers, passenger_current_location_indeces)
+            //         .map(|(passenger, location_index)| PassengerInfo {
+            //             current_location_index: location_index,
+            //             passenger,
+            //         })
+            //         .collect();
 
             self.passengers = remaining_passengers;
             let current_passenger_count = self.passengers.len();
@@ -323,7 +300,7 @@ impl Bus {
 
             next_station_sender
                 .send(StationMessages::BusArrived {
-                    passengers_onboarding: passenger_info_list,
+                    passengers_onboarding: outgoing_passengers,
                     bus_info: bus_info_for_station,
                 })
                 .unwrap();

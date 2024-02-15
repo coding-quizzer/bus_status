@@ -1,5 +1,5 @@
 use bus_system::convert_bus_route_list_to_passenger_bus_route_list;
-use bus_system::passenger::{Passenger, PassengerInfo};
+use bus_system::passenger::Passenger;
 use bus_system::station::Station;
 use bus_system::thread::BusThreadStatus;
 use bus_system::thread::{
@@ -692,8 +692,7 @@ fn main() {
                         "PassengerInit message should not be sent on any time tick besides tick 1. Time tick: {}, List sent: {:#?}", time_tick, message 
                     ),
                     StationMessages::BusArrived{passengers_onboarding, bus_info}=> {
-                        for passenger_info in passengers_onboarding.clone() {
-                          let mut passenger = passenger_info.passenger;
+                        for passenger in passengers_onboarding.clone().iter_mut() {
                           let passenger_location = passenger.bus_schedule_iterator.next().unwrap();
                           passenger.archived_stop_list.push(passenger_location);
                         }
@@ -712,19 +711,19 @@ fn main() {
                       let mut next_passengers_for_buses_hash_map = current_station.docked_buses.iter().map(|bus| (bus.bus_index, Vec::<Passenger>::new())).collect::<HashMap<_, _>>();
                       
                       // Somehow, bus needs to send passengers to currently docked buses
-                      let (arrived_passengers, passengers_for_next_destination): (Vec<_>, Vec<_>) = current_station.passengers.clone().into_iter().partition(|passenger_info| passenger_info.passenger.bus_schedule.get(passenger_info.current_location_index + 1).is_some());
-                      let mut remaining_passengers: Vec<PassengerInfo> = Vec::new();
+
+                      //TODO: Use a more efficient method than partition. Avoid the clone, so peek actully gives an advantage.
+                      let (arrived_passengers, passengers_for_next_destination): (Vec<_>, Vec<_>) = current_station.passengers.iter_mut().partition(| passenger| passenger.bus_schedule_iterator.clone().peek().is_some());
+                      let mut remaining_passengers: Vec<Passenger> = Vec::new();
                       // overflowed passengers have their own list so that they can be recalculated
                       let mut passengers_overflowed = Vec::new();
-                      for passenger_info in passengers_for_next_destination {
-                        let passenger = passenger_info.passenger.clone();
-                        // let next_location = passenger.bus_schedule[passenger_info.current_location_index + 1];
-                        let current_location = passenger.bus_schedule_iterator.peek();
+                      for passenger in passengers_for_next_destination {
+                        let current_location = passenger.bus_schedule_iterator.peek().unwrap();
                         let next_bus_index = current_location.bus_num.expect("Since there is a location after this, the next bus index should not be null");
                         
                         if next_passengers_for_buses_hash_map.contains_key(&next_bus_index) {
-                          next_passengers_for_buses_hash_map.entry(next_bus_index).and_modify(|passenger_list| passenger_list.push(passenger));
-                        } else {remaining_passengers.push(passenger_info)}
+                          next_passengers_for_buses_hash_map.entry(next_bus_index).and_modify(|passenger_list| passenger_list.push(passenger.clone()));
+                        } else {remaining_passengers.push(passenger.clone())}
                         
                         
                       }

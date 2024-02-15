@@ -101,7 +101,7 @@ impl From<SerializedPassenger> for Passenger {
         } = serialized_passenger_input;
 
         let bus_schedule = Vec::new();
-        let bus_schedule_iterator = bus_schedule.clone().into_iter();
+        let bus_schedule_iterator = bus_schedule.clone().into_iter().peekable();
 
         Passenger {
             id,
@@ -110,7 +110,7 @@ impl From<SerializedPassenger> for Passenger {
             passed_stops: 0,
             bus_schedule,
             archived_stop_list: Vec::new(),
-            bus_schedule_iterator: Box::new(bus_schedule_iterator),
+            bus_schedule_iterator,
         }
     }
 }
