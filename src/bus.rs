@@ -245,7 +245,6 @@ impl Bus {
                 .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_index, error));
             return;
         } else {
-            println!("Bus {} Arrived", self.bus_index);
             let current_location_index = self.current_location.unwrap().index;
             let next_station_sender = &station_senders[current_location_index];
             let current_location = self.current_location.unwrap();
@@ -269,11 +268,14 @@ impl Bus {
                                 && &passenger_location.time_tick >= current_time_tick_number
                         });
 
+                    println!("Is Offboarding: {is_offboarding}");
+
                     if is_offboarding {
                         passenger_current_location_indeces.push(current_passenger_location_index);
                     }
                     is_offboarding
                 });
+            println!("Outgoing Passengers: {:?}", outgoing_passengers);
             assert_eq!(
                 outgoing_passengers.len(),
                 passenger_current_location_indeces.len(),

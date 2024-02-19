@@ -620,6 +620,7 @@ fn main() {
             let mut previous_time_tick = 0;
             let current_receiver_with_index = station_channels.lock().unwrap().remove(0);
             let station_index = current_receiver_with_index.index;
+            println!("Station index: {station_index}");
             let current_receiver = current_receiver_with_index.receiver;
             
 
@@ -685,6 +686,7 @@ fn main() {
 
                 drop(time_tick);
 
+                
                 let received_message = current_receiver.recv().unwrap();
                 let time_tick = station_time_tick.lock().unwrap();
                 match received_message {
@@ -696,6 +698,7 @@ fn main() {
                           let passenger_location = passenger.bus_schedule_iterator.next().unwrap();
                           passenger.archived_stop_list.push(passenger_location);
                         }
+                        println!("Passengers: {:?}", passengers_onboarding);
                         current_station.passengers.extend(passengers_onboarding);
                         let bus_index = bus_info.bus_index;
                         println!("Bus {bus_index} arrived at station {station_index}.");
@@ -709,21 +712,31 @@ fn main() {
                         }
                       }
                       let mut next_passengers_for_buses_hash_map = current_station.docked_buses.iter().map(|bus| (bus.bus_index, Vec::<Passenger>::new())).collect::<HashMap<_, _>>();
+
+                      println!("Station {} Passengers:{:?}", station_index, current_station.passengers);
                       
                       // Somehow, bus needs to send passengers to currently docked buses
 
-                      //TODO: Use a more efficient method than partition. Avoid the clone, so peek actully gives an advantage.
-                      let (arrived_passengers, passengers_for_next_destination): (Vec<_>, Vec<_>) = current_station.passengers.iter_mut().partition(| passenger| passenger.bus_schedule_iterator.clone().peek().is_some());
+                      // TODO: Use a more efficient method than partition. Also, remove the clone, so peek actully gives an advantage.
+                      let (passengers_for_next_destination, arrived_passengers): (Vec<_>, Vec<_>) = current_station.passengers.iter_mut().partition(| passenger| passenger.bus_schedule_iterator.clone().peek().is_none());
+                      // println!("Passengers for next destination: {:?}", &passengers_for_next_destination);
                       let mut remaining_passengers: Vec<Passenger> = Vec::new();
                       // overflowed passengers have their own list so that they can be recalculated
                       let mut passengers_overflowed = Vec::new();
+                      // println!("Arrived Passengers: {:?}", &arrived_passengers);
+                      println!("Passengers for next destination: {:?}", passengers_for_next_destination);
                       for passenger in passengers_for_next_destination {
+                        println!("passenger_loop");
+                        // Does this work, or will this be the next next location?
                         let current_location = passenger.bus_schedule_iterator.peek().unwrap();
                         let next_bus_index = current_location.bus_num.expect("Since there is a location after this, the next bus index should not be null");
                         
+                      
                         if next_passengers_for_buses_hash_map.contains_key(&next_bus_index) {
                           next_passengers_for_buses_hash_map.entry(next_bus_index).and_modify(|passenger_list| passenger_list.push(passenger.clone()));
                         } else {remaining_passengers.push(passenger.clone())}
+
+                        dbg!(&next_passengers_for_buses_hash_map);
                         
                         
                       }
@@ -742,11 +755,14 @@ fn main() {
                           passengers_to_send.append(new_passenger_list);
                         }
 
+                        println!("Passengers to send: {:?}", passengers_to_send);
+
                         send_to_bus_channels.as_ref()[bus_index].send(StationToBusMessages::SendPassengers(passengers_to_send)).unwrap();
 
 
-
                         // deal with overflowed passengers
+                        // Remove departed buses from the current time tick from the bus list
+
 
                       }
                       // current_station.passengers = passengers_for_next_destination;
@@ -771,8 +787,10 @@ fn main() {
         let mut time_clone_check = 1;
         let handle = thread::spawn(move || {
             let current_bus_receiver_with_index = bus_receiver_channels.lock().unwrap().remove(0);
+            drop(bus_receiver_channels);
             // Since the receiver obtained is not deterministic, set the bus index based on what what channel was obtained
             let bus_index = current_bus_receiver_with_index.index;
+            println!("Bus index: {}", bus_index);
             let bus_receiver = current_bus_receiver_with_index.receiver;
             let mut bus_route_array = bus_route_array_clone.lock().unwrap();
             let bus_route = bus_route_array.get(bus_index).unwrap();

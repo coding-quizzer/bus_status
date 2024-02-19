@@ -13,6 +13,8 @@ use uuid::Uuid;
 //     Waiting,
 //     Arrived,
 // }
+
+#[derive(Clone)]
 pub struct Passenger {
     pub id: Uuid,
     pub destination_location: Location,
@@ -34,29 +36,6 @@ impl std::fmt::Debug for Passenger {
             .field("bus_schedule", &self.bus_schedule)
             .field("archived_stop_list", &self.archived_stop_list)
             .finish()
-    }
-}
-
-impl Clone for Passenger {
-    fn clone(&self) -> Self {
-        let Self {
-            id,
-            destination_location,
-            current_location,
-            passed_stops,
-            bus_schedule,
-            archived_stop_list,
-            bus_schedule_iterator,
-        } = self;
-        Self {
-            id: id.clone(),
-            destination_location: destination_location.clone(),
-            current_location: current_location.clone(),
-            passed_stops: passed_stops.clone(),
-            bus_schedule: bus_schedule.clone(),
-            archived_stop_list: archived_stop_list.clone(),
-            bus_schedule_iterator: bus_schedule_iterator.clone(),
-        }
     }
 }
 
