@@ -718,7 +718,8 @@ fn main() {
                       // Somehow, bus needs to send passengers to currently docked buses
 
                       // TODO: Use a more efficient method than partition. Also, remove the clone, so peek actully gives an advantage.
-                      let (passengers_for_next_destination, arrived_passengers): (Vec<_>, Vec<_>) = current_station.passengers.iter_mut().partition(| passenger| passenger.bus_schedule_iterator.clone().peek().is_none());
+                      // Why does passengers_for_next_destionation have no elements? At this point, pretty much all the passengers should have more stations to stop at. Shouldn't they be added to that list?
+                      let (passengers_for_next_destination, arrived_passengers): (Vec<_>, Vec<_>) = current_station.passengers.iter_mut().partition(| passenger| {println!("Passenger iterator: {:?}", passenger.bus_schedule_iterator.clone().collect::<Vec<_>>()); passenger.bus_schedule_iterator.clone().peek().is_some()}); 
                       // println!("Passengers for next destination: {:?}", &passengers_for_next_destination);
                       let mut remaining_passengers: Vec<Passenger> = Vec::new();
                       // overflowed passengers have their own list so that they can be recalculated

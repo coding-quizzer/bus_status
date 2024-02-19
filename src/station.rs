@@ -59,6 +59,7 @@ impl Station {
             calculate_passenger_schedule_for_bus(&new_passenger, time_tick, bus_route_list)?;
         println!("New Bus Schedule: {:#?}", new_bus_schedule);
         println!("Passengers added.");
+        new_passenger.bus_schedule_iterator = new_bus_schedule.clone().into_iter().peekable();
         new_passenger.bus_schedule = new_bus_schedule;
         self.passengers.push(new_passenger);
         Ok(())
