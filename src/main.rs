@@ -77,11 +77,9 @@ fn main() {
 
     let location_vector_arc = Arc::new(location_vector);
 
-    let bus_route_vec_arc: Arc<Mutex<[Vec<BusLocation>; NUM_OF_BUSES]>> =
-        Arc::new(Mutex::new(bus_route_array));
+    let bus_route_vec_arc: Arc<Mutex<[Vec<BusLocation>; NUM_OF_BUSES]>> = Arc::new(Mutex::new(bus_route_array));
 
-    let passenger_bus_route_arc: Arc<Mutex<Vec<Vec<PassengerBusLocation>>>> =
-        Arc::new(Mutex::new(Vec::new()));
+    let passenger_bus_route_arc: Arc<Mutex<Vec<Vec<PassengerBusLocation>>>> = Arc::new(Mutex::new(Vec::new()));
 
     let passenger_extra_stops_waited_pointer = Arc::new(Mutex::new(Vec::<u32>::new()));
 
@@ -662,7 +660,7 @@ fn main() {
                                 )
                                 .unwrap_or_else(|passenger| {
                                     rejected_passenger_indeces.push(index);
-                                    println!("Passenger {:?} had no valid routes", passenger)
+                                    println!("Passenger {:?} had no valid routes", passenger);
                                 });
                         }
 
@@ -719,7 +717,7 @@ fn main() {
 
                       // TODO: Use a more efficient method than partition. Also, remove the clone, so peek actully gives an advantage.
                       // Why does passengers_for_next_destionation have no elements? At this point, pretty much all the passengers should have more stations to stop at. Shouldn't they be added to that list?
-                      let (passengers_for_next_destination, arrived_passengers): (Vec<_>, Vec<_>) = current_station.passengers.iter_mut().partition(| passenger| {println!("Passenger iterator: {:?}", passenger.bus_schedule_iterator.clone().collect::<Vec<_>>()); passenger.bus_schedule_iterator.clone().peek().is_some()}); 
+                      let (passengers_for_next_destination, arrived_passengers): (Vec<_>, Vec<_>) = current_station.passengers.iter_mut().partition(| passenger| { passenger.bus_schedule_iterator.clone().peek().is_some()}); 
                       // println!("Passengers for next destination: {:?}", &passengers_for_next_destination);
                       let mut remaining_passengers: Vec<Passenger> = Vec::new();
                       // overflowed passengers have their own list so that they can be recalculated

@@ -332,9 +332,11 @@ impl Bus {
                 }
             }
         }
-        assert_eq!(self.passengers.len(), 0);
+        // TODO: Uncomment when I the rest of the cycle is complete
+
+        /* assert_eq!(self.passengers.len(), 0);
         println!("Bus number {} is finished", self.bus_index);
-        self.status.movement = MovementState::Finished;
+        self.status.movement = MovementState::Finished; */
     }
 
     pub fn take_passengers(
