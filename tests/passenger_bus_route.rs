@@ -105,7 +105,7 @@ fn finds_shortest_route() {
     assert_eq!(calculated_passenger_bus_route, Ok(expected_passenger_route),);
 }
 
-// Use --nocapture to ensure stdout is displayed
+// Use --no-capture to ensure stdout is displayed
 #[test]
 fn special_route_removing_some_bus_locations() {
     let (passenger_facing_bus_routes, location_list) =
