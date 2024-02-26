@@ -1,9 +1,9 @@
-use bus_system::data;
 use bus_system::location::{Location, PassengerBusLocation};
 use bus_system::passenger::{Passenger, PassengerOnboardingBusSchedule};
 use bus_system::{
     calculate_passenger_schedule_for_bus, convert_bus_route_list_to_passenger_bus_route_list,
 };
+use bus_system::{calculate_passenger_schedule_for_bus_check_available_buses, data};
 use std::path::Path;
 use uuid::uuid;
 
@@ -97,6 +97,36 @@ fn finds_shortest_route() {
         },
         PassengerOnboardingBusSchedule {
             time_tick: 22,
+            bus_num: None,
+            stop_location: location_list[2],
+        },
+    ];
+
+    assert_eq!(calculated_passenger_bus_route, Ok(expected_passenger_route),);
+}
+
+// Use --nocapture to ensure stdout is displayed
+#[test]
+fn special_route_removing_some_bus_locations() {
+    let (passenger_facing_bus_routes, location_list) =
+        get_passenger_bus_routes_from_input_data(Path::new("simple_data.json"));
+    let test_passenger = Passenger::new(location_list[3], location_list[2]);
+    let calculated_passenger_bus_route = calculate_passenger_schedule_for_bus_check_available_buses(
+        &test_passenger,
+        4,
+        &passenger_facing_bus_routes,
+        vec![0],
+    );
+
+    let expected_passenger_route = vec![
+        PassengerOnboardingBusSchedule {
+            time_tick: 8,
+            bus_num: Some(2),
+            stop_location: location_list[3],
+        },
+        PassengerOnboardingBusSchedule {
+            // time tick represents time tick when bus 3 drops the passenger off, rather than when  bus 0 picks passenger up
+            time_tick: 12,
             bus_num: None,
             stop_location: location_list[2],
         },

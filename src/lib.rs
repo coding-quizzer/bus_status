@@ -156,6 +156,45 @@ pub fn initialize_channel_list<T>(
     (sender_vector, receiver_vector)
 }
 
+pub fn calculate_passenger_schedule_for_bus_check_available_buses<'a>(
+    new_passenger: &'a Passenger,
+    current_time_tick: u32,
+    bus_route_list: &Vec<Vec<PassengerBusLocation>>,
+    buses_unavailable: Vec<usize>,
+) -> Result<Vec<PassengerOnboardingBusSchedule>, Passenger> {
+    // TODO: Add tests to prove that this method of removing those indeces actually work
+    let mut new_bus_route_list = bus_route_list.clone();
+
+    // mutable iterator containing the routes that will need to remove the
+    let special_routes_iter =
+        new_bus_route_list
+            .iter_mut()
+            .enumerate()
+            .filter(|(bus_index, bus_route)| {
+                buses_unavailable.iter().any(|bus: &usize| bus == bus_index)
+            });
+
+    for (_, route) in special_routes_iter {
+        let mut index_to_delete: Option<usize> = None;
+        for (index_in_route, location) in route.iter().enumerate() {
+            if current_time_tick == location.location_time_tick {
+                index_to_delete = Some(index_in_route);
+                break;
+            }
+        }
+
+        if let Some(index) = index_to_delete {
+            route.remove(index);
+        }
+    }
+
+    println!("New Bus Route List: {:#?}", &new_bus_route_list);
+
+    // Take bus routes with the same time tick in unavailable buses out
+
+    calculate_passenger_schedule_for_bus(&new_passenger, current_time_tick, &new_bus_route_list)
+}
+
 pub fn calculate_passenger_schedule_for_bus<'a>(
     passenger: &'a Passenger,
     current_time_tick: u32,
