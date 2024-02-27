@@ -435,18 +435,18 @@ struct SerializableBus {
     destination: Location,
     current_location: Option<Location>,
 } */
-#[derive(Debug)]
 /* pub struct SendableBus {
-    status: BusStatus,
-    passengers: Vec<Passenger>,
-    current_location: Option<Location>,
-    bus_route_vec: Vec<BusLocation>,
-    capacity: usize,
-    total_passenger_count: u32,
-    // time_tick_num: u32,
-    pub bus_num: usize,
+  status: BusStatus,
+  passengers: Vec<Passenger>,
+  current_location: Option<Location>,
+  bus_route_vec: Vec<BusLocation>,
+  capacity: usize,
+  total_passenger_count: u32,
+  // time_tick_num: u32,
+  pub bus_num: usize,
 } */
 
+#[derive(Debug, Clone)]
 pub struct SendableBus {
     pub capacity_remaining: usize,
     pub bus_index: usize,

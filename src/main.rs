@@ -739,8 +739,10 @@ fn main() {
                         
                         
                       }
+
+                      let docked_buses = &(current_station.docked_buses.clone());
                       
-                      for bus in &(current_station.docked_buses) {
+                      for bus in docked_buses {
                         let mut passengers_to_send = Vec::new();
                         let bus_index = bus.bus_index;
                         let new_passenger_list_entry = next_passengers_for_buses_hash_map.entry(bus_index);
@@ -750,6 +752,7 @@ fn main() {
                           let (passengers_to_add, rejected_passengers) = new_passenger_list.split_at(remaining_capacity);
                           passengers_overflowed.append(rejected_passengers.to_vec().as_mut());
                           passengers_to_send.append(passengers_to_add.to_vec().as_mut());
+                          current_station.buses_unavailable.push(bus.bus_index);
                         } else {
                           passengers_to_send.append(new_passenger_list);
                         }
@@ -757,6 +760,15 @@ fn main() {
                         println!("Passengers to send: {:?}", passengers_to_send);
 
                         send_to_bus_channels.as_ref()[bus_index].send(StationToBusMessages::SendPassengers(passengers_to_send)).unwrap();
+
+                        let current_bus_route_list = bus_route_list.lock().unwrap();
+                        let bus_route_vec: Vec<_> = current_bus_route_list.clone().into_iter().collect();
+                        // bus_route_vec[0][0].
+
+                        for passenger in passengers_overflowed.clone() {
+                          let unavailable_buses = current_station.buses_unavailable.clone();
+                          current_station.add_passenger_check_available_buses(passenger, *time_tick, &station_thread_passenger_bus_route_list.lock().unwrap(), unavailable_buses).unwrap();
+                        }
 
 
                         // deal with overflowed passengers

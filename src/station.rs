@@ -34,6 +34,7 @@ pub struct Station {
     pub location: Location,
     pub docked_buses: Vec<SendableBus>,
     pub passengers: Vec<Passenger>,
+    pub buses_unavailable: Vec<usize>,
 }
 
 impl Station {
@@ -42,6 +43,7 @@ impl Station {
             location,
             docked_buses: Vec::new(),
             passengers: Vec::new(),
+            buses_unavailable: Vec::new(),
         }
     }
 
