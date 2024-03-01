@@ -425,9 +425,10 @@ fn main() {
                 for (index, passengers_in_location) in
                     passenger_location_list.into_iter().enumerate()
                 {
-                    station_sender_list.as_ref()[index]
-                        .send(StationMessages::InitPassengerList(passengers_in_location))
-                        .unwrap();
+                  station_sender_list.as_ref()[index]
+                  .send(StationMessages::InitPassengerList(passengers_in_location))
+                  .unwrap();
+                      // println!("Init Passenger Info Message. Location Index: {index}");
                 }
 
                 for _ in 0..GLOBAL_LOCATION_COUNT {
@@ -645,13 +646,14 @@ fn main() {
                     drop(time_tick);
                     let received_message = current_receiver.recv().unwrap();
                     let time_tick = station_time_tick.lock().unwrap();
+                    println!("Station {}. Message Received", station_index);
                     if let StationMessages::InitPassengerList(mut list) = received_message {
-                        println!("Station {station_index} Message: {list:#?}");
+                        println!("Station: {station_index} Message: {list:#?}");
                         let mut rejected_passenger_indeces = Vec::new();
                         for (index, passenger) in list.iter().enumerate() {
                             // let passenger_bus_route_list =
                             //     station_thread_passenger_bus_route_list.lock().unwrap();
-                            println!("Passenger will be added to station {}", station_index);
+                            // println!("Passenger will be added to station {}", station_index);
                             current_station
                                 .add_passenger(
                                     passenger.clone().into(),
@@ -684,8 +686,10 @@ fn main() {
 
                 drop(time_tick);
 
-                
                 let received_message = current_receiver.recv().unwrap();
+                // With test data, stations 0 and 2 do not recieve any the init passenger message, for some reason
+                println!("Station {}. Not tick 1.", station_index);
+              
                 let time_tick = station_time_tick.lock().unwrap();
                 match received_message {
                     StationMessages::InitPassengerList(message) => panic!(
@@ -696,7 +700,7 @@ fn main() {
                           let passenger_location = passenger.bus_schedule_iterator.next().unwrap();
                           passenger.archived_stop_list.push(passenger_location);
                         }
-                        println!("Passengers: {:?}", passengers_onboarding);
+                        println!("Passengers Onboarding to bus {:?}: {:?}", bus_info.bus_index,passengers_onboarding);
                         current_station.passengers.extend(passengers_onboarding);
                         let bus_index = bus_info.bus_index;
                         println!("Bus {bus_index} arrived at station {station_index}.");
@@ -707,7 +711,9 @@ fn main() {
                         
 
                         
-                        }
+                        },
+
+                      StationMessages::AcknowledgeDeparture{bus_index } => {}
                       }
                       let mut next_passengers_for_buses_hash_map = current_station.docked_buses.iter().map(|bus| (bus.bus_index, Vec::<Passenger>::new())).collect::<HashMap<_, _>>();
 
@@ -742,7 +748,12 @@ fn main() {
 
                       let docked_buses = &(current_station.docked_buses.clone());
                       
+                      // For some reason there is only one station with one bus are displayed
                       for bus in docked_buses {
+                        println!("Station loop beginning.");
+                        println!("Station Bus Time tick: {}", time_tick);
+                        println!("Station: {}", current_station.location.index);
+                        println!("Bus: {}", bus.bus_index);
                         let mut passengers_to_send = Vec::new();
                         let bus_index = bus.bus_index;
                         let new_passenger_list_entry = next_passengers_for_buses_hash_map.entry(bus_index);
@@ -770,10 +781,15 @@ fn main() {
                           current_station.add_passenger_check_available_buses(passenger, *time_tick, &station_thread_passenger_bus_route_list.lock().unwrap(), unavailable_buses).unwrap();
                         }
 
+                        
 
-                        // deal with overflowed passengers
-                        // Remove departed buses from the current time tick from the bus list
+                        println!("Pre-bus departure");
+                       
+                        send_to_bus_channels.as_ref()[bus_index].send(StationToBusMessages::BusDeparted()).unwrap();
 
+                        println!("Departure message sent");
+
+                        let departure_acknowledge_messsage = current_receiver.recv().unwrap();
 
                       }
                       // current_station.passengers = passengers_for_next_destination;

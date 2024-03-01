@@ -15,6 +15,9 @@ pub enum StationMessages {
         passengers_onboarding: Vec<Passenger>,
         bus_info: SendableBus,
     },
+    AcknowledgeDeparture {
+        bus_index: usize,
+    },
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -24,6 +27,7 @@ pub enum StationToPassengersMessages {
 pub enum StationToBusMessages {
     AcknowledgeArrival(),
     SendPassengers(Vec<Passenger>),
+    BusDeparted(),
 }
 
 #[derive(PartialEq, Debug)]

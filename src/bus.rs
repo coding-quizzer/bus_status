@@ -320,6 +320,15 @@ impl Bus {
             let received_message = station_receiver.recv().unwrap();
             match received_message {
                 StationToBusMessages::AcknowledgeArrival() => {}
+                StationToBusMessages::BusDeparted() => {
+                    next_station_sender
+                        .send(StationMessages::AcknowledgeDeparture {
+                            bus_index: self.bus_index,
+                        })
+                        .unwrap();
+
+                    println!("Bus {} departure recieved", self.bus_index);
+                }
                 StationToBusMessages::SendPassengers(passenger_list) => {
                     println!(
                         "{} passengers added to bus {}",
