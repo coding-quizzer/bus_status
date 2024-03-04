@@ -1,0 +1,207 @@
+{
+  "bus_routes": [
+    [
+      {
+        "location": {
+          "index": 4,
+          "id": "350abfe3-49e0-4019-8507-a376cb602ff7"
+        },
+        "distance_to_location": 1
+      },
+      {
+        "location": {
+          "index": 0,
+          "id": "21eaac51-b4e9-4338-99f0-869fe2e31d55"
+        },
+        "distance_to_location": 1
+      },
+      {
+        "location": {
+          "index": 1,
+          "id": "0adf8f60-3748-4af0-a985-5eb0de081d70"
+        },
+        "distance_to_location": 1
+      }
+    ],
+    [
+      {
+        "location": {
+          "index": 3,
+          "id": "135f70d1-0f07-4a0f-a996-3412019ea584"
+        },
+        "distance_to_location": 1
+      },
+      {
+        "location": {
+          "index": 4,
+          "id": "350abfe3-49e0-4019-8507-a376cb602ff7"
+        },
+        "distance_to_location": 1
+      },
+      {
+        "location": {
+          "index": 2,
+          "id": "cc1ad5ba-7a26-4127-969d-d52492776375"
+        },
+        "distance_to_location": 1
+      }
+    ],
+    [
+      {
+        "location": {
+          "index": 1,
+          "id": "0adf8f60-3748-4af0-a985-5eb0de081d70"
+        },
+        "distance_to_location": 1
+      },
+      {
+        "location": {
+          "index": 4,
+          "id": "350abfe3-49e0-4019-8507-a376cb602ff7"
+        },
+        "distance_to_location": 1
+      },
+      {
+        "location": {
+          "index": 1,
+          "id": "0adf8f60-3748-4af0-a985-5eb0de081d70"
+        },
+        "distance_to_location": 1
+      }
+    ]
+  ],
+  "passengers": [
+    {
+      "id": "7899d237-2356-4e5c-8f4c-e494b7e752e5",
+      "destination_location": {
+        "index": 3,
+        "id": "135f70d1-0f07-4a0f-a996-3412019ea584"
+      },
+      "current_location": {
+        "index": 0,
+        "id": "21eaac51-b4e9-4338-99f0-869fe2e31d55"
+      }
+    },
+    {
+      "id": "17001e20-45c2-4682-a278-e36472c20181",
+      "destination_location": {
+        "index": 3,
+        "id": "135f70d1-0f07-4a0f-a996-3412019ea584"
+      },
+      "current_location": {
+        "index": 0,
+        "id": "21eaac51-b4e9-4338-99f0-869fe2e31d55"
+      }
+    },
+    {
+      "id": "eccf26b9-c3b4-40cc-9122-d8067d9090c9",
+      "destination_location": {
+        "index": 2,
+        "id": "cc1ad5ba-7a26-4127-969d-d52492776375"
+      },
+      "current_location": {
+        "index": 4,
+        "id": "350abfe3-49e0-4019-8507-a376cb602ff7"
+      }
+    },
+    {
+      "id": "320f54e9-6790-4ee0-a0e3-ce59f4f9d72f",
+      "destination_location": {
+        "index": 2,
+        "id": "cc1ad5ba-7a26-4127-969d-d52492776375"
+      },
+      "current_location": {
+        "index": 4,
+        "id": "350abfe3-49e0-4019-8507-a376cb602ff7"
+      }
+    },
+    {
+      "id": "4d6742aa-f1d8-414b-be46-b5d713f77420",
+      "destination_location": {
+        "index": 1,
+        "id": "0adf8f60-3748-4af0-a985-5eb0de081d70"
+      },
+      "current_location": {
+        "index": 3,
+        "id": "135f70d1-0f07-4a0f-a996-3412019ea584"
+      }
+    },
+    {
+      "id": "8bacdc36-ed7e-47a2-9a23-d5b61a186079",
+      "destination_location": {
+        "index": 4,
+        "id": "350abfe3-49e0-4019-8507-a376cb602ff7"
+      },
+      "current_location": {
+        "index": 3,
+        "id": "135f70d1-0f07-4a0f-a996-3412019ea584"
+      }
+    },
+    {
+      "id": "108bdeee-818d-4f0b-b98e-47699e1d33f1",
+      "destination_location": {
+        "index": 2,
+        "id": "cc1ad5ba-7a26-4127-969d-d52492776375"
+      },
+      "current_location": {
+        "index": 4,
+        "id": "350abfe3-49e0-4019-8507-a376cb602ff7"
+      }
+    },
+    {
+      "id": "aadb64ae-7a51-406f-a3f8-f46cdcbd220c",
+      "destination_location": {
+        "index": 4,
+        "id": "350abfe3-49e0-4019-8507-a376cb602ff7"
+      },
+      "current_location": {
+        "index": 3,
+        "id": "135f70d1-0f07-4a0f-a996-3412019ea584"
+      }
+    },
+    {
+      "id": "afc7c2f8-b5e1-4401-996e-ca22b26069d3",
+      "destination_location": {
+        "index": 1,
+        "id": "0adf8f60-3748-4af0-a985-5eb0de081d70"
+      },
+      "current_location": {
+        "index": 4,
+        "id": "350abfe3-49e0-4019-8507-a376cb602ff7"
+      }
+    },
+    {
+      "id": "cbd53e6a-c064-4f27-a79d-3ac798303a8a",
+      "destination_location": {
+        "index": 3,
+        "id": "135f70d1-0f07-4a0f-a996-3412019ea584"
+      },
+      "current_location": {
+        "index": 4,
+        "id": "350abfe3-49e0-4019-8507-a376cb602ff7"
+      }
+    }
+  ],
+  "location_vector": [
+    {
+      "index": 0,
+      "id": "21eaac51-b4e9-4338-99f0-869fe2e31d55"
+    },
+    {
+      "index": 1,
+      "id": "0adf8f60-3748-4af0-a985-5eb0de081d70"
+    },
+    {
+      "index": 2,
+      "id": "cc1ad5ba-7a26-4127-969d-d52492776375"
+    },
+    {
+      "index": 3,
+      "id": "135f70d1-0f07-4a0f-a996-3412019ea584"
+    },
+    {
+      "index": 4,
+      "id": "350abfe3-49e0-4019-8507-a376cb602ff7"
+    }
+  ]
+}

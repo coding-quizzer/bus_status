@@ -40,7 +40,6 @@ fn main() {
         location_vector,
     } = initial_data;
 
-    // How do I retrieve locations from the already produced list so that the locations are the same?
     let location_vector: Vec<Location> = if READ_JSON {
         location_vector
     } else {
@@ -713,7 +712,9 @@ fn main() {
                         
                         },
 
-                      StationMessages::AcknowledgeDeparture{bus_index } => {}
+                      StationMessages::AcknowledgeDeparture{bus_index } => {
+                        unimplemented!();
+                      }
                       }
                       let mut next_passengers_for_buses_hash_map = current_station.docked_buses.iter().map(|bus| (bus.bus_index, Vec::<Passenger>::new())).collect::<HashMap<_, _>>();
 
@@ -739,9 +740,9 @@ fn main() {
                       
                         if next_passengers_for_buses_hash_map.contains_key(&next_bus_index) {
                           next_passengers_for_buses_hash_map.entry(next_bus_index).and_modify(|passenger_list| passenger_list.push(passenger.clone()));
+                          dbg!(&next_passengers_for_buses_hash_map);
                         } else {remaining_passengers.push(passenger.clone())}
 
-                        dbg!(&next_passengers_for_buses_hash_map);
                         
                         
                       }
