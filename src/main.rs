@@ -729,11 +729,11 @@ fn main() {
                       println!("next_vec: {:?}", next_vec);
                       next_passengers_for_buses_array = next_passengers_for_buses_array.into_iter().enumerate().map(|(current_index, vec)| {
 
-                        if let Some((old_index, vector)) = &next_vec {
+                        if let Some((old_index, vector)) = &mut next_vec {
                           if &current_index == old_index {
-                            let next_vec_vector_clone = vector.clone();
+                            let next_vec_vector = std::mem::take(vector);
                             next_vec = array_with_locations.next();
-                            Some(next_vec_vector_clone)
+                            Some(next_vec_vector)
                           } else {
                             None
                           }
