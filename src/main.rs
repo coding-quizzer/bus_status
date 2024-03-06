@@ -8,6 +8,7 @@ use bus_system::thread::{
 };
 use bus_system::{generate_bus_route_locations_with_distances, generate_random_passenger_list};
 use bus_system::{initialize_channel_list, initialize_location_list};
+use std::array::from_fn;
 use std::collections::HashMap;
 use std::{
     collections::VecDeque,
@@ -716,7 +717,32 @@ fn main() {
                         unimplemented!();
                       }
                       }
-                      let mut next_passengers_for_buses_hash_map = current_station.docked_buses.iter().map(|bus| (bus.bus_index, Vec::<Passenger>::new())).collect::<HashMap<_, _>>();
+                      let mut array_with_locations = current_station.docked_buses.iter().map(|bus| (bus.bus_index, Vec::<Passenger>::new()));
+                      let mut next_passengers_for_buses_array: [Option<Vec<Passenger>>; GLOBAL_LOCATION_COUNT] = from_fn(|_| None); 
+                      
+                      
+                      //next_passengers_for_buses_array = 
+                      
+                      let mut next_vec = array_with_locations.next();
+                      next_passengers_for_buses_array = next_passengers_for_buses_array.into_iter().enumerate().map(|(current_index, vec)| {
+
+                        if let Some((old_index, vector)) = &next_vec {
+                          if &current_index == old_index {
+                            next_vec = array_with_locations.next();
+                            vec
+                          } else {
+                            None
+                          }
+
+                        } else {
+                          None
+                        }
+
+
+                      }).collect::<Vec<_>>().try_into().unwrap();
+
+                      dbg!(&next_passengers_for_buses_array);
+                      
 
                       println!("Station {} Passengers:{:?}", station_index, current_station.passengers);
                       
@@ -736,11 +762,13 @@ fn main() {
                         // Does this work, or will this be the next next location?
                         let current_location = passenger.bus_schedule_iterator.peek().unwrap();
                         let next_bus_index = current_location.bus_num.expect("Since there is a location after this, the next bus index should not be null");
+
+                        
                         
                       
-                        if next_passengers_for_buses_hash_map.contains_key(&next_bus_index) {
-                          next_passengers_for_buses_hash_map.entry(next_bus_index).and_modify(|passenger_list| passenger_list.push(passenger.clone()));
-                          dbg!(&next_passengers_for_buses_hash_map);
+                        if  let Some(ref mut passengers) = next_passengers_for_buses_array[next_bus_index] {
+                          passengers.push(passenger.clone());
+                          // dbg!(&next_passengers_for_buses_array);
                         } else {remaining_passengers.push(passenger.clone())}
 
                         
@@ -757,16 +785,15 @@ fn main() {
                         println!("Bus: {}", bus.bus_index);
                         let mut passengers_to_send = Vec::new();
                         let bus_index = bus.bus_index;
-                        let new_passenger_list_entry = next_passengers_for_buses_hash_map.entry(bus_index);
                         let remaining_capacity = bus.capacity_remaining;
-                        let new_passenger_list = new_passenger_list_entry.or_default();
+                        let mut new_passenger_list = next_passengers_for_buses_array[bus_index].clone().expect(format!("Bus {bus_index} be docked at the station").as_str());
                         if new_passenger_list.len() > remaining_capacity {
                           let (passengers_to_add, rejected_passengers) = new_passenger_list.split_at(remaining_capacity);
                           passengers_overflowed.append(rejected_passengers.to_vec().as_mut());
                           passengers_to_send.append(passengers_to_add.to_vec().as_mut());
                           current_station.buses_unavailable.push(bus.bus_index);
                         } else {
-                          passengers_to_send.append(new_passenger_list);
+                          passengers_to_send.append(&mut new_passenger_list);
                         }
 
                         println!("Passengers to send: {:?}", passengers_to_send);
