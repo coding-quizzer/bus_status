@@ -718,18 +718,22 @@ fn main() {
                       }
                       }
                       let mut array_with_locations = current_station.docked_buses.iter().map(|bus| (bus.bus_index, Vec::<Passenger>::new()));
-                      let mut next_passengers_for_buses_array: [Option<Vec<Passenger>>; GLOBAL_LOCATION_COUNT] = from_fn(|_| None); 
+                      let mut next_passengers_for_buses_array: [Option<Vec<Passenger>>; NUM_OF_BUSES] = from_fn(|_| None); 
                       
                       
                       //next_passengers_for_buses_array = 
+
+                      println!("Array with locations for station {:?}: {:?}", &current_station.location.index,  &array_with_locations);
                       
                       let mut next_vec = array_with_locations.next();
+                      println!("next_vec: {:?}", next_vec);
                       next_passengers_for_buses_array = next_passengers_for_buses_array.into_iter().enumerate().map(|(current_index, vec)| {
 
                         if let Some((old_index, vector)) = &next_vec {
                           if &current_index == old_index {
+                            let next_vec_vector_clone = vector.clone();
                             next_vec = array_with_locations.next();
-                            vec
+                            Some(next_vec_vector_clone)
                           } else {
                             None
                           }
@@ -741,7 +745,7 @@ fn main() {
 
                       }).collect::<Vec<_>>().try_into().unwrap();
 
-                      dbg!(&next_passengers_for_buses_array);
+                      // dbg!(&next_passengers_for_buses_array);
                       
 
                       println!("Station {} Passengers:{:?}", station_index, current_station.passengers);
@@ -768,12 +772,12 @@ fn main() {
                       
                         if  let Some(ref mut passengers) = next_passengers_for_buses_array[next_bus_index] {
                           passengers.push(passenger.clone());
-                          // dbg!(&next_passengers_for_buses_array);
                         } else {remaining_passengers.push(passenger.clone())}
-
+                        
                         
                         
                       }
+                      dbg!(&next_passengers_for_buses_array);
 
                       let docked_buses = &(current_station.docked_buses.clone());
                       
@@ -786,7 +790,8 @@ fn main() {
                         let mut passengers_to_send = Vec::new();
                         let bus_index = bus.bus_index;
                         let remaining_capacity = bus.capacity_remaining;
-                        let mut new_passenger_list = next_passengers_for_buses_array[bus_index].clone().expect(format!("Bus {bus_index} be docked at the station").as_str());
+                        // The index does not exist in the array - even though the index should be of a docked bus
+                        let mut new_passenger_list = next_passengers_for_buses_array[bus_index].clone().unwrap_or_else(||  panic!("Bus {bus_index} should be docked at the station {}", current_station.location.index));
                         if new_passenger_list.len() > remaining_capacity {
                           let (passengers_to_add, rejected_passengers) = new_passenger_list.split_at(remaining_capacity);
                           passengers_overflowed.append(rejected_passengers.to_vec().as_mut());
