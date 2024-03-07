@@ -687,10 +687,13 @@ fn main() {
                 drop(time_tick);
 
                 let received_message = current_receiver.recv().unwrap();
-                // With test data, stations 0 and 2 do not recieve any the init passenger message, for some reason
+                // With test data, only one station recieves any bus arrived messages, for some reason
+                // Note: It may be a good idea to make sure that stations with out passengers are not blocked, but this might work
                 println!("Station {}. Not tick 1.", station_index);
               
+                // time tick is kept by deadlock
                 let time_tick = station_time_tick.lock().unwrap();
+                println!("Unlocked time tick: {}", *time_tick);
                 match received_message {
                     StationMessages::InitPassengerList(message) => panic!(
                         "PassengerInit message should not be sent on any time tick besides tick 1. Time tick: {}, List sent: {:#?}", time_tick, message 
@@ -717,6 +720,10 @@ fn main() {
                         unimplemented!();
                       }
                       }
+
+                      drop(time_tick);
+
+                      
                       let mut array_with_locations = current_station.docked_buses.iter().map(|bus| (bus.bus_index, Vec::<Passenger>::new()));
                       let mut next_passengers_for_buses_array: [Option<Vec<Passenger>>; NUM_OF_BUSES] = from_fn(|_| None); 
                       
@@ -748,7 +755,7 @@ fn main() {
                       // dbg!(&next_passengers_for_buses_array);
                       
 
-                      println!("Station {} Passengers:{:?}", station_index, current_station.passengers);
+                      println!("Station {} Passengers: {:?}", station_index, current_station.passengers);
                       
                       // Somehow, bus needs to send passengers to currently docked buses
 
@@ -783,6 +790,7 @@ fn main() {
                       
                       // For some reason there is only one station with one bus are displayed
                       for bus in docked_buses {
+                        let time_tick = station_time_tick.lock().unwrap();
                         println!("Station loop beginning.");
                         println!("Station Bus Time tick: {}", time_tick);
                         println!("Station: {}", current_station.location.index);
@@ -813,6 +821,8 @@ fn main() {
                           let unavailable_buses = current_station.buses_unavailable.clone();
                           current_station.add_passenger_check_available_buses(passenger, *time_tick, &station_thread_passenger_bus_route_list.lock().unwrap(), unavailable_buses).unwrap();
                         }
+
+                        drop(time_tick);
 
                         
 
