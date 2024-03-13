@@ -236,7 +236,7 @@ pub fn get_station_threads (station_location_list: &Vec<Location>,  current_time
                           
                         },
                         
-                      StationMessages::AcknowledgeDeparture{bus_index } => {
+                      StationMessages::GrantDeparture{bus_index } => {
                         unimplemented!();
                       }
                       }
@@ -350,7 +350,7 @@ pub fn get_station_threads (station_location_list: &Vec<Location>,  current_time
                         
                         println!("Pre-bus departure");
                        
-                        send_to_bus_channels[bus_index].send(StationToBusMessages::BusDeparted()).unwrap();
+                        send_to_bus_channels[bus_index].send(StationToBusMessages::RequestDeparture()).unwrap();
 
                         println!("Departure message sent");
 

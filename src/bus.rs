@@ -320,9 +320,9 @@ impl Bus {
             let received_message = station_receiver.recv().unwrap();
             match received_message {
                 StationToBusMessages::AcknowledgeArrival() => {}
-                StationToBusMessages::BusDeparted() => {
+                StationToBusMessages::RequestDeparture() => {
                     next_station_sender
-                        .send(StationMessages::AcknowledgeDeparture {
+                        .send(StationMessages::GrantDeparture {
                             bus_index: self.bus_index,
                         })
                         .unwrap();
