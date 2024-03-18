@@ -237,7 +237,7 @@ pub fn get_station_threads (station_location_list: &Vec<Location>,  current_time
                         },
                         
                       StationMessages::GrantDeparture{bus_index } => {
-                        unimplemented!();
+                        current_station.docked_buses.retain(|bus| {bus.bus_index != bus_index});
                       }
                       }
 
@@ -308,7 +308,6 @@ pub fn get_station_threads (station_location_list: &Vec<Location>,  current_time
 
                       let docked_buses = &(current_station.docked_buses.clone());
                       
-                      // For some reason there is only one station with one bus are displayed
                       for bus in docked_buses {
                         let time_tick = station_time_tick.lock().unwrap();
                         println!("Station loop beginning.");
@@ -355,6 +354,16 @@ pub fn get_station_threads (station_location_list: &Vec<Location>,  current_time
                         println!("Departure message sent");
 
                         let departure_acknowledge_messsage = current_receiver.recv().unwrap();
+                        let StationMessages::GrantDeparture { bus_index: message_bus_index } = departure_acknowledge_messsage else {
+                          panic!("Invalid message recieved. Expected StationMessages::GrantDeparture recieved {:?}", departure_acknowledge_messsage);
+                        };
+
+                        current_station.docked_buses.retain(|bus| {bus.bus_index != message_bus_index});
+
+                        
+
+
+
 
                       }
                       // current_station.passengers = passengers_for_next_destination;

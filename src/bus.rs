@@ -306,37 +306,34 @@ impl Bus {
                     bus_info: bus_info_for_station,
                 })
                 .unwrap();
-            println!("Arrived Message sent.");
-            let received_message = station_receiver.recv().unwrap();
-            match received_message {
-                StationToBusMessages::AcknowledgeArrival() => {
-                    println!("Bus {} acknowledgement received", self.bus_index);
-                }
-                _ => {
-                    panic!("Should received arrival acknowledgement before any other messages")
-                }
-            }
 
-            let received_message = station_receiver.recv().unwrap();
-            match received_message {
-                StationToBusMessages::AcknowledgeArrival() => {}
-                StationToBusMessages::RequestDeparture() => {
-                    next_station_sender
-                        .send(StationMessages::GrantDeparture {
-                            bus_index: self.bus_index,
-                        })
-                        .unwrap();
+            let mut bus_departed = false;
 
-                    println!("Bus {} departure recieved", self.bus_index);
-                }
-                StationToBusMessages::SendPassengers(passenger_list) => {
-                    println!(
-                        "{} passengers added to bus {}",
-                        passenger_list.len(),
-                        self.bus_index
-                    );
-                    for passenger in passenger_list.iter() {
-                        self.add_passenger(passenger);
+            while !bus_departed {
+                let received_message = station_receiver.recv().unwrap();
+                match received_message {
+                    StationToBusMessages::AcknowledgeArrival() => {
+                        println!("Bus {} acknowledgement received", self.bus_index);
+                    }
+                    StationToBusMessages::RequestDeparture() => {
+                        next_station_sender
+                            .send(StationMessages::GrantDeparture {
+                                bus_index: self.bus_index,
+                            })
+                            .unwrap();
+
+                        println!("Bus {} departure recieved", self.bus_index);
+                        bus_departed = true;
+                    }
+                    StationToBusMessages::SendPassengers(passenger_list) => {
+                        println!(
+                            "{} passengers added to bus {}",
+                            passenger_list.len(),
+                            self.bus_index
+                        );
+                        for passenger in passenger_list.iter() {
+                            self.add_passenger(passenger);
+                        }
                     }
                 }
             }
