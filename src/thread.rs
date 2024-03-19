@@ -15,7 +15,7 @@ pub enum StationMessages {
         passengers_onboarding: Vec<Passenger>,
         bus_info: SendableBus,
     },
-    GrantDeparture {
+    BusDeparted {
         bus_index: usize,
     },
 }
@@ -45,6 +45,11 @@ pub enum BusMessages {
     },
 
     RejectedPassengers(RejectedPassengersMessages),
+}
+
+#[derive(Debug)]
+pub enum SyncToStationMessages {
+    AdvanceTimeStep,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

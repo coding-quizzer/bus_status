@@ -316,8 +316,9 @@ impl Bus {
                         println!("Bus {} acknowledgement received", self.bus_index);
                     }
                     StationToBusMessages::RequestDeparture() => {
+                        //TODO: the bus needs to do something update time tick etc.
                         next_station_sender
-                            .send(StationMessages::GrantDeparture {
+                            .send(StationMessages::BusDeparted {
                                 bus_index: self.bus_index,
                             })
                             .unwrap();

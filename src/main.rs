@@ -4,6 +4,7 @@ use bus_system::station;
 use bus_system::thread::BusThreadStatus;
 use bus_system::thread::{
     BusMessages, RejectedPassengersMessages, StationMessages, StationToPassengersMessages,
+    SyncToStationMessages,
 };
 use bus_system::{generate_bus_route_locations_with_distances, generate_random_passenger_list};
 use bus_system::{initialize_channel_list, initialize_location_list};
@@ -99,6 +100,8 @@ fn main() {
     let (send_to_station_channels, receive_in_station_channels) =
         initialize_channel_list(GLOBAL_LOCATION_COUNT);
 
+    let (tx_sync_to_stations, rx_sync_to_stations) = mpsc::channel::<SyncToStationMessages>();
+
     let send_to_station_channels_arc = Arc::new(send_to_station_channels);
     let receive_in_station_channels_arc = Arc::new(Mutex::new(receive_in_station_channels));
 
@@ -108,6 +111,11 @@ fn main() {
     let send_to_bus_channels_arc = Arc::new(send_to_bus_channels);
 
     let current_time_tick_clone = current_time_tick.clone();
+
+    fn advance_and_drop_time_step(mut time_tick: std::sync::MutexGuard<'_, u32>) {
+        println!("---------- All buses are finished at their stops -----------");
+        *time_tick += 1;
+    }
 
     let route_sync_bus_route_vec_arc = bus_route_vec_arc.clone();
     let route_sync_passenger_list_arc = passenger_list_pointer.clone();
@@ -296,9 +304,7 @@ fn main() {
                         *status = BusThreadStatus::WaitingForTimeStep;
                     }
                 }
-                println!("---------- All buses are finished at their stops -----------");
-                *current_time_tick += 1;
-                // buses_finished_at_stops = 0;
+                advance_and_drop_time_step(current_time_tick);
             }
             println!("End of sync loop");
         }

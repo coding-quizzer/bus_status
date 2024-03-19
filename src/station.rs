@@ -106,6 +106,8 @@ impl Station {
     }
 }
 
+/// 
+/// 
 pub fn get_station_threads (station_location_list: &Vec<Location>,  current_time_tick: &Arc<Mutex<u32>>, send_to_bus_channels_arc: &Arc<Vec<Sender<StationToBusMessages>>>, receive_in_station_channels_arc: &Arc<Mutex<Vec<ReceiverWithIndex<StationMessages>>>>, bus_route_vec_arc: &Arc<Mutex<[Vec<BusLocation>; NUM_OF_BUSES]>>, passenger_bus_route_arc: &Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>, rejected_passengers_pointer: &Arc<Mutex<Vec<Passenger>>>, tx_stations_to_passengers: Sender<StationToPassengersMessages>) -> Vec<JoinHandle<()>> {
     // let station_location_list = location_vector_arc.clone();
 
@@ -115,25 +117,24 @@ pub fn get_station_threads (station_location_list: &Vec<Location>,  current_time
   for location in station_location_list {
     let station_time_tick = current_time_tick.clone();
     let current_location = *location;
-        let send_to_bus_channels = send_to_bus_channels_arc.clone();
-        let station_channels = receive_in_station_channels_arc.clone();
-        let bus_route_list = bus_route_vec_arc.clone();
-        let station_thread_passenger_bus_route_list = passenger_bus_route_arc.clone();
-        // let send_to_bus_channels =
-        let rejected_passenger_clone = rejected_passengers_pointer.clone();
-        
-        let to_passengers_sender_clone = tx_stations_to_passengers.clone();
-        let station_handle = get_station_thread(current_location,  station_time_tick, send_to_bus_channels, station_channels, bus_route_list, station_thread_passenger_bus_route_list, rejected_passenger_clone, to_passengers_sender_clone);
-
-        handle_list.push(station_handle);
-    }
-
-    handle_list
+    let send_to_bus_channels = send_to_bus_channels_arc.clone();
+    let station_channels = receive_in_station_channels_arc.clone();
+    let bus_route_list = bus_route_vec_arc.clone();
+    let station_thread_passenger_bus_route_list = passenger_bus_route_arc.clone();
+    // let send_to_bus_channels =
+    let rejected_passenger_clone = rejected_passengers_pointer.clone();
     
-
+    let to_passengers_sender_clone = tx_stations_to_passengers.clone();
+    let station_handle = create_station_thread(current_location,  station_time_tick, send_to_bus_channels, station_channels, bus_route_list, station_thread_passenger_bus_route_list, rejected_passenger_clone, to_passengers_sender_clone);
+    handle_list.push(station_handle);
   }
 
-  pub fn get_station_thread (current_location: Location,  station_time_tick: Arc<Mutex<u32>>, send_to_bus_channels: Arc<Vec<Sender<StationToBusMessages>>>, station_channels: Arc<Mutex<Vec<ReceiverWithIndex<StationMessages>>>>, bus_route_list: Arc<Mutex<[Vec<BusLocation>; NUM_OF_BUSES]>>, station_thread_passenger_bus_route_list: Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>, rejected_passenger_clone: Arc<Mutex<Vec<Passenger>>>, to_passengers_sender_clone: Sender<StationToPassengersMessages>) -> JoinHandle<()> {
+  handle_list
+    
+
+}
+
+  pub fn create_station_thread (current_location: Location,  station_time_tick: Arc<Mutex<u32>>, send_to_bus_channels: Arc<Vec<Sender<StationToBusMessages>>>, station_channels: Arc<Mutex<Vec<ReceiverWithIndex<StationMessages>>>>, bus_route_list: Arc<Mutex<[Vec<BusLocation>; NUM_OF_BUSES]>>, station_thread_passenger_bus_route_list: Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>, rejected_passenger_clone: Arc<Mutex<Vec<Passenger>>>, to_passengers_sender_clone: Sender<StationToPassengersMessages>) -> JoinHandle<()> {
     let station_handle = thread::spawn(move || {
             let mut current_station = Station::new(current_location);
             let mut previous_time_tick = 0;
@@ -225,21 +226,19 @@ pub fn get_station_threads (station_location_list: &Vec<Location>,  current_time
                       }
                       println!("Passengers Onboarding to bus {:?}: {:?}", bus_info.bus_index,passengers_onboarding);
                       current_station.passengers.extend(passengers_onboarding);
-                        let bus_index = bus_info.bus_index;
-                        println!("Bus {bus_index} arrived at station {station_index}.");
-                        current_station.docked_buses.push(bus_info);
-                        send_to_bus_channels[bus_index]
-                            .send(StationToBusMessages::AcknowledgeArrival())
-                            .unwrap();
-                          
-
-                          
-                        },
+                      let bus_index = bus_info.bus_index;
+                      println!("Bus {bus_index} arrived at station {station_index}.");
+                      current_station.docked_buses.push(bus_info);
+                      send_to_bus_channels[bus_index]
+                        .send(StationToBusMessages::AcknowledgeArrival())
+                        .unwrap();                          
+                    },
                         
-                      StationMessages::GrantDeparture{bus_index } => {
-                        current_station.docked_buses.retain(|bus| {bus.bus_index != bus_index});
-                      }
-                      }
+                    StationMessages::BusDeparted{bus_index } => {
+                      println!("Recieved Departure Message early");
+                      current_station.docked_buses.retain(|bus| {bus.bus_index != bus_index});
+                    }
+                 }
 
                       drop(time_tick);
                       
@@ -354,13 +353,13 @@ pub fn get_station_threads (station_location_list: &Vec<Location>,  current_time
                         println!("Departure message sent");
 
                         let departure_acknowledge_messsage = current_receiver.recv().unwrap();
-                        let StationMessages::GrantDeparture { bus_index: message_bus_index } = departure_acknowledge_messsage else {
+                        let StationMessages::BusDeparted { bus_index: message_bus_index } = departure_acknowledge_messsage else {
                           panic!("Invalid message recieved. Expected StationMessages::GrantDeparture recieved {:?}", departure_acknowledge_messsage);
                         };
 
                         current_station.docked_buses.retain(|bus| {bus.bus_index != message_bus_index});
 
-                        
+
 
 
 
