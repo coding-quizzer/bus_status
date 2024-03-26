@@ -317,6 +317,7 @@ impl Bus {
                     }
                     StationToBusMessages::RequestDeparture() => {
                         //TODO: the bus needs to do something update time tick etc.
+
                         next_station_sender
                             .send(StationMessages::BusDeparted {
                                 bus_index: self.bus_index,
@@ -324,6 +325,14 @@ impl Bus {
                             .unwrap();
 
                         println!("Bus {} departure recieved", self.bus_index);
+                        sync_sender
+                            .send(BusMessages::AdvanceTimeStep {
+                                //current_time_step: self.time_tick_num,
+                                bus_index: self.bus_index,
+                            })
+                            .unwrap_or_else(|error| {
+                                panic!("Error from bus {}: {}", self.bus_index, error)
+                            });
                         bus_departed = true;
                     }
                     StationToBusMessages::SendPassengers(passenger_list) => {

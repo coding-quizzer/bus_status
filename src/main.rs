@@ -11,7 +11,7 @@ use bus_system::{initialize_channel_list, initialize_location_list};
 use std::{
     collections::VecDeque,
     path::Path,
-    sync::{mpsc, Arc, Mutex},
+    sync::{self, mpsc, Arc, Mutex},
     thread,
 };
 
@@ -101,6 +101,7 @@ fn main() {
         initialize_channel_list(GLOBAL_LOCATION_COUNT);
 
     let (tx_sync_to_stations, rx_sync_to_stations) = mpsc::channel::<SyncToStationMessages>();
+    let sync_to_stations_receiver = Arc::new(Mutex::new(rx_sync_to_stations));
 
     let send_to_station_channels_arc = Arc::new(send_to_station_channels);
     let receive_in_station_channels_arc = Arc::new(Mutex::new(receive_in_station_channels));
@@ -112,8 +113,14 @@ fn main() {
 
     let current_time_tick_clone = current_time_tick.clone();
 
-    fn advance_and_drop_time_step(mut time_tick: std::sync::MutexGuard<'_, u32>) {
+    fn advance_and_drop_time_step(
+        mut time_tick: sync::MutexGuard<'_, u32>,
+        station_sender: &mpsc::Sender<SyncToStationMessages>,
+    ) {
         println!("---------- All buses are finished at their stops -----------");
+        station_sender
+            .send(SyncToStationMessages::AdvanceTimeStep)
+            .unwrap();
         *time_tick += 1;
     }
 
@@ -122,6 +129,7 @@ fn main() {
     let route_sync_location_vec_arc = location_vector_arc.clone();
 
     let route_sync_handle = thread::spawn(move || {
+        let station_sender = tx_sync_to_stations;
         let passenger_sender = tx_to_passengers;
         let mut bus_status_array = [BusThreadStatus::Uninitialized; NUM_OF_BUSES];
         // Bus that has unloaded passengers/ moving buses
@@ -304,7 +312,7 @@ fn main() {
                         *status = BusThreadStatus::WaitingForTimeStep;
                     }
                 }
-                advance_and_drop_time_step(current_time_tick);
+                advance_and_drop_time_step(current_time_tick, &station_sender);
             }
             println!("End of sync loop");
         }
@@ -616,6 +624,7 @@ fn main() {
         &passenger_bus_route_arc,
         &rejected_passengers_pointer,
         tx_stations_to_passengers,
+        sync_to_stations_receiver,
     );
 
     handle_list.append(&mut station_handle_list);
