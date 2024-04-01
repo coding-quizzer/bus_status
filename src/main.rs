@@ -69,6 +69,12 @@ fn main() {
         }
     }
 
+    let passenger_bus_route_list: Vec<_> = bus_route_array
+        .clone()
+        .into_iter()
+        .map(convert_bus_route_list_to_passenger_bus_route_list)
+        .collect();
+
     let rejected_passengers_pointer = Arc::new(Mutex::new(Vec::new()));
 
     let passenger_list_pointer = Arc::new(Mutex::new(total_passenger_list));
@@ -79,7 +85,7 @@ fn main() {
         Arc::new(Mutex::new(bus_route_array));
 
     let passenger_bus_route_arc: Arc<Mutex<Vec<Vec<PassengerBusLocation>>>> =
-        Arc::new(Mutex::new(Vec::new()));
+        Arc::new(Mutex::new(passenger_bus_route_list));
 
     let passenger_extra_stops_waited_pointer = Arc::new(Mutex::new(Vec::<u32>::new()));
 
@@ -335,8 +341,6 @@ fn main() {
 
     let passenger_thread_program_end_clone = program_end.clone();
 
-    let passenger_thread_passenger_bus_route_clone = passenger_bus_route_arc.clone();
-
     let passenger_thread_time_tick_clone = current_time_tick.clone();
     let passenger_thread_sender = tx_from_bus_threads.clone();
     let station_sender_list = send_to_station_channels_arc.clone();
@@ -367,16 +371,6 @@ fn main() {
                 previous_time_tick = *time_tick;
             }
             let bus_route_list = passenger_thread_bus_route_clone.lock().unwrap();
-            let mut passenger_bus_route_list =
-                passenger_thread_passenger_bus_route_clone.lock().unwrap();
-
-            *passenger_bus_route_list = bus_route_list
-                .clone()
-                .into_iter()
-                .map(convert_bus_route_list_to_passenger_bus_route_list)
-                .collect();
-
-            drop(passenger_bus_route_list);
 
             println!("Bus route list: {bus_route_list:#?}");
             drop(bus_route_list);
@@ -441,7 +435,7 @@ fn main() {
                     station_sender_list.as_ref()[index]
                         .send(StationMessages::InitPassengerList(passengers_in_location))
                         .unwrap();
-                    // println!("Init Passenger Info Message. Location Index: {index}");
+                    println!("Init Passenger Info Message. Location Index: {index}");
                 }
 
                 for _ in 0..GLOBAL_LOCATION_COUNT {

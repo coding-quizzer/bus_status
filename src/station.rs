@@ -38,7 +38,7 @@ impl From<VecDeque<PassengerOnboardingBusSchedule>> for PassengerScheduleWithDis
     }
 }
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 
 #[derive(Debug)]
 pub struct Station {
@@ -46,15 +46,21 @@ pub struct Station {
     pub docked_buses: Vec<SendableBus>,
     pub passengers: Vec<Passenger>,
     pub buses_unavailable: Vec<usize>,
+    pub location_time_tick_hashmap: HashMap<u32, Vec<usize>>,
 }
 
 impl Station {
-    pub fn new(location: Location) -> Self {
+    pub fn new(location: Location, passenger_bus_routes: &Vec<Vec<PassengerBusLocation>>) -> Self {
+        let location_time_tick_hashmap =
+            get_station_buses_index_hash_map(location.index, passenger_bus_routes);
+        // the passenger bus route may not have the bus route yet.
+        dbg!(&location_time_tick_hashmap);
         Station {
             location,
             docked_buses: Vec::new(),
             passengers: Vec::new(),
             buses_unavailable: Vec::new(),
+            location_time_tick_hashmap,
         }
     }
 
@@ -89,7 +95,6 @@ impl Station {
         bus_route_list: &Vec<Vec<PassengerBusLocation>>,
         buses_unavailable: Vec<usize>,
     ) -> Result<(), Passenger> {
-        // TODO: Add tests to prove that this method of removing those indeces actually work
         println!(
             "Calculating Route from {} to {}.",
             new_passenger.current_location.unwrap(),
@@ -109,6 +114,29 @@ impl Station {
         self.passengers.push(new_passenger);
         Ok(())
     }
+}
+
+/// Function to calculate what buses will arrive at the station on a given time tick
+/// debug statements are empty, so the bus routes must not have a value at this point
+pub fn get_station_buses_index_hash_map(
+    station_index: usize,
+    bus_routes: &Vec<Vec<PassengerBusLocation>>,
+    // time_tick: u32,
+) -> HashMap<u32, Vec<usize>> {
+    let mut route_hash_map = HashMap::new();
+    dbg!(bus_routes);
+    for (bus_index, route) in bus_routes.iter().enumerate() {
+        for bus_location in route {
+            if bus_location.location.index == station_index {
+                route_hash_map
+                    .entry(bus_location.location_time_tick)
+                    .and_modify(|bus_list: &mut Vec<usize>| bus_list.push(bus_index))
+                    .or_insert(vec![bus_index]);
+            }
+        }
+    }
+
+    route_hash_map
 }
 
 ///
@@ -154,7 +182,6 @@ pub fn get_station_threads(
         );
         handle_list.push(station_handle);
     }
-
     handle_list
 }
 
@@ -170,35 +197,27 @@ pub fn create_station_thread(
     sync_to_stations_receiver: Arc<Mutex<Receiver<SyncToStationMessages>>>,
 ) -> JoinHandle<()> {
     let station_handle = thread::spawn(move || {
-        let mut current_station = Station::new(current_location);
-        let mut previous_time_tick = 0;
+        let mut current_station = Station::new(
+            current_location,
+            &station_thread_passenger_bus_route_list.lock().unwrap(),
+        );
         let current_receiver_with_index = station_channels.lock().unwrap().remove(0);
         let station_index = current_receiver_with_index.index;
         println!("Station index: {station_index}");
         let current_receiver = current_receiver_with_index.receiver;
 
         loop {
-            // println!("Station {} loop beginning", station_index);
-            let current_time_tick = station_time_tick.lock().unwrap();
+            println!("Station {} loop beginning", station_index);
             // println!(
             //     "Station {} loop beginning. Time tick: {}",
             //     station_index, time_tick
             // );
             // println!("Station {location_index}. time tick: {}", *time_tick);
 
-            // When time tick is 0, previous_time_tick is 0, so the loop is skipped. This is fine, since the station
-            // does not do anything on time tick 0.
-            if previous_time_tick != *current_time_tick {
-                previous_time_tick = *current_time_tick;
-            } else {
-                drop(current_time_tick);
-                continue;
-            }
-
             let received_message = current_receiver.recv().unwrap();
             // With test data, only one station recieves any bus arrived messages, for some reason
             // Note: It may be a good idea to make sure that stations with out passengers are not blocked, but this might work
-            println!("Station {}. Not tick 1.", station_index);
+            // println!("Station {}. Not tick 1.", station_index);
 
             // time tick is kept by deadlock
             let time_tick = station_time_tick.lock().unwrap();
@@ -208,10 +227,11 @@ pub fn create_station_thread(
                     assert_eq!(*time_tick, 1);
                     println!("Station: {station_index} Message: {list:#?}");
                     let mut rejected_passenger_indeces = Vec::new();
+                    println!("List: {:?}", list);
                     for (index, passenger) in list.iter().enumerate() {
                         // let passenger_bus_route_list =
                         //     station_thread_passenger_bus_route_list.lock().unwrap();
-                        // println!("Passenger will be added to station {}", station_index);
+                        println!("Passenger will be added to station {}", station_index);
                         current_station
                             .add_passenger(
                                 passenger.clone().into(),
@@ -341,6 +361,9 @@ pub fn create_station_thread(
 
                     let docked_buses = &(current_station.docked_buses.clone());
 
+                    // I might want to wait until all the buses have arrived before looping through the docked buses
+                    // I think I will want to wait until a the sync thread sends a message before looping through the buses, but
+
                     for bus in docked_buses {
                         let time_tick = station_time_tick.lock().unwrap();
                         println!("Station loop beginning.");
@@ -397,6 +420,8 @@ pub fn create_station_thread(
                         // drop(time_tick);
 
                         println!("Pre-bus departure");
+
+                        // Todo: Don't send buses away until all the buses have arrived
 
                         send_to_bus_channels[bus_index]
                             .send(StationToBusMessages::RequestDeparture())
