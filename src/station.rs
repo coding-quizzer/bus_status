@@ -46,7 +46,6 @@ pub struct Station {
     pub docked_buses: Vec<SendableBus>,
     pub passengers: Vec<Passenger>,
     pub buses_unavailable: Vec<usize>,
-    pub location_time_tick_hashmap: HashMap<u32, Vec<usize>>,
 }
 
 impl Station {
@@ -60,7 +59,6 @@ impl Station {
             docked_buses: Vec::new(),
             passengers: Vec::new(),
             buses_unavailable: Vec::new(),
-            location_time_tick_hashmap,
         }
     }
 
