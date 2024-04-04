@@ -19,6 +19,7 @@ use bus_system::bus::{Bus, BusLocation};
 use bus_system::consts::*;
 use bus_system::data::{self, InputDataStructure};
 use bus_system::location::{Location, PassengerBusLocation};
+use bus_system::{TimeTick, TimeTickStage};
 
 fn main() {
     let initial_data: InputDataStructure = if READ_JSON {
@@ -90,7 +91,7 @@ fn main() {
     let passenger_extra_stops_waited_pointer = Arc::new(Mutex::new(Vec::<u32>::new()));
 
     // Split time ticks into two - time ticks are accurate
-    let current_time_tick = Arc::new(Mutex::new(0));
+    let current_time_tick = Arc::new(Mutex::new(TimeTick::default()));
 
     let program_end = Arc::new(Mutex::new(false));
 
@@ -120,14 +121,14 @@ fn main() {
     let current_time_tick_clone = current_time_tick.clone();
 
     fn advance_and_drop_time_step(
-        mut time_tick: sync::MutexGuard<'_, u32>,
+        mut time_tick: sync::MutexGuard<'_, TimeTick>,
         station_sender: &mpsc::Sender<SyncToStationMessages>,
     ) {
         println!("---------- All buses are finished at their stops -----------");
         station_sender
             .send(SyncToStationMessages::AdvanceTimeStep)
             .unwrap();
-        *time_tick += 1;
+        (*time_tick).increment_time_tick();
     }
 
     let route_sync_bus_route_vec_arc = bus_route_vec_arc.clone();
@@ -187,7 +188,7 @@ fn main() {
 
             println!("Message received: {:?}", received_bus_stop_message);
             let mut current_time_tick = current_time_tick_clone.lock().unwrap();
-            println!("Message Received. Time tick: {}", current_time_tick);
+            println!("Message Received. Time tick: {:?}", current_time_tick);
             println!(
                 "Before time processing, bus processed count: {}",
                 processed_bus_received_count
@@ -222,7 +223,7 @@ fn main() {
                     // println!("Bus Route list: {:#?}", *bus_route_clone.lock().unwrap());
                 }
                 BusMessages::InitPassengers => {
-                    *current_time_tick += 1;
+                    current_time_tick.increment_time_tick();
                     println!("Passenger initialized");
                 }
 
@@ -244,7 +245,7 @@ fn main() {
                     RejectedPassengersMessages::CompletedProcessing,
                 ) => {
                     println!("Rejected Passengers were all processed");
-                    *current_time_tick += 1;
+                    current_time_tick.increment_time_tick();
                 }
             }
             println!("Processed received: {processed_bus_received_count}");
@@ -259,14 +260,14 @@ fn main() {
             println!("Rejected Passengers conditional");
             if let BusMessages::RejectedPassengers(_) = received_bus_stop_message {}
 
-            if *current_time_tick == 0
+            if current_time_tick.stage == TimeTickStage::PassengerInit
                 && bus_status_array
                     .iter()
                     .filter(|status| *status == &BusThreadStatus::Uninitialized)
                     .count()
                     == 0
             {
-                *current_time_tick += 1;
+                current_time_tick.increment_time_tick();
                 if WRITE_JSON {
                     let location_vector = route_sync_location_vec_arc.as_ref();
                     let passenger_list: Vec<_> = route_sync_passenger_list_arc
@@ -348,7 +349,7 @@ fn main() {
         let stations_receiver = rx_stations_to_passengers;
         let mut rejected_passengers: Vec<Passenger> = Vec::new();
         let receiver_from_sync_thread = rx_to_passengers;
-        let mut previous_time_tick = 0;
+        let mut previous_time_tick = TimeTick::default();
         loop {
             // println!("Passenger loop start");
             // Wait for 1 milliseconds to give other threads a chance to use the time tick mutex
@@ -363,7 +364,10 @@ fn main() {
                 break;
             }
 
-            if *time_tick == 0 || *time_tick % 2 == 0 || previous_time_tick == *time_tick {
+            if time_tick.number == 0
+                || time_tick.number % 2 == 0
+                || previous_time_tick == *time_tick
+            {
                 drop(time_tick);
                 std::thread::sleep(std::time::Duration::from_millis(1));
                 continue;

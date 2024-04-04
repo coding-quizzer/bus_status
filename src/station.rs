@@ -7,6 +7,7 @@ use crate::thread::{
     StationMessages, StationToBusMessages, StationToPassengersMessages, SyncToStationMessages,
 };
 use crate::ReceiverWithIndex;
+use crate::TimeTick;
 use crate::{
     calculate_passenger_schedule_for_bus,
     calculate_passenger_schedule_for_bus_check_available_buses,
@@ -141,7 +142,7 @@ pub fn get_station_buses_index_hash_map(
 ///
 pub fn get_station_threads(
     station_location_list: &Vec<Location>,
-    current_time_tick: &Arc<Mutex<u32>>,
+    current_time_tick: &Arc<Mutex<TimeTick>>,
     send_to_bus_channels_arc: &Arc<Vec<Sender<StationToBusMessages>>>,
     receive_in_station_channels_arc: &Arc<Mutex<Vec<ReceiverWithIndex<StationMessages>>>>,
     bus_route_vec_arc: &Arc<Mutex<[Vec<BusLocation>; NUM_OF_BUSES]>>,
@@ -185,7 +186,7 @@ pub fn get_station_threads(
 
 pub fn create_station_thread(
     current_location: Location,
-    station_time_tick: Arc<Mutex<u32>>,
+    station_time_tick: Arc<Mutex<TimeTick>>,
     send_to_bus_channels: Arc<Vec<Sender<StationToBusMessages>>>,
     station_channels: Arc<Mutex<Vec<ReceiverWithIndex<StationMessages>>>>,
     bus_route_list: Arc<Mutex<[Vec<BusLocation>; NUM_OF_BUSES]>>,
@@ -219,7 +220,7 @@ pub fn create_station_thread(
 
             // time tick is kept by deadlock
             let time_tick = station_time_tick.lock().unwrap();
-            println!("Unlocked time tick: {}", *time_tick);
+            println!("Unlocked time tick: {:?}", *time_tick);
             match received_message {
                 StationMessages::InitPassengerList(mut list) => {
                     assert_eq!(*time_tick, 1);

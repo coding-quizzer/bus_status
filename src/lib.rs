@@ -14,6 +14,38 @@ use bus::BusLocation;
 use location::{Location, PassengerBusLocation};
 use std::sync::mpsc::{self, Receiver, Sender};
 
+#[derive(Default, Debug, Clone, Copy, PartialEq)]
+pub enum TimeTickStage {
+    #[default]
+    PassengerInit,
+    BusUnloadingPassengers,
+    BusLoadingPassengers,
+}
+
+#[derive(Default, Debug, PartialEq)]
+pub struct TimeTick {
+    pub number: u32,
+    pub stage: TimeTickStage,
+}
+
+impl TimeTick {
+    pub fn increment_time_tick(&mut self) {
+        match self.stage {
+            TimeTickStage::PassengerInit => {
+                self.number += 1;
+                self.stage = TimeTickStage::BusUnloadingPassengers;
+            }
+            TimeTickStage::BusUnloadingPassengers => {
+                self.stage = TimeTickStage::BusLoadingPassengers;
+            }
+            TimeTickStage::BusLoadingPassengers => {
+                self.number += 1;
+                self.stage = TimeTickStage::BusUnloadingPassengers
+            }
+        }
+    }
+}
+
 /// generates a random list from a set of elements such that
 /// no two consecutive elements are identical.
 fn generate_list_of_random_elements_from_list<T: Copy>(
