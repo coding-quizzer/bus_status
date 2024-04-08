@@ -22,7 +22,7 @@ pub enum TimeTickStage {
     BusLoadingPassengers,
 }
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Debug, PartialEq, Clone, Copy)]
 pub struct TimeTick {
     pub number: u32,
     pub stage: TimeTickStage,

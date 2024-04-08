@@ -380,7 +380,7 @@ fn main() {
             drop(bus_route_list);
 
             // It may not be neccessary to do this on the first time tick
-            if *time_tick == 1 {
+            if (*time_tick).number == 1 {
                 drop(time_tick);
                 println!("First time tick loop");
                 let passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
@@ -716,7 +716,7 @@ fn main() {
                 // println!("Bus {} Loop Beginning", simulated_bus.bus_num);
                 let current_time_tick = current_time_tick_clone.lock().unwrap();
                 // println!("Bus loop beginning. time tick: {current_time_tick}");
-                if *current_time_tick < 2 {
+                if (*current_time_tick).number < 2 {
                     drop(current_time_tick);
                     continue;
                 }
@@ -726,12 +726,12 @@ fn main() {
                 //     { simulated_bus.bus_num },
                 //     current_time_tick
                 // );
-                if time_clone_check == *current_time_tick {
+                if time_clone_check == (*current_time_tick).number {
                     // println!("Time tick skipped");
                     drop(current_time_tick);
                     continue;
                 } else {
-                    time_clone_check = *current_time_tick;
+                    time_clone_check = (*current_time_tick).number;
                 }
                 let time_tick = *current_time_tick;
 
@@ -741,7 +741,8 @@ fn main() {
                     station_senders_clone.as_ref(),
                     &bus_receiver,
                     &sender,
-                    &time_tick,
+                    // TODO: Use the new struct instead of a u32
+                    &(time_tick.number),
                 );
             }
         });

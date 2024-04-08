@@ -1,0 +1,83 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in library 'bus_system'",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--lib",
+          "--package=bus_system"
+        ],
+        "filter": {
+          "name": "bus_system",
+          "kind": "lib"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug executable 'bus_system'",
+      "cargo": {
+        "args": [
+          "build",
+          "--bin=bus_system",
+          "--package=bus_system"
+        ],
+        "filter": {
+          "name": "bus_system",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in executable 'bus_system'",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--bin=bus_system",
+          "--package=bus_system"
+        ],
+        "filter": {
+          "name": "bus_system",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug integration test 'passenger_bus_route'",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--test=passenger_bus_route",
+          "--package=bus_system"
+        ],
+        "filter": {
+          "name": "passenger_bus_route",
+          "kind": "test"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
