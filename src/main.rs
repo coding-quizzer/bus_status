@@ -223,8 +223,8 @@ fn main() {
                     // println!("Bus Route list: {:#?}", *bus_route_clone.lock().unwrap());
                 }
                 BusMessages::InitPassengers => {
-                    current_time_tick.increment_time_tick();
                     println!("Passenger initialized");
+                    current_time_tick.increment_time_tick();
                 }
 
                 BusMessages::RejectedPassengers(RejectedPassengersMessages::MovingBus) => {
@@ -245,7 +245,7 @@ fn main() {
                     RejectedPassengersMessages::CompletedProcessing,
                 ) => {
                     println!("Rejected Passengers were all processed");
-                    current_time_tick.increment_time_tick();
+                    // current_time_tick.increment_time_tick();
                 }
             }
             println!("Processed received: {processed_bus_received_count}");
@@ -267,6 +267,8 @@ fn main() {
                     .count()
                     == 0
             {
+                // This occasionally runs before all buses have received passengers
+                println!("All buses initialized in sync thread");
                 current_time_tick.increment_time_tick();
                 if WRITE_JSON {
                     let location_vector = route_sync_location_vec_arc.as_ref();
@@ -364,10 +366,11 @@ fn main() {
                 break;
             }
 
-            if time_tick.number == 0
-                || time_tick.number % 2 == 0
-                || previous_time_tick == *time_tick
-            {
+            if
+            /* time_tick.number == 0
+            || time_tick.number % 2 == 0
+            */
+            previous_time_tick == *time_tick {
                 drop(time_tick);
                 std::thread::sleep(std::time::Duration::from_millis(1));
                 continue;
@@ -380,7 +383,7 @@ fn main() {
             drop(bus_route_list);
 
             // It may not be neccessary to do this on the first time tick
-            if (*time_tick).number == 1 {
+            if (*time_tick).number == 0 {
                 drop(time_tick);
                 println!("First time tick loop");
                 let passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
@@ -741,8 +744,7 @@ fn main() {
                     station_senders_clone.as_ref(),
                     &bus_receiver,
                     &sender,
-                    // TODO: Use the new struct instead of a u32
-                    &(time_tick.number),
+                    &time_tick,
                 );
             }
         });

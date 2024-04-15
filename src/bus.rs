@@ -2,6 +2,9 @@ use crate::passenger::Passenger;
 use crate::passenger::PassengerOnboardingBusSchedule;
 use crate::station::Station;
 use crate::thread::{BusMessages, StationMessages, StationToBusMessages};
+use crate::TimeTick;
+use crate::TimeTickStage;
+use std::thread::current;
 use std::vec;
 // use bus_system::Location;
 pub use crate::location::BusLocation;
@@ -221,13 +224,18 @@ impl Bus {
         station_senders: &[Sender<StationMessages>],
         station_receiver: &Receiver<StationToBusMessages>,
         sync_sender: &Sender<BusMessages>,
-        current_time_tick_number: &u32,
+        current_time_tick: &TimeTick,
     ) {
         if let MovementState::Moving(distance) = self.status.movement {
             // println!(
             //     "Bus {} Moving on time tick {}",
             //     self.bus_num, current_time_tick_number
             // );
+
+            // Only manage movement state during bus_unloading_passengers stage so that the bus only moves once
+            if current_time_tick.stage == TimeTickStage::BusLoadingPassengers {
+                return;
+            }
             if distance > 1 {
                 println!("Bus {} distance to next stop: {}", self.bus_index, distance);
                 self.status.movement = MovementState::Moving(distance - 1);
@@ -265,7 +273,7 @@ impl Bus {
                             // FIX: find a better way to get the list of location indeces that doesn't involve misusing any
                             current_passenger_location_index = location_index;
                             passenger_location.stop_location == current_location
-                                && &passenger_location.time_tick >= current_time_tick_number
+                                && &passenger_location.time_tick >= &(current_time_tick.number)
                         });
 
                     println!("Is Offboarding: {is_offboarding}");
@@ -317,6 +325,7 @@ impl Bus {
                     }
                     StationToBusMessages::RequestDeparture() => {
                         //TODO: the bus needs to do something update time tick etc.
+                        assert!(current_time_tick.stage == TimeTickStage::BusLoadingPassengers);
 
                         next_station_sender
                             .send(StationMessages::BusDeparted {

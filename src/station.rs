@@ -215,18 +215,23 @@ pub fn create_station_thread(
 
             let time_tick = station_time_tick.lock().unwrap();
             // Note: It may be a good idea to make sure that stations with out passengers are not blocked, but this might work
-            // println!("Station {}. Not tick 1.", station_index);
+            println!("Station {} received first time tick.", station_index);
+            println!("timetick: {:?}", &time_tick);
 
             // time tick is kept by deadlock
 
             match time_tick.stage {
                 TimeTickStage::PassengerInit => {
+                    println!("Station {} first timetick", station_index);
                     // If I change this to be a new reciever, the other stages will not need to filter out this option
                     let received_message = current_receiver.recv().unwrap();
-                    println!("Unlocked time tick: {:?}", *time_tick);
+                    println!(
+                        "Station {} first message received: {:?}",
+                        station_index, received_message
+                    );
 
                     if let StationMessages::InitPassengerList(mut list) = received_message {
-                        assert_eq!((*time_tick).number, 1);
+                        assert_eq!((*time_tick).number, 0);
                         println!("Station: {station_index} Message: {list:#?}");
                         let mut rejected_passenger_indeces = Vec::new();
                         println!("List: {:?}", list);
@@ -266,7 +271,17 @@ pub fn create_station_thread(
                     }
                 }
                 TimeTickStage::BusUnloadingPassengers => {
+                    println!(
+                        "Station {} BusUnloadingPassengers timetick stage",
+                        station_index
+                    );
+                    // There is an indeterminate number of buses stopping at this stage. The received message should probably use try_recv to only take bus messages as they come and not wait for a message that is not coming
                     let received_message = current_receiver.recv().unwrap();
+                    // At this point no message are coming. Figure out what is happening
+                    println!(
+                        "station {} received message received on BusUnloadingPassengers stage",
+                        station_index
+                    );
 
                     if let StationMessages::BusArrived {
                         passengers_onboarding,
@@ -350,7 +365,7 @@ pub fn create_station_thread(
                         // println!("Passengers for next destination: {:?}", &passengers_for_next_destination);
                         let mut remaining_passengers: Vec<Passenger> = Vec::new();
                         // overflowed passengers have their own list so that they can be recalculated
-                        let mut passengers_overflowed = Vec::new();
+                        let mut passengers_overflowed: Vec<Passenger> = Vec::new();
                         // println!("Arrived Passengers: {:?}", &arrived_passengers);
                         println!(
                             "Passengers for next destination: {:?}",
@@ -373,74 +388,76 @@ pub fn create_station_thread(
                             }
                         }
                         dbg!(&next_passengers_for_buses_array);
-
-                        let docked_buses = &(current_station.docked_buses.clone());
-
-                        // I might want to wait until all the buses have arrived before looping through the docked buses
-                        // I think I will want to wait until a the sync thread sends a message before looping through the buses, but
-
-                        for bus in docked_buses {
-                            let time_tick = station_time_tick.lock().unwrap();
-                            println!("Station loop beginning.");
-                            println!("Station Bus Time tick: {:?}", time_tick);
-                            println!("Station: {}", current_station.location.index);
-                            println!("Bus: {}", bus.bus_index);
-                            let mut passengers_to_send = Vec::new();
-                            let bus_index = bus.bus_index;
-                            let remaining_capacity = bus.capacity_remaining;
-                            // The index does not exist in the array - even though the index should be of a docked bus
-                            let mut new_passenger_list = next_passengers_for_buses_array[bus_index]
-                                .clone()
-                                .unwrap_or_else(|| {
-                                    panic!(
-                                        "Bus {bus_index} should be docked at the station {}",
-                                        current_station.location.index
-                                    )
-                                });
-                            if new_passenger_list.len() > remaining_capacity {
-                                let (passengers_to_add, rejected_passengers) =
-                                    new_passenger_list.split_at(remaining_capacity);
-                                passengers_overflowed.append(rejected_passengers.to_vec().as_mut());
-                                passengers_to_send.append(passengers_to_add.to_vec().as_mut());
-                                current_station.buses_unavailable.push(bus.bus_index);
-                            } else {
-                                passengers_to_send.append(&mut new_passenger_list);
-                            }
-
-                            println!("Passengers to send: {:?}", passengers_to_send);
-
-                            send_to_bus_channels[bus_index]
-                                .send(StationToBusMessages::SendPassengers(passengers_to_send))
-                                .unwrap();
-
-                            let current_bus_route_list = bus_route_list.lock().unwrap();
-                            let bus_route_vec: Vec<_> =
-                                current_bus_route_list.clone().into_iter().collect();
-                            // bus_route_vec[0][0].
-
-                            drop(current_bus_route_list);
-
-                            for passenger in passengers_overflowed.clone() {
-                                let unavailable_buses = current_station.buses_unavailable.clone();
-                                current_station
-                                    .add_passenger_check_available_buses(
-                                        passenger,
-                                        *time_tick,
-                                        &station_thread_passenger_bus_route_list.lock().unwrap(),
-                                        unavailable_buses,
-                                    )
-                                    .unwrap();
-                            }
-
-                            // drop(time_tick);
-
-                            println!("Pre-bus departure");
-
-                            // Todo: Don't send buses away until all the buses have arrived
-                        }
                     }
                 }
                 TimeTickStage::BusLoadingPassengers => {
+                    // I might want to wait until all the buses have arrived before looping through the docked buses
+                    // I think I will want to wait until a the sync thread sends a message before looping through the buses, but
+
+                    let docked_buses = &(current_station.docked_buses.clone());
+
+                    for bus in docked_buses {
+                        let time_tick = station_time_tick.lock().unwrap();
+                        println!("Station loop beginning.");
+                        println!("Station Bus Time tick: {:?}", time_tick);
+                        println!("Station: {}", current_station.location.index);
+                        println!("Bus: {}", bus.bus_index);
+                        let mut passengers_to_send = Vec::new();
+                        let bus_index = bus.bus_index;
+                        let remaining_capacity = bus.capacity_remaining;
+                        // The index does not exist in the array - even though the index should be of a docked bus
+                        let next_passengers_for_buses_array: [Option<Vec<Passenger>>; 3] = todo!();
+                        let passengers_overflowed: Vec<_> = todo!();
+
+                        let mut new_passenger_list = next_passengers_for_buses_array[bus_index]
+                            .clone()
+                            .unwrap_or_else(|| {
+                                panic!(
+                                    "Bus {bus_index} should be docked at the station {}",
+                                    current_station.location.index
+                                )
+                            });
+                        if new_passenger_list.len() > remaining_capacity {
+                            let (passengers_to_add, rejected_passengers) =
+                                new_passenger_list.split_at(remaining_capacity);
+                            passengers_overflowed.append(rejected_passengers.to_vec().as_mut());
+                            passengers_to_send.append(passengers_to_add.to_vec().as_mut());
+                            current_station.buses_unavailable.push(bus.bus_index);
+                        } else {
+                            passengers_to_send.append(&mut new_passenger_list);
+                        }
+
+                        println!("Passengers to send: {:?}", passengers_to_send);
+
+                        send_to_bus_channels[bus_index]
+                            .send(StationToBusMessages::SendPassengers(passengers_to_send))
+                            .unwrap();
+
+                        let current_bus_route_list = bus_route_list.lock().unwrap();
+                        let bus_route_vec: Vec<_> =
+                            current_bus_route_list.clone().into_iter().collect();
+                        // bus_route_vec[0][0].
+
+                        drop(current_bus_route_list);
+
+                        for passenger in passengers_overflowed.clone() {
+                            let unavailable_buses = current_station.buses_unavailable.clone();
+                            current_station
+                                .add_passenger_check_available_buses(
+                                    passenger,
+                                    *time_tick,
+                                    &station_thread_passenger_bus_route_list.lock().unwrap(),
+                                    unavailable_buses,
+                                )
+                                .unwrap();
+                        }
+
+                        // drop(time_tick);
+
+                        println!("Pre-bus departure");
+
+                        // Todo: Don't send buses away until all the buses have arrived
+                    }
                     for bus in current_station.docked_buses.iter() {
                         send_to_bus_channels[bus.bus_index]
                             .send(StationToBusMessages::RequestDeparture())
