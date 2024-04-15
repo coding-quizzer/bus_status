@@ -3,8 +3,7 @@ use bus_system::passenger::Passenger;
 use bus_system::station;
 use bus_system::thread::BusThreadStatus;
 use bus_system::thread::{
-    BusMessages, RejectedPassengersMessages, StationMessages, StationToPassengersMessages,
-    SyncToStationMessages,
+    BusMessages, StationMessages, StationToPassengersMessages, SyncToStationMessages,
 };
 use bus_system::{generate_bus_route_locations_with_distances, generate_random_passenger_list};
 use bus_system::{initialize_channel_list, initialize_location_list};
@@ -141,7 +140,7 @@ fn main() {
         let mut bus_status_array = [BusThreadStatus::Uninitialized; NUM_OF_BUSES];
         // Bus that has unloaded passengers/ moving buses
         let mut processed_bus_received_count = 0;
-        let mut rejected_passengers_list = Vec::new();
+        let mut rejected_passengers_list: Vec<Passenger> = Vec::new();
         let mut processed_moving_bus_count = 0;
 
         // Eventually, there will be two time ticks per movement so that the stopped buses can have two ticks:
@@ -226,27 +225,6 @@ fn main() {
                     println!("Passenger initialized");
                     current_time_tick.increment_time_tick();
                 }
-
-                BusMessages::RejectedPassengers(RejectedPassengersMessages::MovingBus) => {
-                    println!("Moving bus received");
-                    processed_bus_received_count += 1;
-                    processed_moving_bus_count += 1;
-                }
-
-                BusMessages::RejectedPassengers(RejectedPassengersMessages::StoppedBus {
-                    ref rejected_passengers,
-                }) => {
-                    println!("Stopped Bus Received");
-                    rejected_passengers_list.append(&mut rejected_passengers.clone());
-                    processed_bus_received_count += 1;
-                }
-
-                BusMessages::RejectedPassengers(
-                    RejectedPassengersMessages::CompletedProcessing,
-                ) => {
-                    println!("Rejected Passengers were all processed");
-                    // current_time_tick.increment_time_tick();
-                }
             }
             println!("Processed received: {processed_bus_received_count}");
             println!(
@@ -258,7 +236,6 @@ fn main() {
             );
             // There might be a way to
             println!("Rejected Passengers conditional");
-            if let BusMessages::RejectedPassengers(_) = received_bus_stop_message {}
 
             if current_time_tick.stage == TimeTickStage::PassengerInit
                 && bus_status_array

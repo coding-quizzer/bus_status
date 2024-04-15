@@ -471,7 +471,7 @@ struct SerializableBus {
   pub bus_num: usize,
 } */
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SendableBus {
     pub capacity_remaining: usize,
     pub bus_index: usize,
