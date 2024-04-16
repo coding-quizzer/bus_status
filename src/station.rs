@@ -353,6 +353,7 @@ pub fn create_station_thread(
 
                         // TODO: Use a more efficient method than partition. Also, remove the clone, so peek actully gives an advantage.
                         // Why does passengers_for_next_destionation have no elements? At this point, pretty much all the passengers should have more stations to stop at. Shouldn't they be added to that list?
+                        // I think I fixed this when I corrected the
                         let (passengers_for_next_destination, arrived_passengers): (
                             Vec<_>,
                             Vec<_>,

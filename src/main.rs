@@ -223,7 +223,9 @@ fn main() {
                 }
                 BusMessages::InitPassengers => {
                     println!("Passenger initialized");
-                    current_time_tick.increment_time_tick();
+                    // current_time_tick.increment_time_tick();
+                    // This ensures the command only runs once,
+                    current_time_tick.increment_from_initialized();
                 }
             }
             println!("Processed received: {processed_bus_received_count}");
@@ -246,7 +248,6 @@ fn main() {
             {
                 // This occasionally runs before all buses have received passengers
                 println!("All buses initialized in sync thread");
-                current_time_tick.increment_time_tick();
                 if WRITE_JSON {
                     let location_vector = route_sync_location_vec_arc.as_ref();
                     let passenger_list: Vec<_> = route_sync_passenger_list_arc

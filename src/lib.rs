@@ -32,7 +32,7 @@ impl TimeTick {
     pub fn increment_time_tick(&mut self) {
         match self.stage {
             TimeTickStage::PassengerInit => {
-                self.number += 1;
+                self.number = 1;
                 self.stage = TimeTickStage::BusUnloadingPassengers;
             }
             TimeTickStage::BusUnloadingPassengers => {
@@ -43,6 +43,17 @@ impl TimeTick {
                 self.stage = TimeTickStage::BusUnloadingPassengers
             }
         }
+    }
+
+    pub fn increment_from_initialized(&mut self) -> Option<()> {
+        if self.stage == TimeTickStage::PassengerInit {
+            self.number = 1;
+            self.stage = TimeTickStage::BusUnloadingPassengers;
+        } else {
+            panic!("Init");
+        }
+
+        Some(())
     }
 }
 
@@ -101,10 +112,11 @@ pub fn generate_random_passenger_list(
     Ok(passenger_list)
 }
 
+// FIXME: change the time ticks to increment by 1 each time
 pub fn convert_bus_route_list_to_passenger_bus_route_list(
     bus_route_list: Vec<BusLocation>,
 ) -> Vec<PassengerBusLocation> {
-    let mut time_tick = 2;
+    let mut time_tick = 1;
     let mut passenger_bus_route_list = vec![];
     for bus_location in bus_route_list.iter() {
         let mut index_increment = 0;
