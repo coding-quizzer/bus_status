@@ -204,6 +204,8 @@ pub fn create_station_thread(
         let station_index = current_receiver_with_index.index;
         println!("Station index: {station_index}");
         let current_receiver = current_receiver_with_index.receiver;
+        // Once passengerInit stage is finished, bus_passengers_initialized is set to false, so the loop does not need to run again
+        let mut bus_passengers_initialized = false;
 
         loop {
             println!("Station {} loop beginning", station_index);
@@ -220,8 +222,14 @@ pub fn create_station_thread(
 
             // time tick is kept by deadlock
 
+            // let received_message = current_receiver.recv().unwrap();
+
             match time_tick.stage {
                 TimeTickStage::PassengerInit => {
+                    if bus_passengers_initialized {
+                        drop(time_tick);
+                        continue;
+                    }
                     println!("Station {} first timetick", station_index);
                     // If I change this to be a new reciever, the other stages will not need to filter out this option
                     let received_message = current_receiver.recv().unwrap();
@@ -269,7 +277,9 @@ pub fn create_station_thread(
                             received_message, *time_tick
                         )
                     }
+                    bus_passengers_initialized = true;
                 }
+
                 TimeTickStage::BusUnloadingPassengers => {
                     println!(
                         "Station {} BusUnloadingPassengers timetick stage",
@@ -496,8 +506,6 @@ pub fn create_station_thread(
                     }
                 }
             }
-
-            let received_message = current_receiver.recv().unwrap();
 
             drop(time_tick);
         }
