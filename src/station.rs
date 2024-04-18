@@ -226,7 +226,7 @@ pub fn create_station_thread(
                     // If I change this to be a new reciever, the other stages will not need to filter out this option
                     let received_message = current_receiver.recv().unwrap();
                     println!(
-                        "Station {} first message received: {:?}",
+                        "Station {} first message received: {:#?}",
                         station_index, received_message
                     );
 

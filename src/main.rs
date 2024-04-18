@@ -344,24 +344,24 @@ fn main() {
                 break;
             }
 
-            if
-            /* time_tick.number == 0
-            || time_tick.number % 2 == 0
-            */
-            previous_time_tick == *time_tick {
-                drop(time_tick);
-                std::thread::sleep(std::time::Duration::from_millis(1));
-                continue;
-            } else {
-                previous_time_tick = *time_tick;
-            }
+            // if
+            //  time_tick.number == 0
+            // || time_tick.number % 2 == 0
+
+            // previous_time_tick == *time_tick {
+            //     drop(time_tick);
+            //     std::thread::sleep(std::time::Duration::from_millis(1));
+            //     continue;
+            // } else {
+            //     previous_time_tick = *time_tick;
+            // }
             let bus_route_list = passenger_thread_bus_route_clone.lock().unwrap();
 
             println!("Bus route list: {bus_route_list:#?}");
             drop(bus_route_list);
 
             // It may not be neccessary to do this on the first time tick
-            if (*time_tick).number == 0 {
+            if (*time_tick).stage == TimeTickStage::PassengerInit {
                 drop(time_tick);
                 println!("First time tick loop");
                 let passenger_list = passenger_thread_passenger_list_clone.lock().unwrap();
