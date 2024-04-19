@@ -13,6 +13,7 @@ use crate::{
 };
 use crate::{ReceiverWithIndex, TimeTickStage};
 use std::os::linux::raw::stat;
+use std::sync::mpsc::TryRecvError;
 use std::sync::{
     mpsc::{Receiver, Sender},
     Arc, Mutex,
@@ -232,7 +233,16 @@ pub fn create_station_thread(
                     }
                     println!("Station {} first timetick", station_index);
                     // If I change this to be a new reciever, the other stages will not need to filter out this option
-                    let received_message = current_receiver.recv().unwrap();
+                    let received_message = current_receiver.try_recv();
+                    let received_message = match received_message {
+                        Ok(message) => message,
+                        Err(TryRecvError::Empty) => {
+                            continue;
+                        }
+                        Err(TryRecvError::Disconnected) => {
+                            panic!("{}", TryRecvError::Disconnected);
+                        }
+                    };
                     println!(
                         "Station {} first message received: {:#?}",
                         station_index, received_message
@@ -288,6 +298,7 @@ pub fn create_station_thread(
                     // There is an indeterminate number of buses stopping at this stage. The received message should probably use try_recv to only take bus messages as they come and not wait for a message that is not coming
                     let received_message = current_receiver.recv().unwrap();
                     // At this point no message are coming. Figure out what is happening
+                    // Actually, that makes sense. On the first time tick, all the buses are in transit. None stop in the station.
                     println!(
                         "station {} received message received on BusUnloadingPassengers stage",
                         station_index
@@ -399,6 +410,11 @@ pub fn create_station_thread(
                             }
                         }
                         dbg!(&next_passengers_for_buses_array);
+                    } else {
+                        panic!(
+                            "Invalid Message:{:?} for present timetick: {:?}. Expected BusArrived ",
+                            received_message, *time_tick
+                        )
                     }
                 }
                 TimeTickStage::BusLoadingPassengers => {
