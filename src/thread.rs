@@ -33,6 +33,9 @@ pub enum BusMessages {
         // current_time_step: u32,
         bus_index: usize,
     },
+    AdvanceTimeStepForMovingBus {
+        bus_index: usize,
+    },
     BusFinished {
         bus_index: usize,
     },
@@ -46,6 +49,7 @@ pub enum SyncToStationMessages {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum BusThreadStatus {
     Uninitialized,
+    Moving,
     BusFinishedRoute,
     WaitingForTimeStep,
     CompletedTimeStep,

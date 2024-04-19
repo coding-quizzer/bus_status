@@ -205,6 +205,10 @@ fn main() {
                     bus_status_array[bus_index] = BusThreadStatus::CompletedTimeStep;
                 }
 
+                BusMessages::AdvanceTimeStepForMovingBus { bus_index } => {
+                    bus_status_array[bus_index] = BusThreadStatus::Moving;
+                }
+
                 BusMessages::BusFinished { bus_index } => {
                     bus_status_array[bus_index] = BusThreadStatus::BusFinishedRoute;
                     println!("Bus {} Finished Route", bus_index);
@@ -288,19 +292,51 @@ fn main() {
             }
 
             // Increment the time step after all buses have run
-            if bus_status_array
-                .iter()
-                .filter(|status| *status == &BusThreadStatus::WaitingForTimeStep)
-                .count()
-                == 0
+            // if std::ops::Not::not(
+            //     bus_status_array
+            //         .iter()
+            //         .any(|status| status == &BusThreadStatus::WaitingForTimeStep),
+            // )
+
+            // TODO: When loading and unloading bus are different statuses, change CompletedTimeStep to the appropriate stage
+            const LOADING_BUS_VALID_STATUSES: [BusThreadStatus; 3] = [
+                BusThreadStatus::BusFinishedRoute,
+                BusThreadStatus::CompletedTimeStep,
+                BusThreadStatus::Moving,
+            ];
+
+            const UNLOADING_BUS_VALID_STATUSES: [BusThreadStatus; 3] = [
+                BusThreadStatus::BusFinishedRoute,
+                BusThreadStatus::CompletedTimeStep,
+                BusThreadStatus::Moving,
+            ];
+
+            if current_time_tick.stage == TimeTickStage::BusUnloadingPassengers
+                && bus_status_array.iter().all(|bus_thread_status| {
+                    UNLOADING_BUS_VALID_STATUSES
+                        .iter()
+                        .any(|valid_status| bus_thread_status == valid_status)
+                })
+            {
+                advance_and_drop_time_step(current_time_tick, &station_sender);
+            } else if current_time_tick.stage == TimeTickStage::BusLoadingPassengers
+                && bus_status_array.iter().all(|bus_thread_status| {
+                    LOADING_BUS_VALID_STATUSES
+                        .iter()
+                        .any(|valid_status| bus_thread_status == valid_status)
+                })
             {
                 for status in bus_status_array.iter_mut() {
-                    if status == &BusThreadStatus::CompletedTimeStep {
+                    // Reset the statuses for the next time step
+                    if status == &BusThreadStatus::CompletedTimeStep
+                        || status == &BusThreadStatus::Moving
+                    {
                         *status = BusThreadStatus::WaitingForTimeStep;
                     }
                 }
                 advance_and_drop_time_step(current_time_tick, &station_sender);
             }
+
             println!("End of sync loop");
         }
     });
