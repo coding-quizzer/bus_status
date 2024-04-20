@@ -209,7 +209,6 @@ pub fn create_station_thread(
         let mut bus_passengers_initialized = false;
 
         loop {
-            println!("Station {} loop beginning", station_index);
             // println!(
             //     "Station {} loop beginning. Time tick: {}",
             //     station_index, time_tick
@@ -217,9 +216,7 @@ pub fn create_station_thread(
             // println!("Station {location_index}. time tick: {}", *time_tick);
 
             let time_tick = station_time_tick.lock().unwrap();
-            // Note: It may be a good idea to make sure that stations with out passengers are not blocked, but this might work
-            println!("Station {} received first time tick.", station_index);
-            println!("timetick: {:?}", &time_tick);
+            // Note: It may be a good idea to make sure that stations without passengers are not blocked, but this might work
 
             // time tick is kept by deadlock
 
@@ -232,22 +229,14 @@ pub fn create_station_thread(
                         continue;
                     }
                     println!("Station {} first timetick", station_index);
-                    // If I change this to be a new reciever, the other stages will not need to filter out this option
-                    let received_message = current_receiver.try_recv();
-                    let received_message = match received_message {
-                        Ok(message) => message,
-                        Err(TryRecvError::Empty) => {
-                            continue;
-                        }
-                        Err(TryRecvError::Disconnected) => {
-                            panic!("{}", TryRecvError::Disconnected);
-                        }
-                    };
+                    let received_message = current_receiver.recv().unwrap();
+
                     println!(
                         "Station {} first message received: {:#?}",
                         station_index, received_message
                     );
 
+                    // If I change this to be a new reciever, the other stages will not need to filter out this option
                     if let StationMessages::InitPassengerList(mut list) = received_message {
                         assert_eq!((*time_tick).number, 0);
                         println!("Station: {station_index} Message: {list:#?}");
@@ -291,12 +280,26 @@ pub fn create_station_thread(
                 }
 
                 TimeTickStage::BusUnloadingPassengers => {
+                    // There is an indeterminate number of buses stopping at this stage. The received message should probably use try_recv to only take bus messages as they come and not wait for a message that is not coming
+                    let received_message = current_receiver.try_recv();
+                    let received_message = match received_message {
+                        Ok(message) => {
+                            println!(
+                                "Station received message on BusUnloadingPassengers stage received"
+                            );
+                            message
+                        }
+                        Err(TryRecvError::Empty) => {
+                            continue;
+                        }
+                        Err(TryRecvError::Disconnected) => {
+                            panic!("{}", TryRecvError::Disconnected);
+                        }
+                    };
                     println!(
                         "Station {} BusUnloadingPassengers timetick stage",
                         station_index
                     );
-                    // There is an indeterminate number of buses stopping at this stage. The received message should probably use try_recv to only take bus messages as they come and not wait for a message that is not coming
-                    let received_message = current_receiver.recv().unwrap();
                     // At this point no message are coming. Figure out what is happening
                     // Actually, that makes sense. On the first time tick, all the buses are in transit. None stop in the station.
                     println!(

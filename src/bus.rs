@@ -226,7 +226,10 @@ impl Bus {
         sync_sender: &Sender<BusMessages>,
         current_time_tick: &TimeTick,
     ) {
+        println!("time tick: {:?}", current_time_tick);
+        println!("Bus movement: {:?}", self.status.movement);
         if let MovementState::Moving(distance) = self.status.movement {
+            println!("Moving bus update");
             // println!(
             //     "Bus {} Moving on time tick {}",
             //     self.bus_num, current_time_tick_number
@@ -246,11 +249,15 @@ impl Bus {
             }
             // self.time_tick_num += 1;
             sync_sender
-                .send(BusMessages::AdvanceTimeStep {
+                .send(BusMessages::AdvanceTimeStepForMovingBus {
                     //current_time_step: self.time_tick_num,
                     bus_index: self.bus_index,
                 })
                 .unwrap_or_else(|error| panic!("Error from bus {}: {}", self.bus_index, error));
+            println!(
+                "Bus {} sent message to sync thread for moving bus",
+                self.bus_index
+            );
             return;
         } else {
             let current_location_index = self.current_location.unwrap().index;

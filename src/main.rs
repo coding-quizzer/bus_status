@@ -152,6 +152,7 @@ fn main() {
         loop {
             println!("Route sync loop beginning");
             println!("processed bus received count: {processed_bus_received_count}");
+            //
             if processed_bus_received_count
                 == bus_status_array
                     .iter()
@@ -182,6 +183,7 @@ fn main() {
 
                 rejected_passengers_list.clear();
             }
+            println!("Bus status list: {:?}", bus_status_array);
             println!("Before receiving a message.");
             let received_bus_stop_message = rx_from_threads.recv().unwrap();
 
@@ -653,7 +655,7 @@ fn main() {
         // let passenger_list_pointer_clone = passenger_list_pointer.clone();
         // let passenger_stops_passed_pointer_clone = passenger_extra_stops_waited_pointer.clone();
         let current_time_tick_clone = current_time_tick.clone();
-        let mut time_clone_check = 1;
+        let mut time_clone_check = 0;
         let handle = thread::spawn(move || {
             let current_bus_receiver_with_index = bus_receiver_channels.lock().unwrap().remove(0);
             drop(bus_receiver_channels);
@@ -733,7 +735,7 @@ fn main() {
                 // println!("Bus {} Loop Beginning", simulated_bus.bus_num);
                 let current_time_tick = current_time_tick_clone.lock().unwrap();
                 // println!("Bus loop beginning. time tick: {current_time_tick}");
-                if (*current_time_tick).number < 2 {
+                if (*current_time_tick).stage == TimeTickStage::PassengerInit {
                     drop(current_time_tick);
                     continue;
                 }
