@@ -25,20 +25,13 @@ pub enum StationToBusMessages {
 
 #[derive(PartialEq, Debug)]
 pub enum BusMessages {
-    InitBus {
-        bus_index: usize,
-    },
+    InitBus { bus_index: usize },
     InitPassengers,
-    AdvanceTimeStep {
-        // current_time_step: u32,
-        bus_index: usize,
-    },
-    AdvanceTimeStepForMovingBus {
-        bus_index: usize,
-    },
-    BusFinished {
-        bus_index: usize,
-    },
+
+    AdvanceTimeStepForMovingBus { bus_index: usize },
+    AdvanceTimeStepForUnloadedBus { bus_index: usize },
+    AdvanceTimeStepForLoadedBus { bus_index: usize },
+    BusFinished { bus_index: usize },
 }
 
 #[derive(Debug)]
@@ -51,6 +44,8 @@ pub enum BusThreadStatus {
     Uninitialized,
     Moving,
     BusFinishedRoute,
+    FinishedUnloadingPassengers,
+    FinishedLoadingPassengers,
     WaitingForTimeStep,
-    CompletedTimeStep,
+    // CompletedTimeStep,
 }

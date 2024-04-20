@@ -342,7 +342,7 @@ impl Bus {
 
                         println!("Bus {} departure recieved", self.bus_index);
                         sync_sender
-                            .send(BusMessages::AdvanceTimeStep {
+                            .send(BusMessages::AdvanceTimeStepForLoadedBus {
                                 //current_time_step: self.time_tick_num,
                                 bus_index: self.bus_index,
                             })

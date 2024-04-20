@@ -195,16 +195,12 @@ fn main() {
                 processed_bus_received_count
             );
             match received_bus_stop_message {
-                BusMessages::AdvanceTimeStep {
-                    // current_time_step,
-                    bus_index,
-                    ..
-                } => {
-                    // println!(
-                    //     "Time step recieved from Bus {}. Time tick {}",
-                    //     bus_number, &current_time_tick
-                    // );
-                    bus_status_array[bus_index] = BusThreadStatus::CompletedTimeStep;
+                BusMessages::AdvanceTimeStepForUnloadedBus { bus_index } => {
+                    bus_status_array[bus_index] = BusThreadStatus::FinishedUnloadingPassengers;
+                }
+
+                BusMessages::AdvanceTimeStepForLoadedBus { bus_index } => {
+                    bus_status_array[bus_index] = BusThreadStatus::FinishedLoadingPassengers;
                 }
 
                 BusMessages::AdvanceTimeStepForMovingBus { bus_index } => {
@@ -303,13 +299,13 @@ fn main() {
             // TODO: When loading and unloading bus are different statuses, change CompletedTimeStep to the appropriate stage
             const LOADING_BUS_VALID_STATUSES: [BusThreadStatus; 3] = [
                 BusThreadStatus::BusFinishedRoute,
-                BusThreadStatus::CompletedTimeStep,
+                BusThreadStatus::FinishedLoadingPassengers,
                 BusThreadStatus::Moving,
             ];
 
             const UNLOADING_BUS_VALID_STATUSES: [BusThreadStatus; 3] = [
                 BusThreadStatus::BusFinishedRoute,
-                BusThreadStatus::CompletedTimeStep,
+                BusThreadStatus::FinishedUnloadingPassengers,
                 BusThreadStatus::Moving,
             ];
 
@@ -330,7 +326,7 @@ fn main() {
             {
                 for status in bus_status_array.iter_mut() {
                     // Reset the statuses for the next time step
-                    if status == &BusThreadStatus::CompletedTimeStep
+                    if status == &BusThreadStatus::FinishedLoadingPassengers
                         || status == &BusThreadStatus::Moving
                     {
                         *status = BusThreadStatus::WaitingForTimeStep;
