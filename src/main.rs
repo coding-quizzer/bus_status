@@ -119,7 +119,7 @@ fn main() {
 
     let current_time_tick_clone = current_time_tick.clone();
 
-    fn advance_and_drop_time_step(
+    fn increment_and_drop_time_step(
         mut time_tick: sync::MutexGuard<'_, TimeTick>,
         station_sender: &mpsc::Sender<SyncToStationMessages>,
     ) {
@@ -309,6 +309,9 @@ fn main() {
                 BusThreadStatus::Moving,
             ];
 
+            const ALL_MOVING_BUS_VALID_STATUSES: [BusThreadStatus; 2] =
+                [BusThreadStatus::BusFinishedRoute, BusThreadStatus::Moving];
+
             if current_time_tick.stage == TimeTickStage::BusUnloadingPassengers
                 && bus_status_array.iter().all(|bus_thread_status| {
                     UNLOADING_BUS_VALID_STATUSES
@@ -316,7 +319,19 @@ fn main() {
                         .any(|valid_status| bus_thread_status == valid_status)
                 })
             {
-                advance_and_drop_time_step(current_time_tick, &station_sender);
+                current_time_tick.increment_time_tick();
+                // If all the buses are moving, only one message will be sent to the sync thread for the whole time tick.
+                // Increment the time tick twice to make up for that
+                if bus_status_array.iter().all(|bus_thread_status| {
+                    ALL_MOVING_BUS_VALID_STATUSES
+                        .iter()
+                        .any(|valid_status| bus_thread_status == valid_status)
+                }) {
+                    current_time_tick.increment_time_tick();
+                }
+                drop(current_time_tick);
+
+                // advance_and_drop_time_step(current_time_tick, &station_sender);
             } else if current_time_tick.stage == TimeTickStage::BusLoadingPassengers
                 && bus_status_array.iter().all(|bus_thread_status| {
                     LOADING_BUS_VALID_STATUSES
@@ -332,7 +347,7 @@ fn main() {
                         *status = BusThreadStatus::WaitingForTimeStep;
                     }
                 }
-                advance_and_drop_time_step(current_time_tick, &station_sender);
+                increment_and_drop_time_step(current_time_tick, &station_sender);
             }
 
             println!("End of sync loop");

@@ -47,5 +47,4 @@ pub enum BusThreadStatus {
     FinishedUnloadingPassengers,
     FinishedLoadingPassengers,
     WaitingForTimeStep,
-    // CompletedTimeStep,
 }
