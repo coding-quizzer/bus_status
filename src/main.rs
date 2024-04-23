@@ -295,8 +295,8 @@ fn main() {
             //         .iter()
             //         .any(|status| status == &BusThreadStatus::WaitingForTimeStep),
             // )
+            use std::ops::Not;
 
-            // TODO: When loading and unloading bus are different statuses, change CompletedTimeStep to the appropriate stage
             const LOADING_BUS_VALID_STATUSES: [BusThreadStatus; 3] = [
                 BusThreadStatus::BusFinishedRoute,
                 BusThreadStatus::FinishedLoadingPassengers,
@@ -322,33 +322,37 @@ fn main() {
                 current_time_tick.increment_time_tick();
                 // If all the buses are moving, only one message will be sent to the sync thread for the whole time tick.
                 // Increment the time tick twice to make up for that
+                //
                 if bus_status_array.iter().all(|bus_thread_status| {
                     ALL_MOVING_BUS_VALID_STATUSES
                         .iter()
                         .any(|valid_status| bus_thread_status == valid_status)
+                        .not()
                 }) {
-                    current_time_tick.increment_time_tick();
+                    continue;
                 }
-                drop(current_time_tick);
 
                 // advance_and_drop_time_step(current_time_tick, &station_sender);
-            } else if current_time_tick.stage == TimeTickStage::BusLoadingPassengers
-                && bus_status_array.iter().all(|bus_thread_status| {
+            } else if current_time_tick.stage != TimeTickStage::BusLoadingPassengers
+                || bus_status_array.iter().all(|bus_thread_status| {
                     LOADING_BUS_VALID_STATUSES
                         .iter()
                         .any(|valid_status| bus_thread_status == valid_status)
+                        .not()
                 })
             {
-                for status in bus_status_array.iter_mut() {
-                    // Reset the statuses for the next time step
-                    if status == &BusThreadStatus::FinishedLoadingPassengers
-                        || status == &BusThreadStatus::Moving
-                    {
-                        *status = BusThreadStatus::WaitingForTimeStep;
-                    }
-                }
-                increment_and_drop_time_step(current_time_tick, &station_sender);
+                continue;
             }
+            // If the bus_loading timestep is finished, reset the entire status array
+            for status in bus_status_array.iter_mut() {
+                // Reset the statuses for the next time step
+                if status == &BusThreadStatus::FinishedLoadingPassengers
+                    || status == &BusThreadStatus::Moving
+                {
+                    *status = BusThreadStatus::WaitingForTimeStep;
+                }
+            }
+            increment_and_drop_time_step(current_time_tick, &station_sender);
 
             println!("End of sync loop");
         }

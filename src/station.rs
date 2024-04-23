@@ -419,6 +419,9 @@ pub fn create_station_thread(
                             }
                         }
                         dbg!(&next_passengers_for_buses_array);
+                        send_to_bus_channels[bus_index]
+                            .send(StationToBusMessages::FinishedUnloading)
+                            .unwrap();
                     } else {
                         let time_tick = station_time_tick.lock().unwrap();
 

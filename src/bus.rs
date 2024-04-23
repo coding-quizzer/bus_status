@@ -361,6 +361,15 @@ impl Bus {
                             self.add_passenger(passenger);
                         }
                     }
+                    StationToBusMessages::FinishedUnloading => {
+                        sync_sender
+                            .send(BusMessages::AdvanceTimeStepForUnloadedBus {
+                                bus_index: self.bus_index,
+                            })
+                            .unwrap_or_else(|error| {
+                                panic!("Error from bus {}: {}", self.bus_index, error)
+                            });
+                    }
                 }
             }
         }

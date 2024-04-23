@@ -20,6 +20,7 @@ pub enum StationToPassengersMessages {
 pub enum StationToBusMessages {
     AcknowledgeArrival(),
     SendPassengers(Vec<Passenger>),
+    FinishedUnloading,
     RequestDeparture(),
 }
 
