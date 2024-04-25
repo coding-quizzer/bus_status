@@ -333,7 +333,17 @@ fn main() {
                 }
 
                 // advance_and_drop_time_step(current_time_tick, &station_sender);
-            } else if current_time_tick.stage != TimeTickStage::BusLoadingPassengers
+            } else if (current_time_tick.stage
+                != (TimeTickStage::BusLoadingPassengers {
+                    first_iteration: false,
+                })
+                // I don't know off-hand what the best way to allow for the first_iteration field here
+                // For now, I'm taking advantage of the fact that it can only have two values, so it is
+                // not hard to write out manually
+                && current_time_tick.stage
+                    != (TimeTickStage::BusLoadingPassengers {
+                        first_iteration: true,
+                    }))
                 || bus_status_array.iter().all(|bus_thread_status| {
                     LOADING_BUS_VALID_STATUSES
                         .iter()
@@ -775,7 +785,7 @@ fn main() {
                     station_senders_clone.as_ref(),
                     &bus_receiver,
                     &sender,
-                    &time_tick,
+                    &current_time_tick_clone,
                 );
             }
         });

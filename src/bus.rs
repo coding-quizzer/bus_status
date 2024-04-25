@@ -224,8 +224,9 @@ impl Bus {
         station_senders: &[Sender<StationMessages>],
         station_receiver: &Receiver<StationToBusMessages>,
         sync_sender: &Sender<BusMessages>,
-        current_time_tick: &TimeTick,
+        time_tick_mutex: &std::sync::Arc<std::sync::Mutex<TimeTick>>,
     ) {
+        let current_time_tick = time_tick_mutex.lock().unwrap();
         println!("time tick: {:?}", current_time_tick);
         println!("Bus movement: {:?}", self.status.movement);
         if let MovementState::Moving(distance) = self.status.movement {
@@ -236,7 +237,7 @@ impl Bus {
             // );
 
             // Only manage movement state during bus_unloading_passengers stage so that the bus only moves once
-            if current_time_tick.stage == TimeTickStage::BusLoadingPassengers {
+            if let TimeTickStage::BusLoadingPassengers { .. } = current_time_tick.stage {
                 return;
             }
             if distance > 1 {
@@ -323,16 +324,22 @@ impl Bus {
                 .unwrap();
 
             let mut bus_departed = false;
+            drop(current_time_tick);
 
             while !bus_departed {
                 let received_message = station_receiver.recv().unwrap();
+                let current_time_tick = time_tick_mutex.lock().unwrap();
                 match received_message {
                     StationToBusMessages::AcknowledgeArrival() => {
                         println!("Bus {} acknowledgement received", self.bus_index);
                     }
                     StationToBusMessages::RequestDeparture() => {
-                        //TODO: the bus needs to do something update time tick etc.
-                        assert!(current_time_tick.stage == TimeTickStage::BusLoadingPassengers);
+                        // This is running at the wrong stage, for some reason
+                        dbg!(&current_time_tick);
+                        let TimeTickStage::BusLoadingPassengers { .. } = current_time_tick.stage
+                        else {
+                            panic!("Thre request departure message must occur and the BusLoadingPassengers stage.");
+                        };
 
                         next_station_sender
                             .send(StationMessages::BusDeparted {
