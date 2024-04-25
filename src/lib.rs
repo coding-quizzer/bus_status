@@ -121,18 +121,18 @@ pub fn generate_random_passenger_list(
 pub fn convert_bus_route_list_to_passenger_bus_route_list(
     bus_route_list: Vec<BusLocation>,
 ) -> Vec<PassengerBusLocation> {
-    let mut time_tick = 1;
+    let mut time_tick = 0;
     let mut passenger_bus_route_list = vec![];
     for bus_location in bus_route_list.iter() {
         let mut index_increment = 0;
         // If this is the not the first location, add two time ticks for waiting at the last station
-        if time_tick != 2 {
+        if time_tick != 1 {
             // Add one to the index_increment for the time tick used at the previous stop
-            index_increment += 2;
+            index_increment += 1;
         }
 
         // add time steps for the distance to the destination
-        index_increment += bus_location.distance_to_location * 2;
+        index_increment += bus_location.distance_to_location;
 
         time_tick += index_increment;
 

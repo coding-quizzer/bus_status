@@ -30,12 +30,12 @@ fn can_find_basic_route() {
         calculate_passenger_schedule_for_bus(&test_passenger, 0, &passenger_facing_bus_routes);
     let expected_passenger_bus_route = vec![
         PassengerOnboardingBusSchedule {
-            time_tick: 4,
+            time_tick: 2,
             bus_num: Some(0),
             stop_location: location_list[3],
         },
         PassengerOnboardingBusSchedule {
-            time_tick: 8,
+            time_tick: 4,
             bus_num: None,
             stop_location: location_list[2],
         },
@@ -56,17 +56,17 @@ fn can_find_bus_route_with_transfer() {
 
     let expected_passenger_route = vec![
         PassengerOnboardingBusSchedule {
-            time_tick: 4,
+            time_tick: 2,
             bus_num: Some(1),
             stop_location: location_list[0],
         },
         PassengerOnboardingBusSchedule {
-            time_tick: 8,
+            time_tick: 4,
             bus_num: Some(2),
             stop_location: location_list[3],
         },
         PassengerOnboardingBusSchedule {
-            time_tick: 12,
+            time_tick: 6,
             bus_num: None,
             stop_location: location_list[2],
         },
@@ -85,18 +85,18 @@ fn finds_shortest_route() {
 
     let expected_passenger_route = vec![
         PassengerOnboardingBusSchedule {
-            time_tick: 6,
+            time_tick: 3,
             bus_num: Some(2),
             stop_location: location_list[1],
         },
         PassengerOnboardingBusSchedule {
             // time tick represents time tick when bus 3 drops the passenger off, rather than when  bus 0 picks passenger up
-            time_tick: 14,
+            time_tick: 7,
             bus_num: Some(0),
             stop_location: location_list[3],
         },
         PassengerOnboardingBusSchedule {
-            time_tick: 22,
+            time_tick: 11,
             bus_num: None,
             stop_location: location_list[2],
         },
@@ -120,13 +120,13 @@ fn special_route_removing_some_bus_locations() {
 
     let expected_passenger_route = vec![
         PassengerOnboardingBusSchedule {
-            time_tick: 8,
+            time_tick: 4,
             bus_num: Some(2),
             stop_location: location_list[3],
         },
         PassengerOnboardingBusSchedule {
             // time tick represents time tick when bus 3 drops the passenger off, rather than when  bus 0 picks passenger up
-            time_tick: 12,
+            time_tick: 6,
             bus_num: None,
             stop_location: location_list[2],
         },
