@@ -124,10 +124,31 @@ fn main() {
         station_sender: &mpsc::Sender<SyncToStationMessages>,
     ) {
         println!("---------- All buses are finished at their stops -----------");
+        // This message will only be sent after the bus unloading stage is finished
         station_sender
             .send(SyncToStationMessages::AdvanceTimeStep)
             .unwrap();
         (*time_tick).increment_time_tick();
+    }
+
+    fn manage_time_tick_increase_for_finished_loading_tick(
+        mut current_time_tick: sync::MutexGuard<'_, TimeTick>,
+        station_sender: &mpsc::Sender<SyncToStationMessages>,
+        bus_status_array: &mut [BusThreadStatus; NUM_OF_BUSES],
+    ) {
+        // If the bus_loading timestep is finished, reset the entire status array
+        for status in bus_status_array.iter_mut() {
+            // Reset the statuses for the next time step
+            if status == &BusThreadStatus::FinishedLoadingPassengers
+                || status == &BusThreadStatus::Moving
+            {
+                *status = BusThreadStatus::WaitingForTimeStep;
+            }
+        }
+        println!("Bus statuses: {:?}", &bus_status_array);
+        increment_and_drop_time_step(current_time_tick, station_sender);
+
+        println!("End of sync loop");
     }
 
     let route_sync_bus_route_vec_arc = bus_route_vec_arc.clone();
@@ -295,7 +316,6 @@ fn main() {
             //         .iter()
             //         .any(|status| status == &BusThreadStatus::WaitingForTimeStep),
             // )
-            use std::ops::Not;
 
             const LOADING_BUS_VALID_STATUSES: [BusThreadStatus; 3] = [
                 BusThreadStatus::BusFinishedRoute,
@@ -324,54 +344,39 @@ fn main() {
                 // If all the buses are moving, only one message will be sent to the sync thread for the whole time tick.
                 // Increment the time tick twice to make up for that
 
-                // This takes the converse: If any of the buses are not moving or finished
-                // return to the beginning of the loop instead of continuing to the next time step increment
                 if bus_status_array
                     .iter()
-                    .any(|bus_thread_status: &BusThreadStatus| {
+                    .all(|bus_thread_status: &BusThreadStatus| {
                         ALL_MOVING_BUS_VALID_STATUSES
                             .iter()
                             .any(|valid_status| bus_thread_status == valid_status)
-                            .not()
                     })
                 {
+                    // If all the buses are moving, increase the time tick again, because there will be no stopped bus
+                    // to send the next message
+                    manage_time_tick_increase_for_finished_loading_tick(
+                        current_time_tick,
+                        &station_sender,
+                        &mut bus_status_array,
+                    );
                     continue;
                 }
 
                 // advance_and_drop_time_step(current_time_tick, &station_sender);
-            } else if (current_time_tick.stage
-                != (TimeTickStage::BusLoadingPassengers {
-                    first_iteration: false,
-                })
-                // I don't know off-hand what the best way to allow for the first_iteration field here
-                // For now, I'm taking advantage of the fact that it can only have two values, so it is
-                // not hard to write out manually
-                && current_time_tick.stage
-                    != (TimeTickStage::BusLoadingPassengers {
-                        first_iteration: true,
-                    }))
-                || bus_status_array.iter().all(|bus_thread_status| {
+            } else if let TimeTickStage::BusLoadingPassengers { .. } = current_time_tick.stage {
+                if (bus_status_array.iter().all(|bus_thread_status| {
                     LOADING_BUS_VALID_STATUSES
                         .iter()
                         .any(|valid_status| bus_thread_status == valid_status)
-                        .not()
-                })
-            {
-                continue;
-            }
-            // If the bus_loading timestep is finished, reset the entire status array
-            for status in bus_status_array.iter_mut() {
-                // Reset the statuses for the next time step
-                if status == &BusThreadStatus::FinishedLoadingPassengers
-                    || status == &BusThreadStatus::Moving
-                {
-                    *status = BusThreadStatus::WaitingForTimeStep;
+                })) {
+                    manage_time_tick_increase_for_finished_loading_tick(
+                        current_time_tick,
+                        &station_sender,
+                        &mut bus_status_array,
+                    );
+                    continue;
                 }
             }
-            println!("Bus statuses: {:?}", &bus_status_array);
-            increment_and_drop_time_step(current_time_tick, &station_sender);
-
-            println!("End of sync loop");
         }
     });
 

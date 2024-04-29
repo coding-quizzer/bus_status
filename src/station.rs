@@ -521,6 +521,7 @@ pub fn create_station_thread(
                     // sync_to_stations receiver moved before buses_receiver so that this check can run independantly of
                     // other messages.
                     if let Ok(message) = sync_to_stations_receiver.lock().unwrap().try_recv() {
+                        let SyncToStationMessages::AdvanceTimeStep = message;
                         // At this point if all the buses have finished their tick, they should be gone from the station
                         if !(current_station.docked_buses.is_empty()) {
                             panic!(
@@ -528,8 +529,6 @@ pub fn create_station_thread(
                                 current_station.docked_buses
                             );
                         };
-
-                        let SyncToStationMessages::AdvanceTimeStep = message;
 
                         println!(
                             "All Buses departed from station {}",
