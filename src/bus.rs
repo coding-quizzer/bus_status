@@ -335,10 +335,11 @@ impl Bus {
                     }
                     StationToBusMessages::RequestDeparture() => {
                         // This is running at the wrong stage, for some reason
+
                         dbg!(&current_time_tick);
                         let TimeTickStage::BusLoadingPassengers { .. } = current_time_tick.stage
                         else {
-                            panic!("Thre request departure message must occur and the BusLoadingPassengers stage.");
+                            panic!("The request departure message must occur at the BusLoadingPassengers stage.");
                         };
 
                         next_station_sender
@@ -348,15 +349,6 @@ impl Bus {
                             .unwrap();
 
                         println!("Bus {} departure recieved", self.bus_index);
-                        sync_sender
-                            .send(BusMessages::AdvanceTimeStepForLoadedBus {
-                                //current_time_step: self.time_tick_num,
-                                bus_index: self.bus_index,
-                            })
-                            .unwrap_or_else(|error| {
-                                panic!("Error from bus {}: {}", self.bus_index, error)
-                            });
-                        bus_departed = true;
                     }
                     StationToBusMessages::SendPassengers(passenger_list) => {
                         println!(
@@ -376,6 +368,17 @@ impl Bus {
                             .unwrap_or_else(|error| {
                                 panic!("Error from bus {}: {}", self.bus_index, error)
                             });
+                    }
+                    StationToBusMessages::StationRemovedBus => {
+                        sync_sender
+                            .send(BusMessages::AdvanceTimeStepForLoadedBus {
+                                //current_time_step: self.time_tick_num,
+                                bus_index: self.bus_index,
+                            })
+                            .unwrap_or_else(|error| {
+                                panic!("Error from bus {}: {}", self.bus_index, error)
+                            });
+                        bus_departed = true;
                     }
                 }
             }

@@ -307,13 +307,15 @@ pub fn create_station_thread(
                         "Station {} BusUnloadingPassengers timetick stage",
                         station_index
                     );
-                    // At this point no message are coming. Figure out what is happening
-                    // Actually, that makes sense. On the first time tick, all the buses are in transit. None stop in the station.
+
                     println!(
                         "station {} received message received on BusUnloadingPassengers stage",
                         station_index
                     );
 
+                    // On some runs, the received message is BusDeparted, for some reason
+                    // Somehow, the time tick increases between sending the Request Departure message
+                    // and receiving the BusDeparted message
                     if let StationMessages::BusArrived {
                         passengers_onboarding,
                         bus_info,
@@ -507,7 +509,6 @@ pub fn create_station_thread(
                             println!("Pre-bus departure");
                         }
 
-                        // FIXME: this is running way to often. How can I control the cycles?
                         println!("Time tick when buses are dismissed: {:?}", &time_tick);
                         for bus in current_station.docked_buses.iter() {
                             send_to_bus_channels[bus.bus_index]
@@ -516,6 +517,28 @@ pub fn create_station_thread(
                         }
 
                         println!("Departure message sent");
+                    }
+                    // sync_to_stations receiver moved before buses_receiver so that this check can run independantly of
+                    // other messages.
+                    if let Ok(message) = sync_to_stations_receiver.lock().unwrap().try_recv() {
+                        // At this point if all the buses have finished their tick, they should be gone from the station
+                        if !(current_station.docked_buses.is_empty()) {
+                            panic!(
+                                "Station still contains buses: {:?}",
+                                current_station.docked_buses
+                            );
+                        };
+
+                        let SyncToStationMessages::AdvanceTimeStep = message;
+
+                        println!(
+                            "All Buses departed from station {}",
+                            current_station.location.index
+                        );
+
+                        // Clear buses unavailable list
+                        current_station.buses_unavailable = Vec::new();
+                        continue;
                     }
 
                     let time_tick = station_time_tick.lock().unwrap();
@@ -533,27 +556,9 @@ pub fn create_station_thread(
                         current_station
                             .docked_buses
                             .retain(|bus| bus.bus_index != bus_index);
-
-                        if let Ok(message) = sync_to_stations_receiver.lock().unwrap().try_recv() {
-                            // At this point if all the buses have finished their tick, they should be gone from the station
-                            if !(current_station.docked_buses.is_empty()) {
-                                // FIXME: Station still contains a bus, for some reason
-                                panic!(
-                                    "Station still contains buses: {:?}",
-                                    current_station.docked_buses
-                                );
-                            };
-
-                            let SyncToStationMessages::AdvanceTimeStep = message;
-
-                            println!(
-                                "All Buses departed from station {}",
-                                current_station.location.index
-                            );
-
-                            // Clear buses unavailable list
-                            current_station.buses_unavailable = Vec::new();
-                        }
+                        send_to_bus_channels[bus_index]
+                            .send(StationToBusMessages::StationRemovedBus)
+                            .unwrap();
                     }
                 }
             }

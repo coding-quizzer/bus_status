@@ -117,7 +117,6 @@ pub fn generate_random_passenger_list(
     Ok(passenger_list)
 }
 
-// FIXME: change the time ticks to increment by 1 each time
 pub fn convert_bus_route_list_to_passenger_bus_route_list(
     bus_route_list: Vec<BusLocation>,
 ) -> Vec<PassengerBusLocation> {

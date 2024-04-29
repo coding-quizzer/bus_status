@@ -22,6 +22,7 @@ pub enum StationToBusMessages {
     SendPassengers(Vec<Passenger>),
     FinishedUnloading,
     RequestDeparture(),
+    StationRemovedBus,
 }
 
 #[derive(PartialEq, Debug)]

@@ -311,7 +311,8 @@ fn main() {
 
             const ALL_MOVING_BUS_VALID_STATUSES: [BusThreadStatus; 2] =
                 [BusThreadStatus::BusFinishedRoute, BusThreadStatus::Moving];
-
+            // TODO: add a function for incrementing the timetick from the bus loading phase
+            // and use that function instead of this messy refactor
             if current_time_tick.stage == TimeTickStage::BusUnloadingPassengers
                 && bus_status_array.iter().all(|bus_thread_status| {
                     UNLOADING_BUS_VALID_STATUSES
@@ -322,13 +323,18 @@ fn main() {
                 current_time_tick.increment_time_tick();
                 // If all the buses are moving, only one message will be sent to the sync thread for the whole time tick.
                 // Increment the time tick twice to make up for that
-                //
-                if bus_status_array.iter().all(|bus_thread_status| {
-                    ALL_MOVING_BUS_VALID_STATUSES
-                        .iter()
-                        .any(|valid_status| bus_thread_status == valid_status)
-                        .not()
-                }) {
+
+                // This takes the converse: If any of the buses are not moving or finished
+                // return to the beginning of the loop instead of continuing to the next time step increment
+                if bus_status_array
+                    .iter()
+                    .any(|bus_thread_status: &BusThreadStatus| {
+                        ALL_MOVING_BUS_VALID_STATUSES
+                            .iter()
+                            .any(|valid_status| bus_thread_status == valid_status)
+                            .not()
+                    })
+                {
                     continue;
                 }
 
@@ -362,6 +368,7 @@ fn main() {
                     *status = BusThreadStatus::WaitingForTimeStep;
                 }
             }
+            println!("Bus statuses: {:?}", &bus_status_array);
             increment_and_drop_time_step(current_time_tick, &station_sender);
 
             println!("End of sync loop");
