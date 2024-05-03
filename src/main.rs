@@ -118,15 +118,20 @@ fn main() {
     let send_to_bus_channels_arc = Arc::new(send_to_bus_channels);
 
     let current_time_tick_clone = current_time_tick.clone();
-
+    #[track_caller]
     fn increment_and_drop_time_step(
         mut time_tick: sync::MutexGuard<'_, TimeTick>,
         station_sender: &mpsc::Sender<SyncToStationMessages>,
     ) {
+        let call_location = std::panic::Location::caller();
         println!("---------- All buses are finished at their stops -----------");
+        println!(
+            "Time step incremented from line {} of main.rs",
+            call_location.line()
+        );
         // This message will only be sent after the bus unloading stage is finished
         station_sender
-            .send(SyncToStationMessages::AdvanceTimeStep)
+            .send(SyncToStationMessages::AdvanceTimeStep(*time_tick))
             .unwrap();
         (*time_tick).increment_time_tick();
     }
@@ -136,7 +141,8 @@ fn main() {
         station_sender: &mpsc::Sender<SyncToStationMessages>,
         bus_status_array: &mut [BusThreadStatus; NUM_OF_BUSES],
     ) {
-        // If the bus_loading timestep is finished, reset the entire status array
+        println!("Bus statuses: {:?}", &bus_status_array);
+        // The bus_loading timestep is finished, so the array is reset the entire status array
         for status in bus_status_array.iter_mut() {
             // Reset the statuses for the next time step
             if status == &BusThreadStatus::FinishedLoadingPassengers
@@ -145,7 +151,6 @@ fn main() {
                 *status = BusThreadStatus::WaitingForTimeStep;
             }
         }
-        println!("Bus statuses: {:?}", &bus_status_array);
         increment_and_drop_time_step(current_time_tick, station_sender);
 
         println!("End of sync loop");
@@ -352,6 +357,7 @@ fn main() {
                             .any(|valid_status| bus_thread_status == valid_status)
                     })
                 {
+                    println!("All buses moving on time step {}", current_time_tick.number);
                     // If all the buses are moving, increase the time tick again, because there will be no stopped bus
                     // to send the next message
                     manage_time_tick_increase_for_finished_loading_tick(
@@ -360,6 +366,8 @@ fn main() {
                         &mut bus_status_array,
                     );
                     continue;
+                } else {
+                    println!("At least one bus was unloading at this time step");
                 }
 
                 // advance_and_drop_time_step(current_time_tick, &station_sender);

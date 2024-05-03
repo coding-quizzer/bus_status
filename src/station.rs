@@ -286,13 +286,14 @@ pub fn create_station_thread(
                 }
 
                 TimeTickStage::BusUnloadingPassengers => {
-                    drop(time_tick);
+                    // drop(time_tick);
                     // There is an indeterminate number of buses stopping at this stage. The received message should probably use try_recv to only take bus messages as they come and not wait for a message that is not coming
                     let received_message = current_receiver.try_recv();
                     let received_message = match received_message {
                         Ok(message) => {
+                            // I set up an infinite loop in BusLoading passengers and the break statement was never hit. How did the program get here on time tick 2?
                             println!(
-                                "Station received message on BusUnloadingPassengers stage received"
+                                "Station {} received message on BusUnloadingPassengers stage received on time tick {:?}", current_location.index ,time_tick
                             );
                             message
                         }
@@ -303,6 +304,7 @@ pub fn create_station_thread(
                             panic!("{}", TryRecvError::Disconnected);
                         }
                     };
+                    drop(time_tick);
                     println!(
                         "Station {} BusUnloadingPassengers timetick stage",
                         station_index
@@ -334,9 +336,12 @@ pub fn create_station_thread(
                         let bus_index = bus_info.bus_index;
                         println!("Bus {bus_index} arrived at station {station_index}.");
                         current_station.docked_buses.push(bus_info);
-                        send_to_bus_channels[bus_index]
-                            .send(StationToBusMessages::AcknowledgeArrival())
-                            .unwrap();
+                        //FIXME: Two consecutive sends to the same thread without any regulation of timeing
+
+                        // So far, acknowledge arrival doesn't acctually do anything
+                        // send_to_bus_channels[bus_index]
+                        //     .send(StationToBusMessages::AcknowledgeArrival())
+                        //     .unwrap();
 
                         send_to_bus_channels[bus_index]
                             .send(StationToBusMessages::FinishedUnloading)
@@ -351,6 +356,7 @@ pub fn create_station_thread(
                     }
                 }
                 TimeTickStage::BusLoadingPassengers { first_iteration } => {
+                    println!("BusLoadingPassengers timetick beginning");
                     drop(time_tick);
                     // New pasted material
                     if first_iteration {
@@ -450,7 +456,7 @@ pub fn create_station_thread(
                         let docked_buses = &(current_station.docked_buses.clone());
 
                         for bus in docked_buses {
-                            println!("Station loop beginning.");
+                            // println!("Station loop beginning.");
                             println!("Station Bus Time tick: {:?}", time_tick);
                             println!("Station: {}", current_station.location.index);
                             println!("Bus: {}", bus.bus_index);
@@ -512,53 +518,79 @@ pub fn create_station_thread(
                         println!("Time tick when buses are dismissed: {:?}", &time_tick);
                         for bus in current_station.docked_buses.iter() {
                             send_to_bus_channels[bus.bus_index]
-                                .send(StationToBusMessages::RequestDeparture())
+                                .send(StationToBusMessages::RequestDeparture)
                                 .unwrap();
                         }
 
                         println!("Departure message sent");
                     }
-                    // sync_to_stations receiver moved before buses_receiver so that this check can run independantly of
-                    // other messages.
-                    if let Ok(message) = sync_to_stations_receiver.lock().unwrap().try_recv() {
-                        let SyncToStationMessages::AdvanceTimeStep = message;
-                        // At this point if all the buses have finished their tick, they should be gone from the station
-                        if !(current_station.docked_buses.is_empty()) {
-                            panic!(
-                                "Station still contains buses: {:?}",
-                                current_station.docked_buses
+
+                    'bus_loading: loop {
+                        println!(
+                            "Bus loading loop beginning in station {}",
+                            current_location.index
+                        );
+                        // sync_to_stations receiver moved before buses_receiver so that this check can run independantly of
+                        // other messages.
+                        if let Ok(message) = sync_to_stations_receiver.lock().unwrap().try_recv() {
+                            // By the time this message is received, two time tick iterations have gone by.
+                            // I need to prevent the station from going on to a new stage before the increment time tick method is declared
+                            let SyncToStationMessages::AdvanceTimeStep(prev_time_tick) = message;
+                            // At this point if all the buses have finished their tick, they should be gone from the station
+                            let time_tick = station_time_tick.lock().unwrap();
+                            if !(current_station.docked_buses.is_empty()) {
+                                println!("Station {} time ticks", current_location.index);
+                                println!("Time tick before incrementing: {:?}", prev_time_tick);
+                                println!("Current time tick: {:?}", time_tick);
+                                panic!(
+                                    "Station {} still contains buses: {:?}",
+                                    current_station.location.index, current_station.docked_buses
+                                );
+                            };
+
+                            println!(
+                                "All Buses departed from station {}",
+                                current_station.location.index
                             );
+
+                            // Clear buses unavailable list
+                            current_station.buses_unavailable = Vec::new();
+                            println!(
+                                "Station received AdvanceTimeStep message at time tick {:?}",
+                                time_tick
+                            );
+                            break 'bus_loading;
+                        }
+
+                        let time_tick = station_time_tick.lock().unwrap();
+
+                        let received_message = current_receiver.try_recv();
+                        let received_message = match received_message {
+                            Ok(message) => message,
+                            Err(TryRecvError::Empty) => continue 'bus_loading,
+                            Err(TryRecvError::Disconnected) => {
+                                panic!("{}", TryRecvError::Disconnected)
+                            }
                         };
 
-                        println!(
-                            "All Buses departed from station {}",
-                            current_station.location.index
-                        );
+                        if let StationMessages::BusDeparted { bus_index } = received_message {
+                            drop(time_tick);
 
-                        // Clear buses unavailable list
-                        current_station.buses_unavailable = Vec::new();
-                        continue;
+                            current_station
+                                .docked_buses
+                                .retain(|bus| bus.bus_index != bus_index);
+                            // How is the bus departure received before going through this?
+                            println!(
+                                "Bus {} removed from station {}",
+                                bus_index, current_location.index
+                            );
+                            send_to_bus_channels[bus_index]
+                                .send(StationToBusMessages::StationRemovedBus)
+                                .unwrap();
+                        }
                     }
 
-                    let time_tick = station_time_tick.lock().unwrap();
-
-                    let received_message = current_receiver.try_recv();
-                    let received_message = match received_message {
-                        Ok(message) => message,
-                        Err(TryRecvError::Empty) => continue,
-                        Err(TryRecvError::Disconnected) => panic!("{}", TryRecvError::Disconnected),
-                    };
-
-                    if let StationMessages::BusDeparted { bus_index } = received_message {
-                        drop(time_tick);
-
-                        current_station
-                            .docked_buses
-                            .retain(|bus| bus.bus_index != bus_index);
-                        send_to_bus_channels[bus_index]
-                            .send(StationToBusMessages::StationRemovedBus)
-                            .unwrap();
-                    }
+                    println!("Bus Loading Loop finished");
                 }
             }
         }

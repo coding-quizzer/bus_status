@@ -333,9 +333,7 @@ impl Bus {
                     StationToBusMessages::AcknowledgeArrival() => {
                         println!("Bus {} acknowledgement received", self.bus_index);
                     }
-                    StationToBusMessages::RequestDeparture() => {
-                        // This is running at the wrong stage, for some reason
-
+                    StationToBusMessages::RequestDeparture => {
                         dbg!(&current_time_tick);
                         let TimeTickStage::BusLoadingPassengers { .. } = current_time_tick.stage
                         else {
@@ -348,7 +346,10 @@ impl Bus {
                             })
                             .unwrap();
 
-                        println!("Bus {} departure recieved", self.bus_index);
+                        println!(
+                            "Bus {} departure recieved from station and sent again from bus",
+                            self.bus_index
+                        );
                     }
                     StationToBusMessages::SendPassengers(passenger_list) => {
                         println!(
@@ -370,6 +371,10 @@ impl Bus {
                             });
                     }
                     StationToBusMessages::StationRemovedBus => {
+                        println!(
+                            "StationRemovedBus message received from station. Bus number: {}",
+                            self.bus_index
+                        );
                         sync_sender
                             .send(BusMessages::AdvanceTimeStepForLoadedBus {
                                 //current_time_step: self.time_tick_num,

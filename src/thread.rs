@@ -21,7 +21,7 @@ pub enum StationToBusMessages {
     AcknowledgeArrival(),
     SendPassengers(Vec<Passenger>),
     FinishedUnloading,
-    RequestDeparture(),
+    RequestDeparture,
     StationRemovedBus,
 }
 
@@ -38,7 +38,7 @@ pub enum BusMessages {
 
 #[derive(Debug)]
 pub enum SyncToStationMessages {
-    AdvanceTimeStep,
+    AdvanceTimeStep(crate::TimeTick),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

@@ -32,6 +32,7 @@ pub struct TimeTick {
 
 impl TimeTick {
     pub fn increment_time_tick(&mut self) {
+        let caller_location = std::panic::Location::caller().line();
         match self.stage {
             TimeTickStage::PassengerInit => {
                 self.number = 1;
@@ -44,6 +45,7 @@ impl TimeTick {
             }
 
             TimeTickStage::BusLoadingPassengers { .. } => {
+                println!("Time tick number incremented from {}", self.number);
                 self.number += 1;
                 self.stage = TimeTickStage::BusUnloadingPassengers
             }
