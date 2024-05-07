@@ -579,6 +579,14 @@ pub fn create_station_thread(
                             current_station
                                 .docked_buses
                                 .retain(|bus| bus.bus_index != bus_index);
+
+                            // Confirm that the station does not contain the bus that was removed
+                            use std::ops::Not;
+                            assert!(current_station
+                                .docked_buses
+                                .iter()
+                                .any(|bus| bus.bus_index == bus_index)
+                                .not());
                             // How is the bus departure received before going through this?
                             println!(
                                 "Bus {} removed from station {}",
