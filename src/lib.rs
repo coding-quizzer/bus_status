@@ -19,9 +19,7 @@ pub enum TimeTickStage {
     #[default]
     PassengerInit,
     BusUnloadingPassengers,
-    BusLoadingPassengers {
-        first_iteration: bool,
-    },
+    BusLoadingPassengers,
 }
 
 #[derive(Default, Debug, PartialEq, Clone, Copy)]
@@ -39,9 +37,7 @@ impl TimeTick {
                 self.stage = TimeTickStage::BusUnloadingPassengers;
             }
             TimeTickStage::BusUnloadingPassengers => {
-                self.stage = TimeTickStage::BusLoadingPassengers {
-                    first_iteration: true,
-                };
+                self.stage = TimeTickStage::BusLoadingPassengers
             }
 
             TimeTickStage::BusLoadingPassengers { .. } => {

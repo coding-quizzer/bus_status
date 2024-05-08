@@ -49,6 +49,7 @@ pub struct Station {
     pub docked_buses: Vec<SendableBus>,
     pub passengers: Vec<Passenger>,
     pub buses_unavailable: Vec<usize>,
+    pub bus_loading_first_iteration: Option<bool>,
 }
 
 impl Station {
@@ -62,6 +63,7 @@ impl Station {
             docked_buses: Vec::new(),
             passengers: Vec::new(),
             buses_unavailable: Vec::new(),
+            bus_loading_first_iteration: None,
         }
     }
 
@@ -355,22 +357,23 @@ pub fn create_station_thread(
                         )
                     }
                 }
-                TimeTickStage::BusLoadingPassengers { first_iteration } => {
+                TimeTickStage::BusLoadingPassengers { .. } => {
                     println!("BusLoadingPassengers timetick beginning");
                     // New pasted material
                     println!(
-                        "Is first iteration: {}. Station: {}. Time tick: {:?}",
-                        first_iteration, current_location.index, time_tick
+                        "Is first iteration: {:?}. Station: {}. Time tick: {:?}",
+                        current_station.bus_loading_first_iteration,
+                        current_location.index,
+                        time_tick
                     );
-                    drop(time_tick);
+                    if current_station.bus_loading_first_iteration.is_none() {
+                        current_station.bus_loading_first_iteration = Some(true)
+                    };
                     // This should only happen within the first iteration. Afterwords, it should be caught in the loop
-                    assert!(first_iteration);
+                    assert!(current_station.bus_loading_first_iteration.unwrap());
 
                     // This time tick was dropped and reinitialized so that the time tick is only mutable when neccessary
-                    let mut time_tick = station_time_tick.lock().unwrap();
-                    (*time_tick).stage = TimeTickStage::BusLoadingPassengers {
-                        first_iteration: false,
-                    };
+
                     //let time_tick = station_time_tick.lock().unwrap();
 
                     // An iterator containing tuples containing the bus_index of each docked bus and a list of passengers that will get on that bus
@@ -530,6 +533,8 @@ pub fn create_station_thread(
                     println!("Departure message sent");
                     drop(time_tick);
 
+                    current_station.bus_loading_first_iteration = Some(false);
+
                     // Occasionally, this turns into an infinite loop
 
                     'bus_loading: loop {
@@ -604,7 +609,7 @@ pub fn create_station_thread(
                                 .unwrap();
                         }
                     }
-
+                    current_station.bus_loading_first_iteration = None;
                     println!("Bus Loading Loop finished");
                 }
             }
