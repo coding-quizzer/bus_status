@@ -288,7 +288,9 @@ pub fn create_station_thread(
                 }
 
                 TimeTickStage::BusUnloadingPassengers => {
-                    // drop(time_tick);
+                    // The previous loading stage should be finished, so bus_loading_first_iteration should be set to none
+                    assert!(current_station.bus_loading_first_iteration.is_none());
+
                     // There is an indeterminate number of buses stopping at this stage. The received message should probably use try_recv to only take bus messages as they come and not wait for a message that is not coming
                     let received_message = current_receiver.try_recv();
                     let received_message = match received_message {
@@ -531,16 +533,18 @@ pub fn create_station_thread(
                     }
 
                     println!("Departure message sent");
-                    drop(time_tick);
 
                     current_station.bus_loading_first_iteration = Some(false);
 
                     // Occasionally, this turns into an infinite loop
 
+                    drop(time_tick);
+                    // Why is this not running on time tick 1?
                     'bus_loading: loop {
                         println!(
-                            "Bus loading loop beginning in station {}",
-                            current_location.index
+                            "Bus loading loop beginning in station {} at time tick {:?}",
+                            current_location.index,
+                            *(station_time_tick.lock().unwrap())
                         );
                         // sync_to_stations receiver moved before buses_receiver so that this check can run independantly of
                         // other messages.
@@ -571,6 +575,7 @@ pub fn create_station_thread(
                                 "Station received AdvanceTimeStep message at time tick {:?}",
                                 time_tick
                             );
+                            current_station.bus_loading_first_iteration = None;
                             break 'bus_loading;
                         }
 
@@ -609,7 +614,8 @@ pub fn create_station_thread(
                                 .unwrap();
                         }
                     }
-                    current_station.bus_loading_first_iteration = None;
+                    // bus_loading_first_iteration was set to None before breaking, so it should remain None
+                    assert!(current_station.bus_loading_first_iteration.is_none());
                     println!("Bus Loading Loop finished");
                 }
             }

@@ -129,10 +129,17 @@ fn main() {
             "Time step incremented from line {} of main.rs",
             call_location.line()
         );
-        // This message will only be sent after the bus unloading stage is finished
-        station_sender
-            .send(SyncToStationMessages::AdvanceTimeStep(*time_tick))
-            .unwrap();
+        // At this point sending the message here is not neccesary.
+        // Because the time step mutiex is held for both time step increments,
+        // the station will be stuck in the unloading phase when all the buses are moving
+        // Eventually a message might be neccesary for that case but this implimentation works for now
+        /*
+          // This message will only be sent after the bus unloading stage is finished
+            station_sender
+              .send(SyncToStationMessages::AdvanceTimeStep(*time_tick))
+              .unwrap();
+        */
+
         (*time_tick).increment_time_tick();
     }
 
@@ -377,6 +384,10 @@ fn main() {
                         .iter()
                         .any(|valid_status| bus_thread_status == valid_status)
                 })) {
+                    // This message will only be sent after the bus unloading stage is finished
+                    station_sender
+                        .send(SyncToStationMessages::AdvanceTimeStep(*current_time_tick))
+                        .unwrap();
                     manage_time_tick_increase_for_finished_loading_tick(
                         current_time_tick,
                         &station_sender,
