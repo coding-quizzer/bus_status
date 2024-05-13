@@ -125,10 +125,7 @@ fn main() {
     ) {
         let call_location = std::panic::Location::caller();
         println!("---------- All buses are finished at their stops -----------");
-        println!(
-            "Time step incremented from line {} of main.rs",
-            call_location.line()
-        );
+        println!("Time step incremented from {}", call_location);
         // At this point sending the message here is not neccesary.
         // Because the time step mutiex is held for both time step increments,
         // the station will be stuck in the unloading phase when all the buses are moving

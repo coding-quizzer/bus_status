@@ -476,6 +476,7 @@ pub fn create_station_thread(
                         // The index does not exist in the array - even though the index should be of a docked bus
                         // let passengers_overflowed: Vec<_> = todo!();
 
+                        // FIXME: The bus here is not always docked
                         let mut new_passenger_list = next_passengers_for_buses_array[bus_index]
                             .clone()
                             .unwrap_or_else(|| {
@@ -541,19 +542,23 @@ pub fn create_station_thread(
                     drop(time_tick);
                     // Why is this not running on time tick 1?
                     'bus_loading: loop {
-                        println!(
+                        // For test data, program is stuck in this loop, even though the time step has proceeded to the next one
+                        /*  println!(
                             "Bus loading loop beginning in station {} at time tick {:?}",
                             current_location.index,
                             *(station_time_tick.lock().unwrap())
-                        );
+                        ); */
                         // sync_to_stations receiver moved before buses_receiver so that this check can run independantly of
                         // other messages.
                         if let Ok(message) = sync_to_stations_receiver.lock().unwrap().try_recv() {
                             // By the time this message is received, two time tick iterations have gone by.
                             // I need to prevent the station from going on to a new stage before the increment time tick method is declared
                             let SyncToStationMessages::AdvanceTimeStep(prev_time_tick) = message;
+                            println!("Advance Time tick message received");
                             // At this point if all the buses have finished their tick, they should be gone from the station
                             let time_tick = station_time_tick.lock().unwrap();
+                            println!("Time tick locked on Station bus_loading loop");
+
                             if !(current_station.docked_buses.is_empty()) {
                                 println!("Station {} time ticks", current_location.index);
                                 println!("Time tick before incrementing: {:?}", prev_time_tick);
@@ -565,8 +570,8 @@ pub fn create_station_thread(
                             };
 
                             println!(
-                                "All Buses departed from station {}",
-                                current_station.location.index
+                                "All Buses departed from station {} at time tick {:?}.",
+                                current_station.location.index, time_tick,
                             );
 
                             // Clear buses unavailable list
