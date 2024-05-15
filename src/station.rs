@@ -67,8 +67,6 @@ impl Station {
         }
     }
 
-    // TODO: Convert to a function returning an Option, figure out
-    // I might have done it - clarify
     pub fn add_passenger(
         &mut self,
         mut new_passenger: Passenger,
@@ -153,7 +151,7 @@ pub fn get_station_threads(
     passenger_bus_route_arc: &Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>,
     rejected_passengers_pointer: &Arc<Mutex<Vec<Passenger>>>,
     tx_stations_to_passengers: Sender<StationToPassengersMessages>,
-    rx_sync_to_stations: Arc<Mutex<Receiver<SyncToStationMessages>>>,
+    mut rx_sync_to_stations_list: Arc<Mutex<Vec<Option<ReceiverWithIndex<SyncToStationMessages>>>>>,
 ) -> Vec<JoinHandle<()>> {
     // let station_location_list = location_vector_arc.clone();
 
@@ -161,7 +159,12 @@ pub fn get_station_threads(
 
     // Station index and location index are equivilant
     for location in station_location_list {
-        let sync_to_stations_reciever = rx_sync_to_stations.clone();
+        let station_index = location.index;
+        let sync_to_stations_reciever = rx_sync_to_stations_list.clone().lock().unwrap()
+            [station_index]
+            .take()
+            .expect("Station index in sync_to_stations list should still be available")
+            .receiver;
         let station_time_tick = current_time_tick.clone();
         let current_location = *location;
         let send_to_bus_channels = send_to_bus_channels_arc.clone();
@@ -197,7 +200,7 @@ pub fn create_station_thread(
     station_thread_passenger_bus_route_list: Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>,
     rejected_passenger_clone: Arc<Mutex<Vec<Passenger>>>,
     to_passengers_sender_clone: Sender<StationToPassengersMessages>,
-    sync_to_stations_receiver: Arc<Mutex<Receiver<SyncToStationMessages>>>,
+    sync_to_stations_receiver: Receiver<SyncToStationMessages>,
 ) -> JoinHandle<()> {
     let station_handle = thread::spawn(move || {
         let mut current_station = Station::new(
@@ -360,7 +363,7 @@ pub fn create_station_thread(
                     }
                 }
                 TimeTickStage::BusLoadingPassengers { .. } => {
-                    println!("BusLoadingPassengers timetick beginning");
+                    println!("BusLoadingPassengers timetick beginning.");
                     // New pasted material
                     println!(
                         "Is first iteration: {:?}. Station: {}. Time tick: {:?}",
@@ -477,6 +480,7 @@ pub fn create_station_thread(
                         // let passengers_overflowed: Vec<_> = todo!();
 
                         // FIXME: The bus here is not always docked
+                        // Usually time tick misfunction
                         let mut new_passenger_list = next_passengers_for_buses_array[bus_index]
                             .clone()
                             .unwrap_or_else(|| {
@@ -543,18 +547,22 @@ pub fn create_station_thread(
                     // Why is this not running on time tick 1?
                     'bus_loading: loop {
                         // For test data, program is stuck in this loop, even though the time step has proceeded to the next one
-                        /*  println!(
+                        println!(
                             "Bus loading loop beginning in station {} at time tick {:?}",
                             current_location.index,
                             *(station_time_tick.lock().unwrap())
-                        ); */
+                        );
                         // sync_to_stations receiver moved before buses_receiver so that this check can run independantly of
                         // other messages.
-                        if let Ok(message) = sync_to_stations_receiver.lock().unwrap().try_recv() {
+                        if let Ok(message) = sync_to_stations_receiver.try_recv() {
                             // By the time this message is received, two time tick iterations have gone by.
                             // I need to prevent the station from going on to a new stage before the increment time tick method is declared
                             let SyncToStationMessages::AdvanceTimeStep(prev_time_tick) = message;
-                            println!("Advance Time tick message received");
+                            println!(
+                                "Advance Time tick message received in station {}",
+                                station_index
+                            );
+                            println!("Time tick: {:?}", station_time_tick.lock().unwrap());
                             // At this point if all the buses have finished their tick, they should be gone from the station
                             let time_tick = station_time_tick.lock().unwrap();
                             println!("Time tick locked on Station bus_loading loop");
@@ -598,17 +606,16 @@ pub fn create_station_thread(
                         if let StationMessages::BusDeparted { bus_index } = received_message {
                             drop(time_tick);
 
+                            // Confirm that the station contains the bus that should be removed
+                            assert!(current_station
+                                .docked_buses
+                                .iter()
+                                .any(|bus| bus.bus_index == bus_index));
+
                             current_station
                                 .docked_buses
                                 .retain(|bus| bus.bus_index != bus_index);
 
-                            // Confirm that the station does not contain the bus that was removed
-                            use std::ops::Not;
-                            assert!(current_station
-                                .docked_buses
-                                .iter()
-                                .any(|bus| bus.bus_index == bus_index)
-                                .not());
                             // How is the bus departure received before going through this?
                             println!(
                                 "Bus {} removed from station {}",
@@ -621,7 +628,10 @@ pub fn create_station_thread(
                     }
                     // bus_loading_first_iteration was set to None before breaking, so it should remain None
                     assert!(current_station.bus_loading_first_iteration.is_none());
-                    println!("Bus Loading Loop finished");
+                    println!(
+                        "Bus Loading Loop finished in station {}",
+                        current_station.location.index
+                    );
                 }
             }
         }

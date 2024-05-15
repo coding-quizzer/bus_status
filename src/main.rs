@@ -102,12 +102,18 @@ fn main() {
 
     let (tx_to_passengers, rx_to_passengers) = mpsc::channel();
 
-    let (tx_stations_to_passengers, rx_stations_to_passengers) = mpsc::channel();
+    let (tx_stations_to_passengers, mut rx_stations_to_passengers) = mpsc::channel();
     let (send_to_station_channels, receive_in_station_channels) =
         initialize_channel_list(GLOBAL_LOCATION_COUNT);
 
-    let (tx_sync_to_stations, rx_sync_to_stations) = mpsc::channel::<SyncToStationMessages>();
-    let sync_to_stations_receiver = Arc::new(Mutex::new(rx_sync_to_stations));
+    let (sender_sync_to_stations_list, receiver_sync_to_stations_list) =
+        initialize_channel_list::<SyncToStationMessages>(GLOBAL_LOCATION_COUNT);
+
+    let receiver_sync_to_stations_list: Vec<_> = receiver_sync_to_stations_list
+        .into_iter()
+        .map(|receiver| Some(receiver))
+        .collect();
+    let sync_to_stations_receiver = Arc::new(Mutex::new(receiver_sync_to_stations_list));
 
     let send_to_station_channels_arc = Arc::new(send_to_station_channels);
     let receive_in_station_channels_arc = Arc::new(Mutex::new(receive_in_station_channels));
@@ -121,7 +127,7 @@ fn main() {
     #[track_caller]
     fn increment_and_drop_time_step(
         mut time_tick: sync::MutexGuard<'_, TimeTick>,
-        station_sender: &mpsc::Sender<SyncToStationMessages>,
+        station_senders: &Vec<mpsc::Sender<SyncToStationMessages>>,
     ) {
         let call_location = std::panic::Location::caller();
         println!("---------- All buses are finished at their stops -----------");
@@ -142,7 +148,7 @@ fn main() {
 
     fn manage_time_tick_increase_for_finished_loading_tick(
         mut current_time_tick: sync::MutexGuard<'_, TimeTick>,
-        station_sender: &mpsc::Sender<SyncToStationMessages>,
+        station_senders: &Vec<mpsc::Sender<SyncToStationMessages>>,
         bus_status_array: &mut [BusThreadStatus; NUM_OF_BUSES],
     ) {
         println!("Bus statuses: {:?}", &bus_status_array);
@@ -155,7 +161,7 @@ fn main() {
                 *status = BusThreadStatus::WaitingForTimeStep;
             }
         }
-        increment_and_drop_time_step(current_time_tick, station_sender);
+        increment_and_drop_time_step(current_time_tick, station_senders);
 
         println!("End of sync loop");
     }
@@ -165,7 +171,7 @@ fn main() {
     let route_sync_location_vec_arc = location_vector_arc.clone();
 
     let route_sync_handle = thread::spawn(move || {
-        let station_sender = tx_sync_to_stations;
+        let station_sender = sender_sync_to_stations_list;
         let passenger_sender = tx_to_passengers;
         let mut bus_status_array = [BusThreadStatus::Uninitialized; NUM_OF_BUSES];
         // Bus that has unloaded passengers/ moving buses
@@ -382,9 +388,11 @@ fn main() {
                         .any(|valid_status| bus_thread_status == valid_status)
                 })) {
                     // This message will only be sent after the bus unloading stage is finished
-                    station_sender
-                        .send(SyncToStationMessages::AdvanceTimeStep(*current_time_tick))
-                        .unwrap();
+                    for location_index in 0..GLOBAL_LOCATION_COUNT {
+                        station_sender[location_index]
+                            .send(SyncToStationMessages::AdvanceTimeStep(*current_time_tick))
+                            .unwrap();
+                    }
                     manage_time_tick_increase_for_finished_loading_tick(
                         current_time_tick,
                         &station_sender,

@@ -291,7 +291,11 @@ impl Bus {
                     }
                     is_offboarding
                 });
-            println!("Outgoing Passengers: {:?}", outgoing_passengers);
+
+            println!(
+                "Bus {} Outgoing Passengers: {:?}",
+                self.bus_index, outgoing_passengers
+            );
             assert_eq!(
                 outgoing_passengers.len(),
                 passenger_current_location_indeces.len(),
@@ -327,6 +331,7 @@ impl Bus {
             drop(current_time_tick);
 
             while !bus_departed {
+                println!("Waiting for station messages");
                 let received_message = station_receiver.recv().unwrap();
                 let current_time_tick = time_tick_mutex.lock().unwrap();
                 match received_message {
@@ -417,7 +422,7 @@ impl Bus {
 
             println!("Onboarding time tick: {onboarding_time_tick}.");
             println!("Current time tick: {current_time_tick}");
-            if onboarding_time_tick == current_time_tick && bus_num.expect("At this point, this cannot be the last bus loction, and thus the bus_num must exist") == self.bus_index {
+            if onboarding_time_tick == current_time_tick && bus_num.expect("At this point, this cannot be the last bus location, and thus the bus_num must exist") == self.bus_index {
               println!("This is the correct time tick and bus");
               if self.passengers.len() >= self.capacity {
                   println!("Passenger Rejected. Bus Overfull");
