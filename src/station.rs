@@ -146,7 +146,7 @@ pub fn get_station_threads(
     station_location_list: &Vec<Location>,
     current_time_tick: &Arc<Mutex<TimeTick>>,
     send_to_bus_channels_arc: &Arc<Vec<Sender<StationToBusMessages>>>,
-    receive_in_station_channels_arc: &Arc<Mutex<Vec<ReceiverWithIndex<StationMessages>>>>,
+    receive_in_station_channels_arc: &Arc<Mutex<Vec<Option<ReceiverWithIndex<StationMessages>>>>>,
     bus_route_vec_arc: &Arc<Mutex<[Vec<BusLocation>; NUM_OF_BUSES]>>,
     passenger_bus_route_arc: &Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>,
     rejected_passengers_pointer: &Arc<Mutex<Vec<Passenger>>>,
@@ -165,6 +165,10 @@ pub fn get_station_threads(
             .take()
             .expect("Station index in sync_to_stations list should still be available")
             .receiver;
+        let station_channel = receive_in_station_channels_arc.clone().lock().unwrap()
+            [station_index]
+            .take()
+            .expect("Station index in station_receivers list should still be available");
         let station_time_tick = current_time_tick.clone();
         let current_location = *location;
         let send_to_bus_channels = send_to_bus_channels_arc.clone();
@@ -179,7 +183,7 @@ pub fn get_station_threads(
             current_location,
             station_time_tick,
             send_to_bus_channels,
-            station_channels,
+            station_channel,
             bus_route_list,
             station_thread_passenger_bus_route_list,
             rejected_passenger_clone,
@@ -195,7 +199,7 @@ pub fn create_station_thread(
     current_location: Location,
     station_time_tick: Arc<Mutex<TimeTick>>,
     send_to_bus_channels: Arc<Vec<Sender<StationToBusMessages>>>,
-    station_channels: Arc<Mutex<Vec<ReceiverWithIndex<StationMessages>>>>,
+    station_channel_receiver: ReceiverWithIndex<StationMessages>,
     bus_route_list: Arc<Mutex<[Vec<BusLocation>; NUM_OF_BUSES]>>,
     station_thread_passenger_bus_route_list: Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>,
     rejected_passenger_clone: Arc<Mutex<Vec<Passenger>>>,
@@ -207,21 +211,20 @@ pub fn create_station_thread(
             current_location,
             &station_thread_passenger_bus_route_list.lock().unwrap(),
         );
-        let current_receiver_with_index = station_channels.lock().unwrap().remove(0);
-        let station_index = current_receiver_with_index.index;
+        let station_index = station_channel_receiver.index;
         println!("Station index: {station_index}");
-        let current_receiver = current_receiver_with_index.receiver;
+        let current_receiver = station_channel_receiver.receiver;
         // Once passengerInit stage is finished, bus_passengers_initialized is set to false, so the loop does not need to run again
         let mut bus_passengers_initialized = false;
 
         loop {
-            // println!(
-            //     "Station {} loop beginning. Time tick: {}",
-            //     station_index, time_tick
-            // );
             // println!("Station {location_index}. time tick: {}", *time_tick);
 
             let time_tick = station_time_tick.lock().unwrap();
+            /* println!(
+                "Station {} loop beginning. Time tick: {:?}",
+                station_index, time_tick
+            ); */
             // Note: It may be a good idea to make sure that stations without passengers are not blocked, but this might work
 
             // time tick is kept by deadlock
@@ -291,6 +294,10 @@ pub fn create_station_thread(
                 }
 
                 TimeTickStage::BusUnloadingPassengers => {
+                    /* println!(
+                        "Station {} running BusUnloadingPassenger timestep.",
+                        station_index
+                    ); */
                     // The previous loading stage should be finished, so bus_loading_first_iteration should be set to none
                     assert!(current_station.bus_loading_first_iteration.is_none());
 
@@ -300,7 +307,7 @@ pub fn create_station_thread(
                         Ok(message) => {
                             // I set up an infinite loop in BusLoading passengers and the break statement was never hit. How did the program get here on time tick 2?
                             println!(
-                                "Station {} received message on BusUnloadingPassengers stage received on time tick {:?}", current_location.index ,time_tick
+                                "Station {} received message {:?} on BusUnloadingPassengers stage received on time tick {:?}", current_location.index , message, time_tick
                             );
                             message
                         }
@@ -323,13 +330,17 @@ pub fn create_station_thread(
                     );
 
                     // On some runs, the received message is BusDeparted, for some reason
-                    // Somehow, the time tick increases between sending the Request Departure message
-                    // and receiving the BusDeparted message
+
+                    // DEBUG: This message is sometimes not received. But it does seem to consistantly be sent. What is happening?
                     if let StationMessages::BusArrived {
                         passengers_onboarding,
                         bus_info,
                     } = received_message
                     {
+                        println!(
+                            "Bus Arrived Message received in station {} from bus {}",
+                            station_index, bus_info.bus_index
+                        );
                         for passenger in passengers_onboarding.clone().iter_mut() {
                             let passenger_location =
                                 passenger.bus_schedule_iterator.next().unwrap();
@@ -341,7 +352,7 @@ pub fn create_station_thread(
                         );
                         current_station.passengers.extend(passengers_onboarding);
                         let bus_index = bus_info.bus_index;
-                        println!("Bus {bus_index} arrived at station {station_index}.");
+                        println!("Bus {bus_index} arrived at station {station_index}. Received from station");
                         current_station.docked_buses.push(bus_info);
                         //FIXME: Two consecutive sends to the same thread without any regulation of timeing
 
@@ -353,6 +364,10 @@ pub fn create_station_thread(
                         send_to_bus_channels[bus_index]
                             .send(StationToBusMessages::FinishedUnloading)
                             .unwrap();
+                        println!(
+                            "Station {} finished unloading bus {} and sent message",
+                            station_index, bus_index
+                        );
                     } else {
                         let time_tick = station_time_tick.lock().unwrap();
 
@@ -513,6 +528,7 @@ pub fn create_station_thread(
                         drop(current_bus_route_list);
                         println!("Current bus route list dropped");
 
+                        // TODO: Deal with passengers without an available route
                         for passenger in passengers_overflowed.clone() {
                             let unavailable_buses = current_station.buses_unavailable.clone();
                             current_station

@@ -105,6 +105,10 @@ fn main() {
     let (tx_stations_to_passengers, mut rx_stations_to_passengers) = mpsc::channel();
     let (send_to_station_channels, receive_in_station_channels) =
         initialize_channel_list(GLOBAL_LOCATION_COUNT);
+    let receive_in_station_channels: Vec<_> = receive_in_station_channels
+        .into_iter()
+        .map(|receiver| Some(receiver))
+        .collect();
 
     let (sender_sync_to_stations_list, receiver_sync_to_stations_list) =
         initialize_channel_list::<SyncToStationMessages>(GLOBAL_LOCATION_COUNT);
@@ -355,6 +359,10 @@ fn main() {
                         .any(|valid_status| bus_thread_status == valid_status)
                 })
             {
+                println!(
+                    "Finished Timestep {:?}. Bus Status Array: {:?}",
+                    current_time_tick, bus_status_array
+                );
                 current_time_tick.increment_time_tick();
                 // If all the buses are moving, only one message will be sent to the sync thread for the whole time tick.
                 // Increment the time tick twice to make up for that
@@ -375,10 +383,10 @@ fn main() {
                         &station_sender,
                         &mut bus_status_array,
                     );
-                    continue;
                 } else {
                     println!("At least one bus was unloading at this time step");
                 }
+                continue;
 
                 // advance_and_drop_time_step(current_time_tick, &station_sender);
             } else if let TimeTickStage::BusLoadingPassengers { .. } = current_time_tick.stage {
@@ -387,6 +395,10 @@ fn main() {
                         .iter()
                         .any(|valid_status| bus_thread_status == valid_status)
                 })) {
+                    println!(
+                        "Finished Timestep {:?}. Bus Status Array: {:?}",
+                        current_time_tick, bus_status_array
+                    );
                     // This message will only be sent after the bus unloading stage is finished
                     for location_index in 0..GLOBAL_LOCATION_COUNT {
                         station_sender[location_index]

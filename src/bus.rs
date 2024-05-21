@@ -320,12 +320,18 @@ impl Bus {
                 bus_index: self.bus_index,
             };
 
+            // Some of the buses send this message, but the message is not received
+
             next_station_sender
                 .send(StationMessages::BusArrived {
                     passengers_onboarding: outgoing_passengers,
                     bus_info: bus_info_for_station,
                 })
                 .unwrap();
+            println!(
+                "Bus {} arrived at station {}. Sent message",
+                self.bus_index, current_location_index
+            );
 
             let mut bus_departed = false;
             drop(current_time_tick);
@@ -367,6 +373,11 @@ impl Bus {
                         }
                     }
                     StationToBusMessages::FinishedUnloading => {
+                        println!(
+                            "Bus {} unloading message received in bus from station",
+                            self.bus_index
+                        );
+                        // This message is not always sent
                         sync_sender
                             .send(BusMessages::AdvanceTimeStepForUnloadedBus {
                                 bus_index: self.bus_index,
