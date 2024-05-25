@@ -331,6 +331,8 @@ pub fn create_station_thread(
 
                     // On some runs, the received message is BusDeparted, for some reason
 
+                    // THe bus keeps leaving and then returning again. The the passengers are not duplicated in the bus and the bus is not duplicated in the station.
+
                     // DEBUG: This message is sometimes not received. But it does seem to consistantly be sent. What is happening?
                     if let StationMessages::BusArrived {
                         passengers_onboarding,
@@ -353,8 +355,15 @@ pub fn create_station_thread(
                         current_station.passengers.extend(passengers_onboarding);
                         let bus_index = bus_info.bus_index;
                         println!("Bus {bus_index} arrived at station {station_index}. Received from station");
+
+                        assert!(!current_station
+                            .docked_buses
+                            .iter()
+                            .any(|station_bus| station_bus == &bus_info));
+
                         current_station.docked_buses.push(bus_info);
-                        //FIXME: Two consecutive sends to the same thread without any regulation of timeing
+
+                        //FIXME: Two consecutive sends to the same thread without any regulation of timing
 
                         // So far, acknowledge arrival doesn't acctually do anything
                         // send_to_bus_channels[bus_index]
@@ -411,8 +420,19 @@ pub fn create_station_thread(
                         &current_station.location.index, &docked_bus_passenger_pairs_iter
                     );
 
+                    let mut docked_bus_passenger_pairs_vec =
+                        docked_bus_passenger_pairs_iter.collect::<Vec<_>>();
+
+                    docked_bus_passenger_pairs_vec
+                        .sort_by(|bus_prev, bus_next| bus_prev.0.cmp(&bus_next.0));
+
+                    let mut docked_bus_passenger_pairs_iter =
+                        docked_bus_passenger_pairs_vec.into_iter();
+
                     let mut next_vec = docked_bus_passenger_pairs_iter.next();
-                    println!("next_vec: {:?}", next_vec);
+                    println!("Station {} next vec: {:?}", station_index, next_vec);
+
+                    // Fix me: This relies on docked_bus_passenger_pairs_iter to be sorted, but that is not a guarantee
                     next_passengers_for_buses_array = next_passengers_for_buses_array
                         .into_iter()
                         .enumerate()
@@ -432,6 +452,11 @@ pub fn create_station_thread(
                         .collect::<Vec<_>>()
                         .try_into()
                         .unwrap();
+
+                    println!(
+                        "station {} next passengers for buses array: {:?}",
+                        station_index, next_passengers_for_buses_array
+                    );
 
                     // dbg!(&next_passengers_for_buses_array);
 
@@ -493,6 +518,11 @@ pub fn create_station_thread(
                         let remaining_capacity = bus.capacity_remaining;
                         // The index does not exist in the array - even though the index should be of a docked bus
                         // let passengers_overflowed: Vec<_> = todo!();
+
+                        println!(
+                            "Next passengers for buses, {:?}. Bus index: {}",
+                            next_passengers_for_buses_array, bus_index,
+                        );
 
                         // FIXME: The bus here is not always docked
                         // Usually time tick misfunction

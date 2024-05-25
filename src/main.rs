@@ -804,14 +804,25 @@ fn main() {
                     bus_index: simulated_bus.bus_num,
                 })
                 .unwrap(); */
+
+            // This works for inital time tick because loop will be skipped for TimeTickStage::PassengerInit anyway
+            let mut previous_time_tick = TimeTick {
+                number: 0,
+                stage: TimeTickStage::PassengerInit,
+            };
             loop {
                 // println!("Bus {} Loop Beginning", simulated_bus.bus_num);
                 let current_time_tick = current_time_tick_clone.lock().unwrap();
                 // println!("Bus loop beginning. time tick: {current_time_tick}");
-                if (*current_time_tick).stage == TimeTickStage::PassengerInit {
+
+                // Only run each time tick twice. Also the PassengerInit stage does not involve the buses
+                if *current_time_tick == previous_time_tick
+                    || (*current_time_tick).stage == TimeTickStage::PassengerInit
+                {
                     drop(current_time_tick);
                     continue;
                 }
+                previous_time_tick = *current_time_tick;
                 // println!(
                 //     // Note, only one bus ever prints this at a time
                 //     "Bus {} bus route loop. Time tick: {}",

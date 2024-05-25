@@ -137,6 +137,13 @@ impl Bus {
     }
 
     pub fn add_passenger(&mut self, passenger: &Passenger) {
+        // Ensure the passenger is not already on the bus
+        assert!(
+            !(&self
+                .passengers
+                .iter()
+                .any(|bus_passenger| bus_passenger == passenger))
+        );
         self.passengers.push(passenger.clone());
     }
 
@@ -227,7 +234,10 @@ impl Bus {
         time_tick_mutex: &std::sync::Arc<std::sync::Mutex<TimeTick>>,
     ) {
         let current_time_tick = time_tick_mutex.lock().unwrap();
-        println!("time tick: {:?}", current_time_tick);
+        println!(
+            "Bus {} update time tick: {:?}",
+            self.bus_index, current_time_tick
+        );
         println!("Bus movement: {:?}", self.status.movement);
         if let MovementState::Moving(distance) = self.status.movement {
             println!("Moving bus update");
@@ -322,6 +332,8 @@ impl Bus {
 
             // Some of the buses send this message, but the message is not received
 
+            // This message is sent more times than it should
+
             next_station_sender
                 .send(StationMessages::BusArrived {
                     passengers_onboarding: outgoing_passengers,
@@ -399,6 +411,7 @@ impl Bus {
                             .unwrap_or_else(|error| {
                                 panic!("Error from bus {}: {}", self.bus_index, error)
                             });
+                        self.leave_for_next_location();
                         bus_departed = true;
                     }
                 }
