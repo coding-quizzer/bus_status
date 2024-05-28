@@ -9,6 +9,7 @@ use std::vec;
 // use bus_system::Location;
 pub use crate::location::BusLocation;
 use serde::{Deserialize, Serialize};
+use std::ops::ControlFlow;
 use std::sync::mpsc::{Receiver, Sender};
 
 use crate::location::Location;
@@ -85,11 +86,6 @@ pub struct Bus {
     pub bus_index: usize,
 }
 
-// manually impliment Debug, so that the iterator field can be skipped, eliminating the complicaiton of requiring
-// the iterator to impliment Debug
-
-// let passengers take the most efficient route
-
 enum UpdateOutput {
     // WrongTimeTick,
     MovingBus,
@@ -136,6 +132,7 @@ impl Bus {
         Some(())
     }
 
+    // FIXME: same passenger is sometimes added to the bus twice. Why?
     pub fn add_passenger(&mut self, passenger: &Passenger) {
         // Ensure the passenger is not already on the bus
         assert!(
@@ -232,7 +229,7 @@ impl Bus {
         station_receiver: &Receiver<StationToBusMessages>,
         sync_sender: &Sender<BusMessages>,
         time_tick_mutex: &std::sync::Arc<std::sync::Mutex<TimeTick>>,
-    ) {
+    ) -> ControlFlow<()> {
         let current_time_tick = time_tick_mutex.lock().unwrap();
         println!(
             "Bus {} update time tick: {:?}",
@@ -248,7 +245,7 @@ impl Bus {
 
             // Only manage movement state during bus_unloading_passengers stage so that the bus only moves once
             if let TimeTickStage::BusLoadingPassengers { .. } = current_time_tick.stage {
-                return;
+                return ControlFlow::Continue(());
             }
             if distance > 1 {
                 println!("Bus {} distance to next stop: {}", self.bus_index, distance);
@@ -269,7 +266,7 @@ impl Bus {
                 "Bus {} sent message to sync thread for moving bus",
                 self.bus_index
             );
-            return;
+            return ControlFlow::Continue(());
         } else {
             let current_location_index = self.current_location.unwrap().index;
             let next_station_sender = &station_senders[current_location_index];
@@ -411,17 +408,21 @@ impl Bus {
                             .unwrap_or_else(|error| {
                                 panic!("Error from bus {}: {}", self.bus_index, error)
                             });
-                        self.leave_for_next_location();
+
+                        let leave_result = self.leave_for_next_location();
+                        if leave_result.is_none() {
+                            // Bus should be empty
+                            assert_eq!(self.passengers.len(), 0);
+                            println!("Bus number {} is finished", self.bus_index);
+                            self.status.movement = MovementState::Finished;
+                            return ControlFlow::Break(());
+                        }
                         bus_departed = true;
                     }
                 }
             }
+            ControlFlow::Continue(())
         }
-        // TODO: Uncomment when I the rest of the cycle is complete
-
-        /* assert_eq!(self.passengers.len(), 0);
-        println!("Bus number {} is finished", self.bus_index);
-        self.status.movement = MovementState::Finished; */
     }
 
     pub fn take_passengers(

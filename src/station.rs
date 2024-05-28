@@ -423,6 +423,7 @@ pub fn create_station_thread(
                     let mut docked_bus_passenger_pairs_vec =
                         docked_bus_passenger_pairs_iter.collect::<Vec<_>>();
 
+                    // TODO: Improve adding to the list so that it does not need to be sorted
                     docked_bus_passenger_pairs_vec
                         .sort_by(|bus_prev, bus_next| bus_prev.0.cmp(&bus_next.0));
 
@@ -524,7 +525,6 @@ pub fn create_station_thread(
                             next_passengers_for_buses_array, bus_index,
                         );
 
-                        // FIXME: The bus here is not always docked
                         // Usually time tick misfunction
                         let mut new_passenger_list = next_passengers_for_buses_array[bus_index]
                             .clone()
