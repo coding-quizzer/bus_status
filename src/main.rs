@@ -7,6 +7,7 @@ use bus_system::thread::{
 };
 use bus_system::{generate_bus_route_locations_with_distances, generate_random_passenger_list};
 use bus_system::{initialize_channel_list, initialize_location_list};
+use std::ops::ControlFlow;
 use std::{
     collections::VecDeque,
     path::Path,
@@ -840,12 +841,16 @@ fn main() {
 
                 drop(current_time_tick);
 
-                simulated_bus.update(
+                let bus_update_output = simulated_bus.update(
                     station_senders_clone.as_ref(),
                     &bus_receiver,
                     &sender,
                     &current_time_tick_clone,
                 );
+
+                if bus_update_output == ControlFlow::Break(()) {
+                    break;
+                }
             }
         });
         handle_list.push(handle);
