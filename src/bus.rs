@@ -275,7 +275,7 @@ impl Bus {
             let mut current_passenger_location_index: usize = 0;
             // Remove passengers getting off at
 
-            // Make into a sub function
+            // TODO: Make into a sub function
             let (outgoing_passengers, remaining_passengers): (Vec<_>, Vec<_>) =
                 self.passengers.clone().into_iter().partition(|passenger| {
                     let is_offboarding = passenger
@@ -411,8 +411,17 @@ impl Bus {
 
                         let leave_result = self.leave_for_next_location();
                         if leave_result.is_none() {
+                            // FIXME: The bus still contains all the passengers that got on it. None have exited the bus,
+                            // event though they should have on previous stops
                             // Bus should be empty
-                            assert_eq!(self.passengers.len(), 0);
+                            assert_eq!(
+                                self.passengers.len(),
+                                0,
+                                "Bus {} has {} passengers remaining. It should be empty. Passengers: {:#?}",
+                                self.bus_index,
+                                self.passengers.len(),
+                                self.passengers
+                            );
                             println!("Bus number {} is finished", self.bus_index);
                             self.status.movement = MovementState::Finished;
                             return ControlFlow::Break(());

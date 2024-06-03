@@ -1,3 +1,6 @@
 Make sure buses are empty when they are finished.
 Make sure overflow passengers are dealt with
 Fix duplicate passenger issue
+
+Deal with passengers that have no where to go
+Add visited locations to visited locations list
