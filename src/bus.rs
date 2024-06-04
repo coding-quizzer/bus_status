@@ -303,6 +303,10 @@ impl Bus {
                 "Bus {} Outgoing Passengers: {:?}",
                 self.bus_index, outgoing_passengers
             );
+            println!(
+                "Bus {} Remaining Passengers: {:?}",
+                self.bus_index, remaining_passengers
+            );
             assert_eq!(
                 outgoing_passengers.len(),
                 passenger_current_location_indeces.len(),
@@ -320,6 +324,10 @@ impl Bus {
             //         .collect();
 
             self.passengers = remaining_passengers;
+            println!(
+                "New Passengers list for Bus {}: {:#?}",
+                self.bus_index, self.passengers
+            );
             let current_passenger_count = self.passengers.len();
             let capacity_remaining = self.capacity - current_passenger_count;
             let bus_info_for_station = SendableBus {

@@ -433,7 +433,7 @@ pub fn create_station_thread(
                     let mut next_vec = docked_bus_passenger_pairs_iter.next();
                     println!("Station {} next vec: {:?}", station_index, next_vec);
 
-                    // Fix me: This relies on docked_bus_passenger_pairs_iter to be sorted, but that is not a guarantee
+                    // Add empty arrays at the indeces of buses docked at the station
                     next_passengers_for_buses_array = next_passengers_for_buses_array
                         .into_iter()
                         .enumerate()
@@ -462,15 +462,15 @@ pub fn create_station_thread(
                     // dbg!(&next_passengers_for_buses_array);
 
                     println!(
-                        "Station {} Passengers: {:?}",
+                        "Station {} Passengers: {:#?}",
                         station_index, current_station.passengers
                     );
 
                     // Somehow, bus needs to send passengers to currently docked buses
 
                     // TODO: Use a more efficient method than partition. Also, remove the clone, so peek actully gives an advantage.
-                    // Why does passengers_for_next_destionation have no elements? At this point, pretty much all the passengers should have more stations to stop at. Shouldn't they be added to that list?
-                    // I think I fixed this when I corrected the
+                    // I feel like there may not be enough cases taken in consideration
+                    // Some passengers that are arrived and have this as the final destination are still listed under passengers_for_next_destination, This filter is not working correctly
                     let (passengers_for_next_destination, arrived_passengers): (Vec<_>, Vec<_>) =
                         current_station
                             .passengers
@@ -478,14 +478,15 @@ pub fn create_station_thread(
                             .partition(|passenger| {
                                 passenger.bus_schedule_iterator.clone().peek().is_some()
                             });
-                    // println!("Passengers for next destination: {:?}", &passengers_for_next_destination);
+                    // println!("Passengers for next destination: {:?}", &passengers_for_next_destination);;
+                    println!("Arrived Passengers: {:#?}", arrived_passengers);
                     let mut remaining_passengers: Vec<Passenger> = Vec::new();
                     // overflowed passengers have their own list so that they can be recalculated
                     let mut passengers_overflowed: Vec<Passenger> = Vec::new();
                     // println!("Arrived Passengers: {:?}", &arrived_passengers);
                     println!(
-                        "Passengers for next destination: {:?}",
-                        passengers_for_next_destination
+                        "Station {} Passengers for next destination: {:#?}",
+                        station_index, passengers_for_next_destination
                     );
                     for passenger in passengers_for_next_destination {
                         println!("passenger_loop");
@@ -543,8 +544,11 @@ pub fn create_station_thread(
                         } else {
                             passengers_to_send.append(&mut new_passenger_list);
                         }
-
-                        println!("Passengers to send: {:?}", passengers_to_send);
+                        // FIXME: Some of these passengers are sent to the same bus both from the beginning station and from the end station
+                        println!(
+                            "Passengers to send from station {}: {:#?}",
+                            station_index, passengers_to_send,
+                        );
 
                         send_to_bus_channels[bus_index]
                             .send(StationToBusMessages::SendPassengers(passengers_to_send))
