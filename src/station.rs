@@ -461,9 +461,14 @@ pub fn create_station_thread(
 
                     // dbg!(&next_passengers_for_buses_array);
 
+                    // FIXME: Why are some passengers at the station when they should be on the bus?
+                    // (For example, passengers going from station 3 to station 4 should be picked up
+                    // from station 3 at time tick 2, but are still in station 3 at time tick 4)
+
+                    // I don't think dropped off passengers are removed from the station - that's an obvious problem
                     println!(
                         "Station {} Passengers: {:#?}",
-                        station_index, current_station.passengers
+                        current_station.location.index, current_station.passengers
                     );
 
                     // Somehow, bus needs to send passengers to currently docked buses
@@ -476,14 +481,34 @@ pub fn create_station_thread(
                             .passengers
                             .iter_mut()
                             .partition(|passenger| {
-                                passenger.bus_schedule_iterator.clone().peek().is_some()
+                                let mut passenger_iterator_clone =
+                                    passenger.bus_schedule_iterator.clone();
+                                // The next location should be this station, so the location after that needs to be checked
+                                // This will be some, given the next location represents the current station
+                                let next_location = passenger_iterator_clone.next().unwrap();
+                                println!("Passenger schedule: {:#?}", passenger.bus_schedule);
+                                println!("Passenger, {:#?}", passenger);
+                                println!("Current location number: {}", station_index);
+                                println!("Next location {:#?}", next_location);
+
+                                next_location.bus_num.is_some()
                             });
+                    // ensure this is actually arrived passengers have actually arrived at the correct destination
+                    println!(
+                        "Time_tick: {}, Station {} Arrived Passengers: {:#?}",
+                        time_tick.number, station_index, arrived_passengers
+                    );
+                    assert!(arrived_passengers
+                        .iter()
+                        .all(|passenger| passenger.destination_location == current_location));
+
                     // println!("Passengers for next destination: {:?}", &passengers_for_next_destination);;
-                    println!("Arrived Passengers: {:#?}", arrived_passengers);
+
                     let mut remaining_passengers: Vec<Passenger> = Vec::new();
                     // overflowed passengers have their own list so that they can be recalculated
                     let mut passengers_overflowed: Vec<Passenger> = Vec::new();
                     // println!("Arrived Passengers: {:?}", &arrived_passengers);
+                    // FIXME: Some passengers are showing up at the station when they should be on the bus. How does this work?
                     println!(
                         "Station {} Passengers for next destination: {:#?}",
                         station_index, passengers_for_next_destination
@@ -491,7 +516,7 @@ pub fn create_station_thread(
                     for passenger in passengers_for_next_destination {
                         println!("passenger_loop");
                         // Does this work, or will this be the next next location?
-                        let current_location = passenger.bus_schedule_iterator.peek().unwrap();
+                        let current_location = passenger.bus_schedule_iterator.next().unwrap();
                         let next_bus_index = current_location.bus_num.expect(
                           "Since there is a location after this, the next bus index should not be null",
                             );
@@ -501,10 +526,12 @@ pub fn create_station_thread(
                         {
                             passengers.push(passenger.clone());
                         } else {
-                            remaining_passengers.push(passenger.clone())
+                            remaining_passengers.push(passenger.clone());
                         }
                     }
+
                     dbg!(&next_passengers_for_buses_array);
+                    current_station.passengers = remaining_passengers;
 
                     // End of newly pasted code
 
