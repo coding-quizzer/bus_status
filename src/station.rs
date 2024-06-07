@@ -351,7 +351,7 @@ pub fn create_station_thread(
                             station_index, bus_info.bus_index
                         );
                         for passenger in passengers_onboarding.iter_mut() {
-                            // DEBUG: Why does the later clone of the bus_schedule_iterator have the current location for the next value? That value should be used up already
+                            // TODO: These opperations might be redundant, or should be done with Station::add_passenger. Explore this further
                             let passenger_location =
                                 passenger.bus_schedule_iterator.next().unwrap();
                             passenger.current_location = passenger_location.stop_location.into();
