@@ -335,9 +335,12 @@ impl Bus {
                 bus_index: self.bus_index,
             };
 
-            // Some of the buses send this message, but the message is not received
+            // outgoing_passengers is always empty. Why?
 
-            // This message is sent more times than it should
+            println!(
+                "Bus {} sending Passengers: {:?}",
+                self.bus_index, outgoing_passengers
+            );
 
             next_station_sender
                 .send(StationMessages::BusArrived {

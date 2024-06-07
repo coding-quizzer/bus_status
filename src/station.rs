@@ -85,6 +85,13 @@ impl Station {
         println!("Passengers added.");
         new_passenger.bus_schedule_iterator = new_bus_schedule.clone().into_iter().peekable();
         new_passenger.bus_schedule = new_bus_schedule;
+
+        let first_passenger_location = new_passenger
+            .bus_schedule_iterator
+            .next()
+            .expect("If the passenger has a route, the passenger will a first location");
+        new_passenger.next_bus_num = first_passenger_location.bus_num;
+        // The current location does not need setting because it is already set
         self.passengers.push(new_passenger);
         Ok(())
     }
@@ -335,7 +342,7 @@ pub fn create_station_thread(
 
                     // DEBUG: This message is sometimes not received. But it does seem to consistantly be sent. What is happening?
                     if let StationMessages::BusArrived {
-                        passengers_onboarding,
+                        mut passengers_onboarding,
                         bus_info,
                     } = received_message
                     {
@@ -343,13 +350,16 @@ pub fn create_station_thread(
                             "Bus Arrived Message received in station {} from bus {}",
                             station_index, bus_info.bus_index
                         );
-                        for passenger in passengers_onboarding.clone().iter_mut() {
+                        for passenger in passengers_onboarding.iter_mut() {
+                            // DEBUG: Why does the later clone of the bus_schedule_iterator have the current location for the next value? That value should be used up already
                             let passenger_location =
                                 passenger.bus_schedule_iterator.next().unwrap();
+                            passenger.current_location = passenger_location.stop_location.into();
+                            passenger.next_bus_num = passenger_location.bus_num;
                             passenger.archived_stop_list.push(passenger_location);
                         }
                         println!(
-                            "Passengers Onboarding to bus {:?}: {:?}",
+                            "Passengers Onboarding from bus {:?}: {:?}",
                             bus_info.bus_index, passengers_onboarding
                         );
                         current_station.passengers.extend(passengers_onboarding);
@@ -483,15 +493,16 @@ pub fn create_station_thread(
                             .partition(|passenger| {
                                 let mut passenger_iterator_clone =
                                     passenger.bus_schedule_iterator.clone();
-                                // The next location should be this station, so the location after that needs to be checked
+                                // The next location will be the next station, which should be None if this is the last one
                                 // This will be some, given the next location represents the current station
-                                let next_location = passenger_iterator_clone.next().unwrap();
+                                let next_location = passenger_iterator_clone.next();
                                 println!("Passenger schedule: {:#?}", passenger.bus_schedule);
                                 println!("Passenger, {:#?}", passenger);
                                 println!("Current location number: {}", station_index);
                                 println!("Next location {:#?}", next_location);
+                                println!("Time tick: {:?}", *time_tick);
 
-                                next_location.bus_num.is_some()
+                                next_location.is_some()
                             });
                     // ensure this is actually arrived passengers have actually arrived at the correct destination
                     println!(
@@ -516,9 +527,8 @@ pub fn create_station_thread(
                     for passenger in passengers_for_next_destination {
                         println!("passenger_loop");
                         // Does this work, or will this be the next next location?
-                        let current_location = passenger.bus_schedule_iterator.next().unwrap();
-                        let next_bus_index = current_location.bus_num.expect(
-                          "Since there is a location after this, the next bus index should not be null",
+                        let next_bus_index = passenger.next_bus_num.expect(
+                          "Since there is a location after this, the next bus index should not be None",
                             );
 
                         if let Some(ref mut passengers) =

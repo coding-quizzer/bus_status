@@ -23,6 +23,7 @@ pub struct Passenger {
     pub bus_schedule: Vec<PassengerOnboardingBusSchedule>,
     // Add a peekable iterator for the current location
     pub archived_stop_list: Vec<PassengerOnboardingBusSchedule>,
+    pub next_bus_num: Option<usize>,
 
     pub bus_schedule_iterator: std::iter::Peekable<vec::IntoIter<PassengerOnboardingBusSchedule>>,
 }
@@ -35,6 +36,7 @@ impl std::fmt::Debug for Passenger {
             .field("passed_stops", &self.passed_stops)
             .field("bus_schedule", &self.bus_schedule)
             .field("archived_stop_list", &self.archived_stop_list)
+            .field("next_bus_num", &self.next_bus_num)
             .finish()
     }
 }
@@ -64,6 +66,7 @@ impl Passenger {
             destination_location,
             passed_stops: 0,
             bus_schedule,
+            next_bus_num: None,
             archived_stop_list: Vec::new(),
             bus_schedule_iterator: bus_schedule_iter,
         }

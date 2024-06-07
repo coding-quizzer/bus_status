@@ -110,6 +110,7 @@ impl From<SerializedPassenger> for Passenger {
             passed_stops: 0,
             bus_schedule,
             archived_stop_list: Vec::new(),
+            next_bus_num: None,
             bus_schedule_iterator,
         }
     }
@@ -125,6 +126,7 @@ impl From<Passenger> for SerializedPassenger {
             bus_schedule: _bus_schedule,
             archived_stop_list: _,
             bus_schedule_iterator: _,
+            next_bus_num: _,
         } = passenger;
 
         SerializedPassenger {
