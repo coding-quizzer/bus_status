@@ -4,4 +4,3 @@ Make sure overflow passengers are dealt with
 
 Deal with passengers that have nowhere to go
 Add visited locations to visited locations list
-Ensure passengers are actually traveling from the bus to the station - or how they are coming ot the station (All printed bus messages with passengers are empty)
