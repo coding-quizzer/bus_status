@@ -176,7 +176,7 @@ fn main() {
     let route_sync_location_vec_arc = location_vector_arc.clone();
 
     let route_sync_handle = thread::spawn(move || {
-        let station_sender = sender_sync_to_stations_list;
+        let station_senders = sender_sync_to_stations_list;
         let passenger_sender = tx_to_passengers;
         let mut bus_status_array = [BusThreadStatus::Uninitialized; NUM_OF_BUSES];
         // Bus that has unloaded passengers/ moving buses
@@ -326,6 +326,12 @@ fn main() {
             if finished_buses >= NUM_OF_BUSES {
                 let mut program_end = sync_handle_program_end_clone.lock().unwrap();
                 *program_end = true;
+                for sender in station_senders {
+                    sender
+                        .send(SyncToStationMessages::BusRoutesFinished)
+                        .unwrap();
+                }
+
                 println!("Program Complete");
                 break;
             }
@@ -381,7 +387,7 @@ fn main() {
                     // to send the next message
                     manage_time_tick_increase_for_finished_loading_tick(
                         current_time_tick,
-                        &station_sender,
+                        &station_senders,
                         &mut bus_status_array,
                     );
                 } else {
@@ -402,13 +408,13 @@ fn main() {
                     );
                     // This message will only be sent after the bus unloading stage is finished
                     for location_index in 0..GLOBAL_LOCATION_COUNT {
-                        station_sender[location_index]
+                        station_senders[location_index]
                             .send(SyncToStationMessages::AdvanceTimeStep(*current_time_tick))
                             .unwrap();
                     }
                     manage_time_tick_increase_for_finished_loading_tick(
                         current_time_tick,
-                        &station_sender,
+                        &station_senders,
                         &mut bus_status_array,
                     );
                     continue;

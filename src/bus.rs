@@ -434,6 +434,11 @@ impl Bus {
                                 self.passengers
                             );
                             println!("Bus number {} is finished", self.bus_index);
+                            sync_sender
+                                .send(BusMessages::BusFinished {
+                                    bus_index: self.bus_index,
+                                })
+                                .unwrap();
                             self.status.movement = MovementState::Finished;
                             return ControlFlow::Break(());
                         }

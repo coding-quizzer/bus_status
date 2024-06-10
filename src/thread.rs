@@ -39,6 +39,7 @@ pub enum BusMessages {
 #[derive(Debug)]
 pub enum SyncToStationMessages {
     AdvanceTimeStep(crate::TimeTick),
+    BusRoutesFinished,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

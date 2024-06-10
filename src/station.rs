@@ -157,6 +157,7 @@ pub fn get_station_threads(
     bus_route_vec_arc: &Arc<Mutex<[Vec<BusLocation>; NUM_OF_BUSES]>>,
     passenger_bus_route_arc: &Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>,
     rejected_passengers_pointer: &Arc<Mutex<Vec<Passenger>>>,
+
     tx_stations_to_passengers: Sender<StationToPassengersMessages>,
     mut rx_sync_to_stations_list: Arc<Mutex<Vec<Option<ReceiverWithIndex<SyncToStationMessages>>>>>,
 ) -> Vec<JoinHandle<()>> {
@@ -224,7 +225,16 @@ pub fn create_station_thread(
         // Once passengerInit stage is finished, bus_passengers_initialized is set to false, so the loop does not need to run again
         let mut bus_passengers_initialized = false;
 
-        loop {
+        'main: loop {
+            if let Ok(SyncToStationMessages::BusRoutesFinished) =
+                sync_to_stations_receiver.try_recv()
+            {
+                println!(
+                    "All buses finished message received in station {}",
+                    station_index
+                );
+                break;
+            }
             // println!("Station {location_index}. time tick: {}", *time_tick);
 
             let time_tick = station_time_tick.lock().unwrap();
@@ -641,10 +651,12 @@ pub fn create_station_thread(
                         );
                         // sync_to_stations receiver moved before buses_receiver so that this check can run independantly of
                         // other messages.
-                        if let Ok(message) = sync_to_stations_receiver.try_recv() {
+                        if let Ok(SyncToStationMessages::AdvanceTimeStep(prev_time_tick)) =
+                            sync_to_stations_receiver.try_recv()
+                        {
                             // By the time this message is received, two time tick iterations have gone by.
                             // I need to prevent the station from going on to a new stage before the increment time tick method is declared
-                            let SyncToStationMessages::AdvanceTimeStep(prev_time_tick) = message;
+
                             println!(
                                 "Advance Time tick message received in station {}",
                                 station_index
