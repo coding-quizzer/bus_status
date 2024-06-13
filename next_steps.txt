@@ -1,6 +1,40 @@
+Fix Problems
 ✅ Make sure buses are empty when they are finished.
 Make sure overflow passengers are dealt with
 ✅ Fix duplicate passenger issue
-
+✅ Get Program to run to the end
 Deal with passengers that have nowhere to go
 Add visited locations to visited locations list
+
+Add features/Experiment
+  Customizable bus size (should be =)
+  Allow passengers to enter the system mid-program
+  Convert time tick to a message
+
+  
+
+Refactoring
+
+Tests
+  Create tests ensuring all the passengers get to their destination
+  Perhaps a whole bunch of passengers with the same route with a whole bunch of buses with the same route
+   - make sure they all go to the same destination
+  Testing Engine
+    - use command arguments
+
+  Write a list of tests
+
+  Tests - things to check
+    current asserts
+      - passengers are never added to a station more than once
+      - finished buses have no passengers remaining
+      - invalid locations in the input data are rejected
+      - all the passengers are accounted for -- passengers never disappear from the system
+      - a bus neverenters a station that it is already docked at (no duplicate buses in the same station)
+      - when a passenger arrives at their final destination, that destination will always be the location they want to get to (or trapped in the station if no buses are available to take them further)
+      - any time a bus needs to depart from a particular station, the bus was already at that station in the first place
+
+    Other tests
+    - when a passenger transfers between buses, the passenger is removed from the bus and the station and is on the desired bus
+    - overflowed passengers recalculate their schedule (their is currently a unit test for the schedule maker that accounts for overflowed buses)
+    - after a bus is full, passengers still at the station do not have a schedule that requires taking that bus on that time tick

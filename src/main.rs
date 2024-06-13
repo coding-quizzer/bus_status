@@ -106,10 +106,8 @@ fn main() {
     let (tx_stations_to_passengers, mut rx_stations_to_passengers) = mpsc::channel();
     let (send_to_station_channels, receive_in_station_channels) =
         initialize_channel_list(GLOBAL_LOCATION_COUNT);
-    let receive_in_station_channels: Vec<_> = receive_in_station_channels
-        .into_iter()
-        .map(|receiver| Some(receiver))
-        .collect();
+    let receive_in_station_channels: Vec<_> =
+        receive_in_station_channels.into_iter().map(Some).collect();
 
     let (sender_sync_to_stations_list, receiver_sync_to_stations_list) =
         initialize_channel_list::<SyncToStationMessages>(GLOBAL_LOCATION_COUNT);

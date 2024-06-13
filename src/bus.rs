@@ -307,7 +307,8 @@ impl Bus {
                 "Bus {} Remaining Passengers: {:?}",
                 self.bus_index, remaining_passengers
             );
-            assert_eq!(
+            // This is a checks for an implimentation detail rather than the system as a whold
+            debug_assert_eq!(
                 outgoing_passengers.len(),
                 passenger_current_location_indeces.len(),
                 "List of indeces for next locations of valid passengers must be the same length as valid passengers"

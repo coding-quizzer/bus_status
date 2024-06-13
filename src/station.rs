@@ -315,6 +315,8 @@ pub fn create_station_thread(
                         "Station {} running BusUnloadingPassenger timestep.",
                         station_index
                     ); */
+
+                    // Implimentation
                     // The previous loading stage should be finished, so bus_loading_first_iteration should be set to none
                     assert!(current_station.bus_loading_first_iteration.is_none());
 
