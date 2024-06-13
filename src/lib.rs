@@ -2,6 +2,7 @@ pub mod bus;
 pub mod consts;
 pub mod data;
 pub mod location;
+pub mod main_loop;
 pub mod passenger;
 pub mod station;
 pub mod thread;

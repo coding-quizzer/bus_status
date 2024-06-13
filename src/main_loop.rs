@@ -1,69 +1,31 @@
-use bus_system::initialize_location_list;
-use bus_system::{generate_bus_route_locations_with_distances, generate_random_passenger_list};
-use std::path::Path;
+use crate::bus::Bus;
+use crate::consts::{
+    BUS_CAPACITY, GLOBAL_LOCATION_COUNT, GLOBAL_PASSENGER_COUNT, NUM_OF_BUSES, WRITE_JSON,
+};
+use crate::data;
+use crate::data::InputDataStructure;
+use crate::initialize_channel_list;
+use crate::location::{BusLocation, PassengerBusLocation};
+use crate::station;
+use crate::thread::{
+    BusMessages, BusThreadStatus, StationMessages, StationToPassengersMessages,
+    SyncToStationMessages,
+};
+use crate::{Location, Passenger};
+use crate::{TimeTick, TimeTickStage};
 
-use bus_system::bus::BusLocation;
-use bus_system::consts::*;
-use bus_system::data::{self, InputDataStructure};
-use bus_system::location::Location;
-use bus_system::main_loop::main_loop;
-
-fn main() {
-    let initial_data: InputDataStructure = if READ_JSON {
-        data::read_data_from_file(Path::new("bus_route_data.json")).unwrap()
-    } else {
-        let bus_routes = std::array::from_fn(|_| Vec::new());
-        // bus_routes is only used if READ_JSON
-        InputDataStructure {
-            bus_routes,
-            passengers: Vec::new(),
-            location_vector: Vec::new(),
-        }
-    };
-
-    let InputDataStructure {
-        bus_routes,
-        passengers,
-        location_vector,
-    } = initial_data;
-
-    let location_vector: Vec<Location> = if READ_JSON {
-        location_vector
-    } else {
-        initialize_location_list(GLOBAL_LOCATION_COUNT)
-    };
-
-    let total_passenger_list = if READ_JSON {
-        passengers
-            .into_iter()
-            .map(|passenger| passenger.into())
-            .collect()
-    } else {
-        generate_random_passenger_list(GLOBAL_PASSENGER_COUNT, &location_vector).unwrap()
-    };
-
-    let mut bus_route_array: [Vec<BusLocation>; NUM_OF_BUSES] = std::array::from_fn(|_| Vec::new());
-    if READ_JSON {
-        bus_route_array = bus_routes;
-    } else {
-        for bus_route in bus_route_array.iter_mut() {
-            let next_bus_route = generate_bus_route_locations_with_distances(
-                &location_vector,
-                NUM_STOPS_PER_BUS,
-                MAX_LOCATION_DISTANCE,
-            );
-
-            *bus_route = next_bus_route.unwrap();
-        }
-    }
-
-    // arguments: location vector: Vec<Location>, total_passenger_list: Vec<Passenger>, bus_route_array: [Vec<BusLocation>, NUM_OF_BUSES]
-    main_loop(location_vector, total_passenger_list, bus_route_array);
-    // beginning of main game loop
-    /* let passenger_bus_route_list: Vec<_> = bus_route_array
+use std::collections::VecDeque;
+use std::ops::ControlFlow;
+use std::sync::{self, mpsc, Arc, Mutex};
+pub fn main_loop(
+    location_vector: Vec<Location>,
+    total_passenger_list: Vec<Passenger>,
+    bus_route_array: [Vec<BusLocation>; NUM_OF_BUSES],
+) {
+    let passenger_bus_route_list: Vec<_> = bus_route_array
         .clone()
         .into_iter()
-        .map(convert_bus_route_list_to_passenger_bus_route_list)
+        .map(crate::convert_bus_route_list_to_passenger_bus_route_list)
         .collect();
 
     let rejected_passengers_pointer = Arc::new(Mutex::new(Vec::new()));
@@ -95,7 +57,7 @@ fn main() {
 
     let (tx_stations_to_passengers, mut rx_stations_to_passengers) = mpsc::channel();
     let (send_to_station_channels, receive_in_station_channels) =
-        initialize_channel_list(GLOBAL_LOCATION_COUNT);
+        crate::initialize_channel_list(GLOBAL_LOCATION_COUNT);
     let receive_in_station_channels: Vec<_> =
         receive_in_station_channels.into_iter().map(Some).collect();
 
@@ -163,7 +125,7 @@ fn main() {
     let route_sync_passenger_list_arc = passenger_list_pointer.clone();
     let route_sync_location_vec_arc = location_vector_arc.clone();
 
-    let route_sync_handle = thread::spawn(move || {
+    let route_sync_handle = std::thread::spawn(move || {
         let station_senders = sender_sync_to_stations_list;
         let passenger_sender = tx_to_passengers;
         let mut bus_status_array = [BusThreadStatus::Uninitialized; NUM_OF_BUSES];
@@ -294,8 +256,11 @@ fn main() {
                         passengers: passenger_list,
                         location_vector: location_vector.clone(),
                     };
-                    data::write_data_to_file(json_structure, Path::new("bus_route_data.json"))
-                        .unwrap();
+                    data::write_data_to_file(
+                        json_structure,
+                        std::path::Path::new("bus_route_data.json"),
+                    )
+                    .unwrap();
                 }
                 println!(
                     "All Buses Initialized. Time tick 0 message: {:?}",
@@ -431,7 +396,7 @@ fn main() {
     let passenger_thread_time_tick_clone = current_time_tick.clone();
     let passenger_thread_sender = tx_from_bus_threads.clone();
     let station_sender_list = send_to_station_channels_arc.clone();
-    let passengers_thread_handle = thread::spawn(move || {
+    let passengers_thread_handle = std::thread::spawn(move || {
         let stations_receiver = rx_stations_to_passengers;
         let mut rejected_passengers: Vec<Passenger> = Vec::new();
         let receiver_from_sync_thread = rx_to_passengers;
@@ -724,7 +689,7 @@ fn main() {
         // let passenger_stops_passed_pointer_clone = passenger_extra_stops_waited_pointer.clone();
         let current_time_tick_clone = current_time_tick.clone();
         let mut time_clone_check = 0;
-        let handle = thread::spawn(move || {
+        let handle = std::thread::spawn(move || {
             let current_bus_receiver_with_index = bus_receiver_channels.lock().unwrap().remove(0);
             drop(bus_receiver_channels);
             // Since the receiver obtained is not deterministic, set the bus index based on what what channel was obtained
@@ -868,5 +833,5 @@ fn main() {
     println!(
         "Average wait time between stops {}",
         total_extra_stops_waited as f64 / total_passengers as f64
-    ); */
+    );
 }
