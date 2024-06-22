@@ -1,6 +1,7 @@
 use crate::bus::{BusLocation, SendableBus};
 use crate::consts::NUM_OF_BUSES;
 use crate::location::{Location, PassengerBusLocation};
+use crate::main_loop::FinalPassengerLists;
 use crate::passenger::Passenger;
 use crate::passenger::PassengerOnboardingBusSchedule;
 use crate::thread::{
@@ -50,6 +51,7 @@ pub struct Station {
     pub passengers: Vec<Passenger>,
     pub buses_unavailable: Vec<usize>,
     pub bus_loading_first_iteration: Option<bool>,
+    pub arrived_passengers: Vec<Passenger>,
 }
 
 impl Station {
@@ -64,6 +66,7 @@ impl Station {
             passengers: Vec::new(),
             buses_unavailable: Vec::new(),
             bus_loading_first_iteration: None,
+            arrived_passengers: Vec::new(),
         }
     }
 
@@ -160,6 +163,7 @@ pub fn get_station_threads(
 
     tx_stations_to_passengers: Sender<StationToPassengersMessages>,
     mut rx_sync_to_stations_list: Arc<Mutex<Vec<Option<ReceiverWithIndex<SyncToStationMessages>>>>>,
+    final_passenger_list_arc: &Arc<Mutex<FinalPassengerLists>>,
 ) -> Vec<JoinHandle<()>> {
     // let station_location_list = location_vector_arc.clone();
 
@@ -185,6 +189,7 @@ pub fn get_station_threads(
         let station_thread_passenger_bus_route_list = passenger_bus_route_arc.clone();
         // let send_to_bus_channels =
         let rejected_passenger_clone = rejected_passengers_pointer.clone();
+        let final_passenger_list_clone = final_passenger_list_arc.clone();
 
         let to_passengers_sender_clone = tx_stations_to_passengers.clone();
         let station_handle = create_station_thread(
@@ -197,6 +202,7 @@ pub fn get_station_threads(
             rejected_passenger_clone,
             to_passengers_sender_clone,
             sync_to_stations_reciever,
+            final_passenger_list_clone,
         );
         handle_list.push(station_handle);
     }
@@ -213,6 +219,7 @@ pub fn create_station_thread(
     rejected_passenger_clone: Arc<Mutex<Vec<Passenger>>>,
     to_passengers_sender_clone: Sender<StationToPassengersMessages>,
     sync_to_stations_receiver: Receiver<SyncToStationMessages>,
+    final_passenger_list_clone: Arc<Mutex<FinalPassengerLists>>,
 ) -> JoinHandle<()> {
     let station_handle = thread::spawn(move || {
         let mut current_station = Station::new(
@@ -233,6 +240,9 @@ pub fn create_station_thread(
                     "All buses finished message received in station {}",
                     station_index
                 );
+                let mut final_passenger_list = final_passenger_list_clone.lock().unwrap();
+                final_passenger_list.location_lists[station_index] =
+                    current_station.arrived_passengers;
                 break;
             }
             // println!("Station {location_index}. time tick: {}", *time_tick);

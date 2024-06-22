@@ -17,11 +17,21 @@ use crate::{TimeTick, TimeTickStage};
 use std::collections::VecDeque;
 use std::ops::ControlFlow;
 use std::sync::{self, mpsc, Arc, Mutex};
+
+#[derive(Debug, Default, Clone)]
+pub struct FinalPassengerLists {
+    pub location_lists: [Vec<Passenger>; GLOBAL_LOCATION_COUNT],
+    pub remaining_passengers: Vec<Passenger>,
+}
+
+// The main bus system loop. This should probably output something eventually to give something to test against
+// The return value might be a object containing lists of passengers from every location and the list of passengers that have not
+// gotten on any bus
 pub fn main_loop(
     location_vector: Vec<Location>,
     total_passenger_list: Vec<Passenger>,
     bus_route_array: [Vec<BusLocation>; NUM_OF_BUSES],
-) {
+) -> FinalPassengerLists {
     let passenger_bus_route_list: Vec<_> = bus_route_array
         .clone()
         .into_iter()
@@ -41,6 +51,7 @@ pub fn main_loop(
         Arc::new(Mutex::new(passenger_bus_route_list));
 
     let passenger_extra_stops_waited_pointer = Arc::new(Mutex::new(Vec::<u32>::new()));
+    let final_passengers_arc = Arc::new(Mutex::new(FinalPassengerLists::default()));
 
     // Split time ticks into two - time ticks are accurate
     let current_time_tick = Arc::new(Mutex::new(TimeTick::default()));
@@ -66,7 +77,7 @@ pub fn main_loop(
 
     let receiver_sync_to_stations_list: Vec<_> = receiver_sync_to_stations_list
         .into_iter()
-        .map(|receiver| Some(receiver))
+        .map(Some)
         .collect();
     let sync_to_stations_receiver = Arc::new(Mutex::new(receiver_sync_to_stations_list));
 
@@ -675,6 +686,7 @@ pub fn main_loop(
         &rejected_passengers_pointer,
         tx_stations_to_passengers,
         sync_to_stations_receiver,
+        &final_passengers_arc,
     );
 
     handle_list.append(&mut station_handle_list);
@@ -689,17 +701,26 @@ pub fn main_loop(
         // let passenger_stops_passed_pointer_clone = passenger_extra_stops_waited_pointer.clone();
         let current_time_tick_clone = current_time_tick.clone();
         let mut time_clone_check = 0;
-        let handle = std::thread::spawn(move || {
+        let bus_handle = std::thread::spawn(move || {
             let current_bus_receiver_with_index = bus_receiver_channels.lock().unwrap().remove(0);
             drop(bus_receiver_channels);
             // Since the receiver obtained is not deterministic, set the bus index based on what what channel was obtained
             let bus_index = current_bus_receiver_with_index.index;
             println!("Bus index: {}", bus_index);
             let bus_receiver = current_bus_receiver_with_index.receiver;
+            // DEBUG: bus_route_array must be locked at some  point
             let mut bus_route_array = bus_route_array_clone.lock().unwrap();
             let bus_route = bus_route_array.get(bus_index).unwrap();
             println!("Bus {bus_index} bus route: {bus_route:#?}");
-            let mut simulated_bus = Bus::new(bus_route.clone(), BUS_CAPACITY, bus_index);
+            let mut simulated_bus_option = Bus::try_new(bus_route.clone(), BUS_CAPACITY, bus_index);
+            // .expect("Bus route must contain at least one location");
+
+            println!(
+                "Simulated bus option for bus {}: {:?}",
+                bus_index, simulated_bus_option
+            );
+
+            let mut simulated_bus = simulated_bus_option.unwrap();
             println!("Bus {bus_index} created");
             bus_route_array[simulated_bus.bus_index] = simulated_bus.get_bus_route();
             // Release the lock on bus_route_array by dropping it
@@ -812,10 +833,12 @@ pub fn main_loop(
                 }
             }
         });
-        handle_list.push(handle);
+        handle_list.push(bus_handle);
     }
     for handle in handle_list {
-        handle.join().unwrap();
+        let handle_result = handle.join();
+        println!("Handle result: {:?}", handle_result);
+        handle_result.unwrap();
     }
 
     let passenger_extra_stops_waited = passenger_extra_stops_waited_pointer.lock().unwrap();
@@ -834,4 +857,8 @@ pub fn main_loop(
         "Average wait time between stops {}",
         total_extra_stops_waited as f64 / total_passengers as f64
     );
+
+    let final_passengers = final_passengers_arc.lock().unwrap();
+
+    final_passengers.clone()
 }

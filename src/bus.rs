@@ -93,17 +93,17 @@ enum UpdateOutput {
 }
 
 impl Bus {
-    pub fn new(bus_route: Vec<BusLocation>, capacity: usize, bus_num: usize) -> Bus {
+    pub fn try_new(bus_route: Vec<BusLocation>, capacity: usize, bus_num: usize) -> Option<Bus> {
         let bus_route_vec = bus_route.clone();
         let mut iterator = bus_route.into_iter();
-        let first_bus_location = iterator
-            .next()
-            .expect("Bus route must contain at least one location");
+        println!("Calling Bus::new from bus {}", bus_num);
+        println!("bus route iterator: {:?}", iterator);
+        let first_bus_location = iterator.next()?;
         let BusLocation {
             location: first_bus_location,
             distance_to_location: distance_to_first_location,
         } = first_bus_location;
-        Bus {
+        Some(Bus {
             status: BusStatus {
                 movement: MovementState::Moving(distance_to_first_location),
             },
@@ -115,7 +115,7 @@ impl Bus {
             total_passenger_count: 0,
             // time_tick_num: 0,
             bus_index: bus_num,
-        }
+        })
     }
 
     pub fn stop_at_destination_stop(&mut self) -> Option<()> {

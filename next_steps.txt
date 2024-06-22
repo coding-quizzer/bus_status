@@ -5,6 +5,8 @@ Make sure overflow passengers are dealt with
 ✅ Get Program to run to the end
 Deal with passengers that have nowhere to go
 Add visited locations to visited locations list
+Somehow make the number of buses setable
+Make sure the program always ends when the location distances are variable
 
 Add features/Experiment
   Customizable bus size (should be =)

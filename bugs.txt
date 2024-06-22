@@ -1,0 +1,5 @@
+Bug: {
+  input: First bus route has locations but the other two do not,
+  expected: The program should panic because of the buses that do not have a first location
+  actual: The program deadlocks
+}
