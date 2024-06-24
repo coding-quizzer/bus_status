@@ -720,7 +720,8 @@ pub fn main_loop(
                 bus_index, simulated_bus_option
             );
 
-            let mut simulated_bus = simulated_bus_option.unwrap();
+            let mut simulated_bus = simulated_bus_option
+                .expect("Each bus must have more than one location in its route");
             println!("Bus {bus_index} created");
             bus_route_array[simulated_bus.bus_index] = simulated_bus.get_bus_route();
             // Release the lock on bus_route_array by dropping it
