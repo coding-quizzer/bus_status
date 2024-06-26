@@ -32,17 +32,18 @@ pub fn main_loop(
     total_passenger_list: Vec<Passenger>,
     bus_route_array: [Vec<BusLocation>; NUM_OF_BUSES],
 ) -> FinalPassengerLists {
-    let passenger_bus_route_list: Vec<_> = bus_route_array
+    let passenger_bus_route_list: Vec<Vec<PassengerBusLocation>> = bus_route_array
         .clone()
         .into_iter()
         .map(crate::convert_bus_route_list_to_passenger_bus_route_list)
         .collect();
 
-    let rejected_passengers_pointer = Arc::new(Mutex::new(Vec::new()));
+    let rejected_passengers_pointer: Arc<Mutex<Vec<Passenger>>> = Arc::new(Mutex::new(Vec::new()));
 
-    let passenger_list_pointer = Arc::new(Mutex::new(total_passenger_list));
+    let passenger_list_pointer: Arc<Mutex<Vec<Passenger>>> =
+        Arc::new(Mutex::new(total_passenger_list));
 
-    let location_vector_arc = Arc::new(location_vector);
+    let location_vector_arc: Arc<Vec<Location>> = Arc::new(location_vector);
 
     let bus_route_vec_arc: Arc<Mutex<[Vec<BusLocation>; NUM_OF_BUSES]>> =
         Arc::new(Mutex::new(bus_route_array));
@@ -50,27 +51,28 @@ pub fn main_loop(
     let passenger_bus_route_arc: Arc<Mutex<Vec<Vec<PassengerBusLocation>>>> =
         Arc::new(Mutex::new(passenger_bus_route_list));
 
-    let passenger_extra_stops_waited_pointer = Arc::new(Mutex::new(Vec::<u32>::new()));
+    let passenger_extra_stops_waited_pointer: Arc<Mutex<Vec<u32>>> =
+        Arc::new(Mutex::new(Vec::<u32>::new()));
     let final_passengers_arc = Arc::new(Mutex::new(FinalPassengerLists::default()));
 
     // Split time ticks into two - time ticks are accurate
-    let current_time_tick = Arc::new(Mutex::new(TimeTick::default()));
+    let current_time_tick: Arc<Mutex<TimeTick>> = Arc::new(Mutex::new(TimeTick::default()));
 
-    let program_end = Arc::new(Mutex::new(false));
+    let program_end: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
 
-    let mut handle_list = vec![];
+    let mut handle_list: Vec<std::thread::JoinHandle<()>> = vec![];
 
-    let sync_handle_program_end_clone = program_end.clone();
+    let sync_handle_program_end_clone: Arc<Mutex<bool>> = program_end.clone();
 
-    let (tx_from_bus_threads, rx_from_threads) = mpsc::channel();
+    let (tx_from_bus_threads, rx_from_threads) = mpsc::channel::<BusMessages>();
 
-    let (tx_to_passengers, rx_to_passengers) = mpsc::channel();
+    let (tx_to_passengers, rx_to_passengers) = mpsc::channel::<Option<Vec<Passenger>>>();
 
-    let (tx_stations_to_passengers, mut rx_stations_to_passengers) = mpsc::channel();
+    let (tx_stations_to_passengers, mut rx_stations_to_passengers) =
+        mpsc::channel::<StationToPassengersMessages>();
     let (send_to_station_channels, receive_in_station_channels) =
-        crate::initialize_channel_list(GLOBAL_LOCATION_COUNT);
-    let receive_in_station_channels: Vec<_> =
-        receive_in_station_channels.into_iter().map(Some).collect();
+        crate::initialize_channel_list::<StationMessages>(GLOBAL_LOCATION_COUNT);
+    let receive_in_station_channels = receive_in_station_channels.into_iter().map(Some).collect();
 
     let (sender_sync_to_stations_list, receiver_sync_to_stations_list) =
         initialize_channel_list::<SyncToStationMessages>(GLOBAL_LOCATION_COUNT);
@@ -142,7 +144,7 @@ pub fn main_loop(
         let mut bus_status_array = [BusThreadStatus::Uninitialized; NUM_OF_BUSES];
         // Bus that has unloaded passengers/ moving buses
         let mut processed_bus_received_count = 0;
-        let mut rejected_passengers_list: Vec<Passenger> = Vec::new();
+        let mut rejected_passengers_list = Vec::new();
         let mut processed_moving_bus_count = 0;
 
         // Eventually, there will be two time ticks per movement so that the stopped buses can have two ticks:
