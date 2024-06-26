@@ -86,7 +86,8 @@ pub fn main_loop(
     let send_to_station_channels_arc = Arc::new(send_to_station_channels);
     let receive_in_station_channels_arc = Arc::new(Mutex::new(receive_in_station_channels));
 
-    let (send_to_bus_channels, receive_in_bus_channels) = initialize_channel_list(NUM_OF_BUSES);
+    let (send_to_bus_channels, receive_in_bus_channels) =
+        initialize_channel_list::<crate::thread::StationToBusMessages>(NUM_OF_BUSES);
 
     let bus_receiver_channels_arc = Arc::new(Mutex::new(receive_in_bus_channels));
     let send_to_bus_channels_arc = Arc::new(send_to_bus_channels);
