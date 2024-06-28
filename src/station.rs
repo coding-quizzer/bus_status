@@ -233,8 +233,9 @@ pub fn create_station_thread(
         let mut bus_passengers_initialized = false;
 
         'main: loop {
-            if let Ok(SyncToStationMessages::BusRoutesFinished) =
-                sync_to_stations_receiver.try_recv()
+            if let Ok(SyncToStationMessages::ProgramFinished(
+                crate::thread::ProgramEndType::ProgramFinished,
+            )) = sync_to_stations_receiver.try_recv()
             {
                 println!(
                     "All buses finished message received in station {}",

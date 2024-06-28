@@ -29,7 +29,7 @@ pub enum StationToBusMessages {
 pub enum BusMessages {
     InitBus { bus_index: usize },
     InitPassengers,
-
+    BusPanicked { bus_index: usize, message: String },
     AdvanceTimeStepForMovingBus { bus_index: usize },
     AdvanceTimeStepForUnloadedBus { bus_index: usize },
     AdvanceTimeStepForLoadedBus { bus_index: usize },
@@ -37,9 +37,19 @@ pub enum BusMessages {
 }
 
 #[derive(Debug)]
+pub enum ProgramEndType {
+    ProgramFinished,
+    ProgramCrashed { message: String },
+}
+
+#[derive(Debug)]
 pub enum SyncToStationMessages {
     AdvanceTimeStep(crate::TimeTick),
-    BusRoutesFinished,
+    ProgramFinished(ProgramEndType),
+}
+
+pub enum StationToMainMessages {
+    CrashProgram { message: String },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
