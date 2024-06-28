@@ -14,6 +14,8 @@ use crate::{
 };
 use crate::{ReceiverWithIndex, TimeTickStage};
 use core::time;
+use std::borrow::BorrowMut;
+use std::convert::identity;
 use std::os::linux::raw::stat;
 use std::sync::mpsc::TryRecvError;
 use std::sync::{
@@ -119,7 +121,7 @@ impl Station {
             buses_unavailable,
         )?;
         println!("New Bus Schedule: {:#?}", new_bus_schedule);
-        println!("Passengers added.");
+        println!("Passengers added and available buses checked.");
         new_passenger.bus_schedule_iterator = new_bus_schedule.clone().into_iter().peekable();
         new_passenger.bus_schedule = new_bus_schedule;
         self.passengers.push(new_passenger);
@@ -209,6 +211,9 @@ pub fn get_station_threads(
     handle_list
 }
 
+fn deal_with_rejected_passengers(passenger: Passenger, rejected_passengers_list: &mut [Passenger]) {
+}
+
 pub fn create_station_thread(
     current_location: Location,
     station_time_tick: Arc<Mutex<TimeTick>>,
@@ -277,33 +282,27 @@ pub fn create_station_thread(
                     if let StationMessages::InitPassengerList(mut list) = received_message {
                         assert_eq!((*time_tick).number, 0);
                         println!("Station: {station_index} Message: {list:#?}");
-                        let mut rejected_passenger_indeces = Vec::new();
                         println!("List: {:?}", list);
-                        for (index, passenger) in list.iter().enumerate() {
+                        for (index, mut passenger) in list.into_iter().map(Some).enumerate() {
                             // let passenger_bus_route_list =
                             //     station_thread_passenger_bus_route_list.lock().unwrap();
                             println!("Passenger will be added to station {}", station_index);
                             current_station
                                 .add_passenger(
-                                    passenger.clone().into(),
+                                    passenger.take().unwrap(),
                                     *time_tick,
                                     &station_thread_passenger_bus_route_list.lock().unwrap(),
                                 )
                                 .unwrap_or_else(|passenger| {
-                                    rejected_passenger_indeces.push(index);
                                     println!("Passenger {:?} had no valid routes", passenger);
+                                    (*rejected_passenger_clone.lock().unwrap()).push(passenger);
                                 });
                         }
 
                         drop(time_tick);
 
-                        for passenger_index in rejected_passenger_indeces.into_iter().rev() {
-                            let removed_passenger = list.remove(passenger_index);
-                            (*rejected_passenger_clone.lock().unwrap()).push(removed_passenger);
-                        }
                         println!("Passengers added to station {}", station_index);
-                        // drop(time_tick);
-                        println!("total passenger_count: {}", list.len());
+                        // println!("total passenger_count: {}", list.len());
                         to_passengers_sender_clone
                             .send(StationToPassengersMessages::ConfirmInitPassengerList(
                                 station_index,
@@ -622,17 +621,28 @@ pub fn create_station_thread(
                         println!("Current bus route list dropped");
 
                         // TODO: Deal with passengers without an available route
-                        for passenger in passengers_overflowed.clone() {
+                        let mut modified_passengers_overflowed_iter =
+                            passengers_overflowed.into_iter().map(Some);
+                        for mut passenger in modified_passengers_overflowed_iter.borrow_mut() {
                             let unavailable_buses = current_station.buses_unavailable.clone();
                             current_station
                                 .add_passenger_check_available_buses(
-                                    passenger,
+                                    passenger.take().unwrap(),
                                     *time_tick,
                                     &station_thread_passenger_bus_route_list.lock().unwrap(),
                                     unavailable_buses,
                                 )
-                                .unwrap();
+                                .unwrap_or_else(|passenger| {
+                                    println!(
+                                        "Passenger {:?} no longer has a valid route.",
+                                        passenger
+                                    );
+                                    (*rejected_passenger_clone.lock().unwrap()).push(passenger);
+                                });
                         }
+
+                        passengers_overflowed =
+                            modified_passengers_overflowed_iter.flatten().collect();
 
                         // drop(time_tick);
 

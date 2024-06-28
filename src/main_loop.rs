@@ -192,7 +192,11 @@ pub fn main_loop(
             println!("Before receiving a message.");
             let received_bus_stop_message = rx_from_threads.recv().unwrap();
 
-            println!("Message received: {:?}", received_bus_stop_message);
+            println!(
+                "Message received by sync thread: {:?}",
+                received_bus_stop_message
+            );
+            // DEBUG: The time tick is already used by another
             let mut current_time_tick = current_time_tick_clone.lock().unwrap();
             println!("Message Received. Time tick: {:?}", current_time_tick);
             println!(
@@ -253,7 +257,7 @@ pub fn main_loop(
                     .count()
                     == 0
             {
-                // This occasionally runs before all buses have received passengers
+                drop(current_time_tick);
                 println!("All buses initialized in sync thread");
                 if WRITE_JSON {
                     let location_vector = route_sync_location_vec_arc.as_ref();
@@ -280,7 +284,6 @@ pub fn main_loop(
                     "All Buses Initialized. Time tick 0 message: {:?}",
                     received_bus_stop_message
                 );
-                drop(current_time_tick);
                 continue;
             }
 
@@ -840,9 +843,7 @@ pub fn main_loop(
         handle_list.push(bus_handle);
     }
     for handle in handle_list {
-        let handle_result = handle.join();
-        println!("Handle result: {:?}", handle_result);
-        handle_result.unwrap();
+        handle.join().unwrap_or_else(|error| panic!("{error:?}"));
     }
 
     let passenger_extra_stops_waited = passenger_extra_stops_waited_pointer.lock().unwrap();

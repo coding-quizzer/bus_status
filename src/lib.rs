@@ -50,6 +50,7 @@ impl TimeTick {
     }
 
     pub fn increment_from_initialized(&mut self) -> Option<()> {
+        println!("All the buses have been initialized. Time step can advance");
         if self.stage == TimeTickStage::PassengerInit {
             self.number = 1;
             self.stage = TimeTickStage::BusUnloadingPassengers;
