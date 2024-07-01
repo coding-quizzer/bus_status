@@ -145,9 +145,7 @@ pub fn main_loop(
     let send_to_stations = sender_sync_to_stations_list.clone();
     let receiver_from_buses = rx_from_threads;
 
-    fn 
-
-    // Main thread: Keeps track of the remaining threads as a whole. Sends messages 
+    // Main thread: Keeps track of the remaining threads as a whole. Sends messages
 
     loop {
         // bus index could be helpful for
