@@ -1,6 +1,7 @@
 use crate::bus::Bus;
 use crate::consts::{
-    BUS_CAPACITY, GLOBAL_LOCATION_COUNT, GLOBAL_PASSENGER_COUNT, NUM_OF_BUSES, WRITE_JSON,
+    DEFAULT_BUS_CAPACITY, DEFAULT_GLOBAL_LOCATION_COUNT, DEFAULT_NUM_OF_BUSES,
+    GLOBAL_PASSENGER_COUNT, WRITE_JSON,
 };
 use crate::data;
 use crate::data::InputDataStructure;
@@ -20,7 +21,9 @@ use std::sync::{self, mpsc, Arc, Mutex};
 
 #[derive(Debug, Default, Clone)]
 pub struct FinalPassengerLists {
-    pub location_lists: [Vec<Passenger>; GLOBAL_LOCATION_COUNT],
+    pub location_lists: Vec<Vec<Passenger>>,
+    // Global Location Count
+    pub len: usize,
     pub remaining_passengers: Vec<Passenger>,
 }
 
@@ -30,7 +33,7 @@ pub struct FinalPassengerLists {
 pub fn main_loop(
     location_vector: Vec<Location>,
     total_passenger_list: Vec<Passenger>,
-    bus_route_array: [Vec<BusLocation>; NUM_OF_BUSES],
+    bus_route_array: Vec<Vec<BusLocation>>,
 ) {
     // let passenger_bus_route_list: Vec<Vec<PassengerBusLocation>> = bus_route_array
     //     .clone()
@@ -79,7 +82,7 @@ pub fn main_loop(
     // let receive_in_station_channels_arc = Arc::new(Mutex::new(receive_in_station_channels));
 
     // let (send_to_bus_channels, receive_from_bus_channels) =
-    initialize_channel_list::<crate::thread::StationToBusMessages>(NUM_OF_BUSES);
+    initialize_channel_list::<crate::thread::StationToBusMessages>(DEFAULT_NUM_OF_BUSES);
 
     // let bus_receiver_channels_arc = Arc::new(Mutex::new(receive_in_bus_channels));
     // let send_to_bus_channels_arc = Arc::new(send_to_bus_channels);
@@ -128,10 +131,10 @@ pub fn main_loop(
     // }
 
     let (sender_sync_to_stations_list, receiver_sync_to_stations_list) =
-        initialize_channel_list::<SyncToStationMessages>(GLOBAL_LOCATION_COUNT);
+        initialize_channel_list::<SyncToStationMessages>(DEFAULT_GLOBAL_LOCATION_COUNT);
 
     let (sender_stations_to_sync_list, receiver_sync_from_stations_list) =
-        initialize_channel_list::<StationToMainMessages>(GLOBAL_LOCATION_COUNT);
+        initialize_channel_list::<StationToMainMessages>(DEFAULT_GLOBAL_LOCATION_COUNT);
 
     let receiver_sync_to_stations_list: Vec<_> = receiver_sync_to_stations_list
         .into_iter()

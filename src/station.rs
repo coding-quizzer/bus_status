@@ -1,5 +1,5 @@
 use crate::bus::{BusLocation, SendableBus};
-use crate::consts::NUM_OF_BUSES;
+use crate::consts::DEFAULT_NUM_OF_BUSES;
 use crate::location::{Location, PassengerBusLocation};
 use crate::main_loop::FinalPassengerLists;
 use crate::passenger::Passenger;
@@ -157,7 +157,7 @@ pub fn get_station_threads(
     current_time_tick: &Arc<Mutex<TimeTick>>,
     send_to_bus_channels_arc: &Arc<Vec<Sender<StationToBusMessages>>>,
     receive_in_station_channels_arc: &Arc<Mutex<Vec<Option<ReceiverWithIndex<StationMessages>>>>>,
-    bus_route_vec_arc: &Arc<Mutex<[Vec<BusLocation>; NUM_OF_BUSES]>>,
+    bus_route_vec_arc: &Arc<Mutex<Vec<Vec<BusLocation>>>>,
     passenger_bus_route_arc: &Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>,
     rejected_passengers_pointer: &Arc<Mutex<Vec<Passenger>>>,
 
@@ -214,7 +214,7 @@ pub fn create_station_thread(
     station_time_tick: Arc<Mutex<TimeTick>>,
     send_to_bus_channels: Arc<Vec<Sender<StationToBusMessages>>>,
     station_channel_receiver: ReceiverWithIndex<StationMessages>,
-    bus_route_list: Arc<Mutex<[Vec<BusLocation>; NUM_OF_BUSES]>>,
+    bus_route_list: Arc<Mutex<Vec<Vec<BusLocation>>>>,
     station_thread_passenger_bus_route_list: Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>,
     rejected_passenger_clone: Arc<Mutex<Vec<Passenger>>>,
     to_passengers_sender_clone: Sender<StationToPassengersMessages>,
@@ -446,7 +446,7 @@ pub fn create_station_thread(
 
                     // Contains the next bus each waiting passenger will get on next
                     let mut next_passengers_for_buses_array: [Option<Vec<Passenger>>;
-                        NUM_OF_BUSES] = std::array::from_fn(|_| None);
+                        DEFAULT_NUM_OF_BUSES] = std::array::from_fn(|_| None);
 
                     println!(
                         "Array with locations for station {:?}: {:?}",

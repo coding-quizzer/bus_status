@@ -1,4 +1,4 @@
-use bus_system::consts::BUS_CAPACITY;
+use bus_system::consts::DEFAULT_BUS_CAPACITY;
 use bus_system::location::{BusLocation, Location};
 use bus_system::main_loop::main_loop;
 use bus_system::passenger::Passenger;
@@ -24,7 +24,7 @@ fn rejected_passengers_and_arrived_passengers_are_accounted_for() {
         },
     ];
 
-    let all_bus_routes = [first_bus_route, vec![], vec![]];
+    let all_bus_routes = vec![first_bus_route, vec![], vec![]];
 
     // FIXME: main_loop is not finishing here for some reason
     let final_passengers_list = main_loop(location_vector, passenger_list, all_bus_routes);
