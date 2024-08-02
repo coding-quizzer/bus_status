@@ -78,10 +78,11 @@ pub struct Bus {
     status: BusStatus,
     passengers: Vec<Passenger>,
     current_location: Option<Location>,
-    bus_route_iter: Box<vec::IntoIter<BusLocation>>,
+    bus_route_iter: vec::IntoIter<BusLocation>,
     bus_route_vec: Vec<BusLocation>,
     capacity: usize,
-    total_passenger_count: u32,
+    // number of passengers
+    numbers_of_passengers_serviced: u32,
     // time_tick_num: u32,
     pub bus_index: usize,
 }
@@ -109,10 +110,10 @@ impl Bus {
             },
             passengers: vec![],
             current_location: Some(first_bus_location),
-            bus_route_iter: Box::new(iterator),
+            bus_route_iter: iterator,
             bus_route_vec,
             capacity,
-            total_passenger_count: 0,
+            numbers_of_passengers_serviced: 0,
             // time_tick_num: 0,
             bus_index: bus_num,
         })
@@ -526,7 +527,7 @@ impl Bus {
             if passenger.destination_location == current_location {
                 println!("Passenger left Bus {}", self.bus_index);
                 passenger_passed_stops.push(passenger.passed_stops);
-                self.total_passenger_count += 1;
+                self.numbers_of_passengers_serviced += 1;
             } else {
                 passenger.passed_stops += 1;
                 new_bus_passengers.push(passenger.clone());

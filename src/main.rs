@@ -6,7 +6,7 @@ use bus_system::bus::BusLocation;
 use bus_system::consts::*;
 use bus_system::data::{self, InputDataStructure};
 use bus_system::location::Location;
-use bus_system::main_loop::main_loop;
+use bus_system::main_loop::{main_loop, ConfigStruct};
 
 fn main() {
     let initial_data: InputDataStructure = if READ_JSON {
@@ -27,6 +27,9 @@ fn main() {
         passengers,
         location_vector,
     } = initial_data;
+
+    let num_of_buses = bus_routes.len();
+    let num_of_locations = location_vector.len();
 
     let location_vector: Vec<Location> = if READ_JSON {
         location_vector
@@ -60,6 +63,15 @@ fn main() {
     }
 
     // arguments: location vector: Vec<Location>, total_passenger_list: Vec<Passenger>, bus_route_array: [Vec<BusLocation>, NUM_OF_BUSES]
-    main_loop(location_vector, total_passenger_list, bus_route_vec);
+    let config_struct = ConfigStruct {
+        num_of_buses,
+        num_of_locations,
+    };
+    main_loop(
+        location_vector,
+        total_passenger_list,
+        bus_route_vec,
+        config_struct,
+    );
     // beginning of main game loop
 }
