@@ -91,8 +91,6 @@ pub fn main_loop(
     let (send_to_bus_channels, receive_from_bus_channels) =
         initialize_channel_list::<crate::thread::StationToBusMessages>(DEFAULT_NUM_OF_BUSES);
 
-    // let bus_receiver_channels_arc = Arc::new(Mutex::new(receive_in_bus_channels));
-
     // let current_time_tick_clone = current_time_tick.clone();
 
     // #[track_caller]
@@ -134,6 +132,7 @@ pub fn main_loop(
     //     increment_and_drop_time_step(current_time_tick, station_senders);
 
     //     println!("End of sync loop");
+
     // }
 
     let (sender_sync_to_stations_list, receiver_sync_to_stations_list) =
@@ -150,6 +149,106 @@ pub fn main_loop(
 
     let send_to_bus_channels_arc = Arc::new(send_to_bus_channels);
     let receive_in_station_channels_arc = Arc::new(Mutex::new(receive_in_station_channels));
+
+    // TODO: Change the station_handle_list function to deal with the time tick
+    let station_location_list = location_vector_arc.clone();
+
+    let station_time_tick = TimeTick::default();
+
+    let mut station_handle_list = station::get_station_threads(
+        &station_location_list,
+        &station_time_tick,
+        &send_to_bus_channels_arc,
+        &receive_in_station_channels_arc,
+        &bus_route_vec_arc,
+        &passenger_bus_route_arc,
+        &rejected_passengers_pointer,
+        tx_stations_to_passengers,
+        receiver_sync_to_stations_list,
+        &final_passengers_arc,
+    );
+
+    handle_list.append(&mut station_handle_list);
+
+    // Beginning of bus thread loops
+
+    let bus_receiver_channels_arc = Arc::new(Mutex::new(receive_from_bus_channels));
+
+    for _ in 0..config.num_of_buses {
+        let bus_route_vector_clone = bus_route_vec_arc.clone();
+        let station_senders_clone = send_to_station_channels_arc.clone();
+        let sender = tx_from_bus_threads.clone();
+        let bus_receiver_channels = bus_receiver_channels_arc.clone();
+
+        let current_time_tick = TimeTick::default();
+
+        // TODO: Remove if not useful
+        let mut time_clone_check = 0;
+        let bus_handle = std::thread::spawn(move || {
+            let current_bus_receiver_with_index = bus_receiver_channels.lock().unwrap().remove(0);
+            drop(bus_receiver_channels);
+            // Since the receiver obtained is not deterministic, set the bus index based on what channel was obtained
+            let bus_index = current_bus_receiver_with_index.index;
+            println!("Bus index: {}", bus_index);
+            let bus_receiver = current_bus_receiver_with_index.receiver;
+
+            let mut bus_route_vector = bus_route_vector_clone.lock().unwrap();
+            let bus_route = bus_route_vector.get(bus_index).unwrap();
+            println!("Bus {bus_index} bus route: {bus_route:#?}");
+            let mut simulated_bus_option =
+                Bus::try_new(bus_route.clone(), config.bus_capacity as usize, bus_index);
+
+            println!(
+                "Simulated bus option for bus {}: {:?}",
+                bus_index, simulated_bus_option
+            );
+
+            let mut simulated_bus = simulated_bus_option
+                .expect("Each bus must have more than one location in its route");
+            bus_route_vector[simulated_bus.bus_index] = simulated_bus.get_bus_route();
+            // Release the lock on bus_route_aray by dropping it
+            drop(bus_route_vector);
+            sender
+                .send(BusMessages::InitBus {
+                    bus_index: simulated_bus.bus_index,
+                })
+                .unwrap();
+            println!("Bus Message sent");
+
+            let previous_time_tick = TimeTick::default();
+            loop {
+                // TODO: Set current time tick to the appropriate value, incorporating messages from the main/sync thread
+                let current_time_tick: TimeTick = todo!();
+
+                if current_time_tick == previous_time_tick
+                    || (current_time_tick).stage == TimeTickStage::PassengerInit
+                {
+                    continue;
+                }
+
+                previous_time_tick = current_time_tick;
+
+                if time_clone_check == (current_time_tick).number {
+                    continue;
+                } else {
+                    time_clone_check = current_time_tick.number;
+                }
+                let time_tick = current_time_tick;
+
+                let bus_update_output = simulated_bus.update(
+                    &station_senders_clone,
+                    &bus_receiver,
+                    &sender,
+                    &current_time_tick,
+                );
+
+                if bus_update_output == ControlFlow::Bread(()) {
+                    break;
+                }
+            }
+        });
+        handle_list.push(bus_handle);
+    }
 
     /* Beginning of passenger thread loop */
 
@@ -252,24 +351,6 @@ pub fn main_loop(
     });
 
     handle_list.push(passengers_thread_handle);
-
-    let station_location_list = location_vector_arc.clone();
-
-    // TODO: Change the station_handle_list function to deal with the time tick
-    let station_time_tick = TimeTick::default();
-
-    let mut station_handle_lsit = station::get_station_threads(
-        &station_location_list,
-        &station_time_tick,
-        &send_to_bus_channels_arc,
-        &receive_in_station_channels_arc,
-        &bus_route_vec_arc,
-        &passenger_bus_route_arc,
-        &rejected_passengers_pointer,
-        tx_stations_to_passengers,
-        receiver_sync_to_stations_list,
-        &final_passengers_arc,
-    );
 
     /* Beginning of Main/sync thread loop */
     // spawn other threads

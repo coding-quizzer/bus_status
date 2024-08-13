@@ -154,7 +154,7 @@ pub fn get_station_buses_index_hash_map(
 ///
 pub fn get_station_threads(
     station_location_list: &Vec<Location>,
-    current_time_tick: &Arc<Mutex<TimeTick>>,
+    current_time_tick: &TimeTick,
     send_to_bus_channels_arc: &Arc<Vec<Sender<StationToBusMessages>>>,
     receive_in_station_channels_arc: &Arc<Mutex<Vec<Option<ReceiverWithIndex<StationMessages>>>>>,
     bus_route_vec_arc: &Arc<Mutex<Vec<Vec<BusLocation>>>>,
@@ -211,7 +211,7 @@ pub fn get_station_threads(
 
 pub fn create_station_thread(
     current_location: Location,
-    station_time_tick: Arc<Mutex<TimeTick>>,
+    station_time_tick: &TimeTick,
     send_to_bus_channels: Arc<Vec<Sender<StationToBusMessages>>>,
     station_channel_receiver: ReceiverWithIndex<StationMessages>,
     bus_route_list: Arc<Mutex<Vec<Vec<BusLocation>>>>,
