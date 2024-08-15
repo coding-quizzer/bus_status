@@ -229,13 +229,9 @@ impl Bus {
         station_senders: &[Sender<StationMessages>],
         station_receiver: &Receiver<StationToBusMessages>,
         sync_sender: &Sender<BusMessages>,
-        time_tick_mutex: &std::sync::Arc<std::sync::Mutex<TimeTick>>,
+        time_tick: &TimeTick,
     ) -> ControlFlow<()> {
-        let current_time_tick = time_tick_mutex.lock().unwrap();
-        println!(
-            "Bus {} update time tick: {:?}",
-            self.bus_index, current_time_tick
-        );
+        println!("Bus {} update time tick: {:?}", self.bus_index, time_tick);
         println!("Bus movement: {:?}", self.status.movement);
         if let MovementState::Moving(distance) = self.status.movement {
             println!("Moving bus update");
@@ -245,7 +241,7 @@ impl Bus {
             // );
 
             // Only manage movement state during bus_unloading_passengers stage so that the bus only moves once
-            if let TimeTickStage::BusLoadingPassengers { .. } = current_time_tick.stage {
+            if let TimeTickStage::BusLoadingPassengers { .. } = time_tick.stage {
                 return ControlFlow::Continue(());
             }
             if distance > 1 {
@@ -289,7 +285,7 @@ impl Bus {
                             // FIX: find a better way to get the list of location indeces that doesn't involve misusing any
                             current_passenger_location_index = location_index;
                             passenger_location.stop_location == current_location
-                                && &passenger_location.time_tick >= &(current_time_tick.number)
+                                && &passenger_location.time_tick >= &(time_tick.number)
                         });
 
                     println!("Is Offboarding: {is_offboarding}");
@@ -356,20 +352,18 @@ impl Bus {
             );
 
             let mut bus_departed = false;
-            drop(current_time_tick);
+            drop(time_tick);
 
             while !bus_departed {
                 println!("Waiting for station messages");
                 let received_message = station_receiver.recv().unwrap();
-                let current_time_tick = time_tick_mutex.lock().unwrap();
                 match received_message {
                     StationToBusMessages::AcknowledgeArrival() => {
                         println!("Bus {} acknowledgement received", self.bus_index);
                     }
                     StationToBusMessages::RequestDeparture => {
-                        dbg!(&current_time_tick);
-                        let TimeTickStage::BusLoadingPassengers { .. } = current_time_tick.stage
-                        else {
+                        dbg!(&time_tick);
+                        let TimeTickStage::BusLoadingPassengers { .. } = time_tick.stage else {
                             panic!("The request departure message must occur at the BusLoadingPassengers stage.");
                         };
 
@@ -455,7 +449,7 @@ impl Bus {
     pub fn take_passengers(
         &mut self,
         waiting_passengers: &mut [Passenger],
-        current_time_tick: &u32,
+        time_tick: &u32,
     ) -> Vec<Passenger> {
         let mut overflow_passengers = vec![];
         for passenger in waiting_passengers.iter_mut() {
@@ -473,8 +467,8 @@ impl Bus {
                 .expect("Passenger schedule cannot be empty");
 
             println!("Onboarding time tick: {onboarding_time_tick}.");
-            println!("Current time tick: {current_time_tick}");
-            if onboarding_time_tick == current_time_tick && bus_num.expect("At this point, this cannot be the last bus location, and thus the bus_num must exist") == self.bus_index {
+            println!("Current time tick: {time_tick}");
+            if onboarding_time_tick == time_tick && bus_num.expect("At this point, this cannot be the last bus location, and thus the bus_num must exist") == self.bus_index {
               println!("This is the correct time tick and bus");
               if self.passengers.len() >= self.capacity {
                   println!("Passenger Rejected. Bus Overfull");
