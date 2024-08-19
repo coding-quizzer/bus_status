@@ -83,8 +83,8 @@ pub fn main_loop(
         mpsc::channel::<StationToPassengersMessages>();
     let (send_to_station_channels, receive_in_station_channels) =
         crate::initialize_channel_list::<StationMessages>(config.num_of_locations);
-    // let receive_in_station_channels: Vec<Option<_>> =
-    //     receive_in_station_channels.into_iter().map(Some).collect();
+    let receive_in_station_channels: Vec<Option<_>> =
+        receive_in_station_channels.into_iter().map(Some).collect();
 
     let send_to_station_channels_arc = Arc::new(send_to_station_channels);
 
@@ -164,7 +164,7 @@ pub fn main_loop(
         &passenger_bus_route_arc,
         &rejected_passengers_pointer,
         tx_stations_to_passengers,
-        receiver_sync_to_stations_list,
+        sync_to_stations_receiver,
         &final_passengers_arc,
     );
 
@@ -242,7 +242,7 @@ pub fn main_loop(
                     &current_time_tick,
                 );
 
-                if bus_update_output == ControlFlow::Bread(()) {
+                if bus_update_output == ControlFlow::Break(()) {
                     break;
                 }
             }
