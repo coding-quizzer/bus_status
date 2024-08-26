@@ -242,7 +242,7 @@ pub fn main_loop(
                     &current_time_tick,
                 );
 
-                if bus_update_output == ControlFlow::Bread(()) {
+                if bus_update_output == ControlFlow::Break(()) {
                     break;
                 }
             }

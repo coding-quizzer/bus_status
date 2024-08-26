@@ -181,7 +181,6 @@ pub fn get_station_threads(
             [station_index]
             .take()
             .expect("Station index in station_receivers list should still be available");
-        let station_time_tick = current_time_tick.clone();
         let current_location = *location;
         let send_to_bus_channels = send_to_bus_channels_arc.clone();
         let station_channels = receive_in_station_channels_arc.clone();
@@ -194,7 +193,7 @@ pub fn get_station_threads(
         let to_passengers_sender_clone = tx_stations_to_passengers.clone();
         let station_handle = create_station_thread(
             current_location,
-            station_time_tick,
+            current_time_tick,
             send_to_bus_channels,
             station_channel,
             bus_route_list,
@@ -248,7 +247,7 @@ pub fn create_station_thread(
             }
             // println!("Station {location_index}. time tick: {}", *time_tick);
 
-            let time_tick = station_time_tick.lock().unwrap();
+            let time_tick = station_time_tick;
             /* println!(
                 "Station {} loop beginning. Time tick: {:?}",
                 station_index, time_tick
@@ -311,7 +310,7 @@ pub fn create_station_thread(
                             ))
                             .unwrap();
                     } else {
-                        let time_tick = station_time_tick.lock().unwrap();
+                        let time_tick = station_time_tick;
 
                         panic!(
                             "Invalid Message:{:?} for present timetick: {:?}. Expected InitPassengerList ",
@@ -411,7 +410,7 @@ pub fn create_station_thread(
                             station_index, bus_index
                         );
                     } else {
-                        let time_tick = station_time_tick.lock().unwrap();
+                        let time_tick = station_time_tick;
 
                         panic!(
                             "Invalid Message:{:?} for present timetick: {:?}. Expected BusArrived ",
@@ -659,8 +658,7 @@ pub fn create_station_thread(
                         // For test data, program is stuck in this loop, even though the time step has proceeded to the next one
                         println!(
                             "Bus loading loop beginning in station {} at time tick {:?}",
-                            current_location.index,
-                            *(station_time_tick.lock().unwrap())
+                            current_location.index, station_time_tick
                         );
                         // sync_to_stations receiver moved before buses_receiver so that this check can run independantly of
                         // other messages.
@@ -674,9 +672,9 @@ pub fn create_station_thread(
                                 "Advance Time tick message received in station {}",
                                 station_index
                             );
-                            println!("Time tick: {:?}", station_time_tick.lock().unwrap());
+                            println!("Time tick: {:?}", station_time_tick);
                             // At this point if all the buses have finished their tick, they should be gone from the station
-                            let time_tick = station_time_tick.lock().unwrap();
+                            let time_tick = station_time_tick;
                             println!("Time tick locked on Station bus_loading loop");
 
                             if !(current_station.docked_buses.is_empty()) {
@@ -704,7 +702,7 @@ pub fn create_station_thread(
                             break 'bus_loading;
                         }
 
-                        let time_tick = station_time_tick.lock().unwrap();
+                        let time_tick = station_time_tick;
 
                         let received_message = current_receiver.try_recv();
                         let received_message = match received_message {
