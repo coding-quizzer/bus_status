@@ -1,22 +1,24 @@
 use crate::bus::Bus;
-
+use crate::consts::{
+    DEFAULT_BUS_CAPACITY, DEFAULT_GLOBAL_LOCATION_COUNT, DEFAULT_NUM_OF_BUSES,
+    GLOBAL_PASSENGER_COUNT, WRITE_JSON,
+};
+use crate::data;
 use crate::data::InputDataStructure;
 use crate::initialize_channel_list;
 use crate::location::{BusLocation, PassengerBusLocation};
 use crate::station;
 use crate::thread::{
-    BusMessages, BusThreadStatus, StationMessages, StationToPassengersMessages,
-    StationToSyncMessages, SyncToBusMessages, SyncToStationMessages,
+    BusMessages, BusThreadStatus, StationMessages, StationToMainMessages,
+    StationToPassengersMessages, SyncToStationMessages,
 };
-use crate::{data, ReceiverWithIndex};
 use crate::{Location, Passenger};
 use crate::{TimeTick, TimeTickStage};
 
 use std::collections::VecDeque;
 use std::ops::ControlFlow;
+use std::os::unix::process;
 use std::sync::{self, mpsc, Arc, Mutex};
-
-use crate::consts::WRITE_JSON;
 
 #[derive(Debug, Default, Clone)]
 pub struct FinalPassengerLists {
@@ -77,7 +79,7 @@ pub fn main_loop(
 
     let (tx_to_passengers, rx_to_passengers) = mpsc::channel::<Option<Vec<Passenger>>>();
 
-    let (tx_stations_to_passengers, rx_stations_to_passengers) =
+    let (tx_stations_to_passengers, mut rx_stations_to_passengers) =
         mpsc::channel::<StationToPassengersMessages>();
     let (send_to_station_channels, receive_in_station_channels) =
         crate::initialize_channel_list::<StationMessages>(config.num_of_locations);
@@ -86,8 +88,8 @@ pub fn main_loop(
 
     let send_to_station_channels_arc = Arc::new(send_to_station_channels);
 
-    let (station_send_to_bus_channels, bus_channels_receive_from_stations) =
-        initialize_channel_list::<crate::thread::StationToBusMessages>(config.num_of_buses);
+    let (send_to_bus_channels, receive_from_bus_channels) =
+        initialize_channel_list::<crate::thread::StationToBusMessages>(DEFAULT_NUM_OF_BUSES);
 
     // let current_time_tick_clone = current_time_tick.clone();
 
@@ -133,14 +135,11 @@ pub fn main_loop(
 
     // }
 
-    let (sender_sync_to_buses_list, receiver_buses_from_sync_list) =
-        initialize_channel_list::<crate::thread::SyncToBusMessages>(config.num_of_buses);
-
     let (sender_sync_to_stations_list, receiver_sync_to_stations_list) =
-        initialize_channel_list::<crate::thread::SyncToStationMessages>(config.num_of_locations);
+        initialize_channel_list::<SyncToStationMessages>(DEFAULT_GLOBAL_LOCATION_COUNT);
 
     let (sender_stations_to_sync_list, receiver_sync_from_stations_list) =
-        initialize_channel_list::<crate::thread::StationToSyncMessages>(config.num_of_locations);
+        initialize_channel_list::<StationToMainMessages>(DEFAULT_GLOBAL_LOCATION_COUNT);
 
     let receiver_sync_to_stations_list: Vec<_> = receiver_sync_to_stations_list
         .into_iter()
@@ -148,7 +147,7 @@ pub fn main_loop(
         .collect();
     let sync_to_stations_receiver = Arc::new(Mutex::new(receiver_sync_to_stations_list));
 
-    let send_to_bus_channels_arc = Arc::new(station_send_to_bus_channels);
+    let send_to_bus_channels_arc = Arc::new(send_to_bus_channels);
     let receive_in_station_channels_arc = Arc::new(Mutex::new(receive_in_station_channels));
 
     // TODO: Change the station_handle_list function to deal with the time tick
@@ -173,7 +172,7 @@ pub fn main_loop(
 
     // Beginning of bus thread loops
 
-    let bus_receiver_channels_arc = Arc::new(Mutex::new(bus_channels_receive_from_stations));
+    let bus_receiver_channels_arc = Arc::new(Mutex::new(receive_from_bus_channels));
 
     for _ in 0..config.num_of_buses {
         let bus_route_vector_clone = bus_route_vec_arc.clone();
@@ -358,7 +357,6 @@ pub fn main_loop(
     let main_handle = std::thread::spawn(|| {});
 
     let send_to_stations = sender_sync_to_stations_list.clone();
-    let send_to_buses = sender_sync_to_buses_list.clone();
     let receiver_from_buses = rx_from_threads;
 
     // Main thread: Keeps track of the remaining threads as a whole. Sends messages
@@ -373,7 +371,7 @@ pub fn main_loop(
 
     let mut rejected_passengers_list = Vec::new();
     // the time tick is stored here and sent to the other threads when it changes
-    let mut current_time_tick = TimeTick {
+    let current_time_tick = TimeTick {
         number: 0,
         stage: TimeTickStage::PassengerInit,
     };
@@ -419,7 +417,7 @@ pub fn main_loop(
         for bus_receiver in receiver_sync_from_stations_list.iter() {
             let incoming_message = bus_receiver.receiver.try_recv().unwrap();
             // Convert to if then statement when ther
-            let crate::thread::StationToSyncMessages::CrashProgram { ref message } =
+            let crate::thread::StationToMainMessages::CrashProgram { ref message } =
                 incoming_message;
             for station_sender in send_to_stations.iter() {
                 station_sender
@@ -600,23 +598,7 @@ pub fn main_loop(
                 current_time_tick, bus_status_vector
             );
 
-            // increment the time tick
-
-            current_time_tick.increment_time_tick();
-
-            for sender in &send_to_stations {
-                sender
-                    .send(SyncToStationMessages::AdvanceTimeStep(current_time_tick))
-                    .unwrap();
-            }
-
-            for sender in &send_to_buses {
-                sender
-                    .send(SyncToBusMessages::AdvanceTimeStep(current_time_tick))
-                    .unwrap();
-            }
-
-            // Increment the time tick again if the buses are moving
+            // TODO: send the increase time tick message
 
             if bus_status_vector.iter().all(|bus_thread_status| {
                 ALL_MOVING_BUS_VALID_STATUSES
@@ -625,20 +607,7 @@ pub fn main_loop(
             }) {
                 println!("All buses moving on time step {}", current_time_tick.number);
 
-                current_time_tick.increment_time_tick();
-
                 // TODO: increment the time tick
-                for sender in &send_to_stations {
-                    sender
-                        .send(SyncToStationMessages::AdvanceTimeStep(current_time_tick))
-                        .unwrap();
-                }
-
-                for sender in &send_to_buses {
-                    sender
-                        .send(SyncToBusMessages::AdvanceTimeStep(current_time_tick))
-                        .unwrap();
-                }
             } else {
                 println!(
                     "Finished timestep {:?}. Bus Status Vector: {:?}",
@@ -663,6 +632,8 @@ pub fn main_loop(
                         .unwrap();
                 }
             }
+
+            // TODO: Increment time tick
 
             continue;
         }
