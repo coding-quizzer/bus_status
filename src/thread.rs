@@ -48,8 +48,12 @@ pub enum SyncToStationMessages {
     ProgramFinished(ProgramEndType),
 }
 
-pub enum StationToMainMessages {
+pub enum StationToSyncMessages {
     CrashProgram { message: String },
+}
+
+pub enum SyncToBusMessages {
+    AdvanceTimeStep(crate::TimeTick),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

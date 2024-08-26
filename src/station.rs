@@ -73,7 +73,7 @@ impl Station {
     pub fn add_passenger(
         &mut self,
         mut new_passenger: Passenger,
-        time_tick: TimeTick,
+        time_tick: &TimeTick,
         bus_route_list: &Vec<Vec<PassengerBusLocation>>,
     ) -> Result<(), Passenger> {
         println!(
@@ -102,7 +102,7 @@ impl Station {
     pub fn add_passenger_check_available_buses(
         &mut self,
         mut new_passenger: Passenger,
-        current_time_tick: TimeTick,
+        current_time_tick: &TimeTick,
         bus_route_list: &Vec<Vec<PassengerBusLocation>>,
         buses_unavailable: Vec<usize>,
     ) -> Result<(), Passenger> {
@@ -193,7 +193,7 @@ pub fn get_station_threads(
         let to_passengers_sender_clone = tx_stations_to_passengers.clone();
         let station_handle = create_station_thread(
             current_location,
-            current_time_tick,
+            current_time_tick.clone(),
             send_to_bus_channels,
             station_channel,
             bus_route_list,
@@ -210,7 +210,7 @@ pub fn get_station_threads(
 
 pub fn create_station_thread(
     current_location: Location,
-    station_time_tick: &TimeTick,
+    station_time_tick: TimeTick,
     send_to_bus_channels: Arc<Vec<Sender<StationToBusMessages>>>,
     station_channel_receiver: ReceiverWithIndex<StationMessages>,
     bus_route_list: Arc<Mutex<Vec<Vec<BusLocation>>>>,
@@ -275,7 +275,7 @@ pub fn create_station_thread(
 
                     // If I change this to be a new reciever, the other stages will not need to filter out this option
                     if let StationMessages::InitPassengerList(mut list) = received_message {
-                        assert_eq!((*time_tick).number, 0);
+                        assert_eq!(time_tick.number, 0);
                         println!("Station: {station_index} Message: {list:#?}");
                         let mut rejected_passenger_indeces = Vec::new();
                         println!("List: {:?}", list);
@@ -286,7 +286,7 @@ pub fn create_station_thread(
                             current_station
                                 .add_passenger(
                                     passenger.clone().into(),
-                                    *time_tick,
+                                    &time_tick,
                                     &station_thread_passenger_bus_route_list.lock().unwrap(),
                                 )
                                 .unwrap_or_else(|passenger| {
@@ -314,7 +314,7 @@ pub fn create_station_thread(
 
                         panic!(
                             "Invalid Message:{:?} for present timetick: {:?}. Expected InitPassengerList ",
-                            received_message, *time_tick
+                            received_message, time_tick
                         )
                     }
                     bus_passengers_initialized = true;
@@ -414,7 +414,7 @@ pub fn create_station_thread(
 
                         panic!(
                             "Invalid Message:{:?} for present timetick: {:?}. Expected BusArrived ",
-                            received_message, *time_tick
+                            received_message, time_tick
                         )
                     }
                 }
@@ -522,7 +522,7 @@ pub fn create_station_thread(
                                 println!("Passenger, {:#?}", passenger);
                                 println!("Current location number: {}", station_index);
                                 println!("Next location {:#?}", next_location);
-                                println!("Time tick: {:?}", *time_tick);
+                                println!("Time tick: {:?}", time_tick);
 
                                 next_location.is_some()
                             });
@@ -627,7 +627,7 @@ pub fn create_station_thread(
                             current_station
                                 .add_passenger_check_available_buses(
                                     passenger,
-                                    *time_tick,
+                                    &time_tick,
                                     &station_thread_passenger_bus_route_list.lock().unwrap(),
                                     unavailable_buses,
                                 )

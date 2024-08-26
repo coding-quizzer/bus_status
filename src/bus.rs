@@ -448,7 +448,7 @@ impl Bus {
     pub fn take_passengers(
         &mut self,
         waiting_passengers: &mut [Passenger],
-        current_time_tick: &u32,
+        time_tick: &u32,
     ) -> Vec<Passenger> {
         let mut overflow_passengers = vec![];
         for passenger in waiting_passengers.iter_mut() {
@@ -466,8 +466,8 @@ impl Bus {
                 .expect("Passenger schedule cannot be empty");
 
             println!("Onboarding time tick: {onboarding_time_tick}.");
-            println!("Current time tick: {current_time_tick}");
-            if onboarding_time_tick == current_time_tick && bus_num.expect("At this point, this cannot be the last bus location, and thus the bus_num must exist") == self.bus_index {
+            println!("Current time tick: {time_tick}");
+            if onboarding_time_tick == time_tick && bus_num.expect("At this point, this cannot be the last bus location, and thus the bus_num must exist") == self.bus_index {
               println!("This is the correct time tick and bus");
               if self.passengers.len() >= self.capacity {
                   println!("Passenger Rejected. Bus Overfull");

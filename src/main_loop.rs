@@ -9,8 +9,8 @@ use crate::initialize_channel_list;
 use crate::location::{BusLocation, PassengerBusLocation};
 use crate::station;
 use crate::thread::{
-    BusMessages, BusThreadStatus, StationMessages, StationToMainMessages,
-    StationToPassengersMessages, SyncToStationMessages,
+    BusMessages, BusThreadStatus, StationMessages, StationToPassengersMessages,
+    StationToSyncMessages, SyncToStationMessages,
 };
 use crate::{Location, Passenger};
 use crate::{TimeTick, TimeTickStage};
@@ -83,8 +83,8 @@ pub fn main_loop(
         mpsc::channel::<StationToPassengersMessages>();
     let (send_to_station_channels, receive_in_station_channels) =
         crate::initialize_channel_list::<StationMessages>(config.num_of_locations);
-    // let receive_in_station_channels: Vec<Option<_>> =
-    //     receive_in_station_channels.into_iter().map(Some).collect();
+    let receive_in_station_channels: Vec<Option<_>> =
+        receive_in_station_channels.into_iter().map(Some).collect();
 
     let send_to_station_channels_arc = Arc::new(send_to_station_channels);
 
@@ -139,7 +139,7 @@ pub fn main_loop(
         initialize_channel_list::<SyncToStationMessages>(DEFAULT_GLOBAL_LOCATION_COUNT);
 
     let (sender_stations_to_sync_list, receiver_sync_from_stations_list) =
-        initialize_channel_list::<StationToMainMessages>(DEFAULT_GLOBAL_LOCATION_COUNT);
+        initialize_channel_list::<StationToSyncMessages>(DEFAULT_GLOBAL_LOCATION_COUNT);
 
     let receiver_sync_to_stations_list: Vec<_> = receiver_sync_to_stations_list
         .into_iter()
@@ -164,7 +164,7 @@ pub fn main_loop(
         &passenger_bus_route_arc,
         &rejected_passengers_pointer,
         tx_stations_to_passengers,
-        receiver_sync_to_stations_list,
+        sync_to_stations_receiver,
         &final_passengers_arc,
     );
 
@@ -417,7 +417,7 @@ pub fn main_loop(
         for bus_receiver in receiver_sync_from_stations_list.iter() {
             let incoming_message = bus_receiver.receiver.try_recv().unwrap();
             // Convert to if then statement when ther
-            let crate::thread::StationToMainMessages::CrashProgram { ref message } =
+            let crate::thread::StationToSyncMessages::CrashProgram { ref message } =
                 incoming_message;
             for station_sender in send_to_stations.iter() {
                 station_sender
