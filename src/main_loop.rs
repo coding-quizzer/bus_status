@@ -10,7 +10,7 @@ use crate::location::{BusLocation, PassengerBusLocation};
 use crate::station;
 use crate::thread::{
     BusMessages, BusThreadStatus, StationMessages, StationToPassengersMessages,
-    StationToSyncMessages, SyncToStationMessages,
+    StationToSyncMessages, SyncToBusMessages, SyncToStationMessages,
 };
 use crate::{Location, Passenger};
 use crate::{TimeTick, TimeTickStage};
@@ -18,6 +18,7 @@ use crate::{TimeTick, TimeTickStage};
 use std::collections::VecDeque;
 use std::ops::ControlFlow;
 use std::os::unix::process;
+use std::sync::mpsc::TryRecvError;
 use std::sync::{self, mpsc, Arc, Mutex};
 
 #[derive(Debug, Default, Clone)]
@@ -89,7 +90,7 @@ pub fn main_loop(
     let send_to_station_channels_arc = Arc::new(send_to_station_channels);
 
     let (send_to_bus_channels, receive_from_bus_channels) =
-        initialize_channel_list::<crate::thread::StationToBusMessages>(DEFAULT_NUM_OF_BUSES);
+        initialize_channel_list::<crate::thread::StationToBusMessages>(config.num_of_buses);
 
     // let current_time_tick_clone = current_time_tick.clone();
 
@@ -136,10 +137,17 @@ pub fn main_loop(
     // }
 
     let (sender_sync_to_stations_list, receiver_sync_to_stations_list) =
-        initialize_channel_list::<SyncToStationMessages>(DEFAULT_GLOBAL_LOCATION_COUNT);
+        initialize_channel_list::<SyncToStationMessages>(config.num_of_locations);
+
+    let (sender_sync_to_bus_list, receiver_sync_to_bus_list) =
+        initialize_channel_list::<SyncToBusMessages>(config.num_of_buses);
+    let mut receiver_sync_to_bus_list = receiver_sync_to_bus_list
+        .into_iter()
+        .map(Some)
+        .collect::<Vec<_>>();
 
     let (sender_stations_to_sync_list, receiver_sync_from_stations_list) =
-        initialize_channel_list::<StationToSyncMessages>(DEFAULT_GLOBAL_LOCATION_COUNT);
+        initialize_channel_list::<StationToSyncMessages>(config.num_of_locations);
 
     let receiver_sync_to_stations_list: Vec<_> = receiver_sync_to_stations_list
         .into_iter()
@@ -178,19 +186,29 @@ pub fn main_loop(
         let bus_route_vector_clone = bus_route_vec_arc.clone();
         let station_senders_clone = send_to_station_channels_arc.clone();
         let sender = tx_from_bus_threads.clone();
-        let bus_receiver_channels = bus_receiver_channels_arc.clone();
+        let bus_receiver_channels_from_station = bus_receiver_channels_arc.clone();
 
+        let receiver_sync_to_bus_list: &mut Vec<
+            Option<crate::ReceiverWithIndex<SyncToBusMessages>>,
+        > = receiver_sync_to_bus_list.as_mut();
         let current_time_tick = TimeTick::default();
 
         // TODO: Remove if not useful
         let mut time_clone_check = 0;
         let bus_handle = std::thread::spawn(move || {
-            let current_bus_receiver_with_index = bus_receiver_channels.lock().unwrap().remove(0);
-            drop(bus_receiver_channels);
+            let current_bus_receiver_from_station_with_index =
+                bus_receiver_channels_from_station.lock().unwrap().remove(0);
+
+            drop(bus_receiver_channels_from_station);
             // Since the receiver obtained is not deterministic, set the bus index based on what channel was obtained
-            let bus_index = current_bus_receiver_with_index.index;
+            let bus_index = current_bus_receiver_from_station_with_index.index;
+            let current_bus_receiver_from_sync = receiver_sync_to_bus_list
+                .get_mut(bus_index)
+                .expect("List should be long enough for all the buses")
+                .take()
+                .expect("This value should not have been taken already");
             println!("Bus index: {}", bus_index);
-            let bus_receiver = current_bus_receiver_with_index.receiver;
+            let bus_receiver = current_bus_receiver_from_station_with_index.receiver;
 
             let mut bus_route_vector = bus_route_vector_clone.lock().unwrap();
             let bus_route = bus_route_vector.get(bus_index).unwrap();
@@ -263,100 +281,95 @@ pub fn main_loop(
     // How can I make the funciton clearer
     let passenger_thread_sender = tx_from_bus_threads.clone();
     let station_sender_list = send_to_station_channels_arc.clone();
+    // At this point this pretty much only initializes the passengers to their stations, so it only needs to run once.
+    // Because it will send a message that will ultimately be broadcasted to change the timetick. It is guaranteed that the
+    // time tick will be the first time tick
     let passengers_thread_handle = std::thread::spawn(move || {
         let stations_receiver = rx_stations_to_passengers;
-        loop {
-            // TODO: Process the time tick - update value through messages sent from the main thread
-            // passenger_thread_time_tick = ...
 
-            // Replace with message sent from main/sync thread
-            /*
-             if *passenger_thread_program_end_clone.lock().unwrap() {
-               println!("Rejected Passenger count: {}", rejected_passengers.len());
-               break;
-             }
-            */
+        // Replace with message sent from main/sync thread
+        /*
+         if *passenger_thread_program_end_clone.lock().unwrap() {
+           println!("Rejected Passenger count: {}", rejected_passengers.len());
+           break;
+         }
+        */
 
-            let bus_route_list = passenger_thread_bus_route_list_clone.lock().unwrap();
+        let bus_route_list = passenger_thread_bus_route_list_clone.lock().unwrap();
 
-            println!("Bus route list: {bus_route_list:#?}");
-            drop(bus_route_list);
+        println!("Bus route list: {bus_route_list:#?}");
+        drop(bus_route_list);
 
-            if passenger_thread_time_tick.stage == TimeTickStage::PassengerInit {
-                println!("First time tick loop");
-                let passenger_list = passenger_thead_passenger_list_clone.lock().unwrap();
-                println!("Beginning of tick one passenger calculations");
+        println!("First time tick loop");
+        let passenger_list = passenger_thead_passenger_list_clone.lock().unwrap();
+        println!("Beginning of tick one passenger calculations");
 
-                let mut passenger_location_list: Vec<Vec<Passenger>> = Vec::new();
-                for _ in 0..(config.num_of_locations) {
-                    passenger_location_list.push(Vec::new());
-                }
-
-                let mut location_vec_deque = VecDeque::from(passenger_list.clone());
-
-                while let Some(passenger) = location_vec_deque.pop_back() {
-                    let current_location_index = passenger.current_location.unwrap().index;
-                    passenger_location_list[current_location_index].push(passenger);
-                }
-
-                for (index, passengers_in_locations) in
-                    passenger_location_list.into_iter().enumerate()
-                {
-                    station_sender_list.as_ref()[index]
-                        .send(StationMessages::InitPassengerList(passengers_in_locations))
-                        .unwrap();
-                    println!("Init Passenger Info Message. Location Index: {index}");
-                }
-
-                for _ in 0..config.num_of_locations {
-                    let sync_message = stations_receiver.recv().unwrap();
-                    if let StationToPassengersMessages::ConfirmInitPassengerList(station_number) =
-                        sync_message
-                    {
-                        println!("Passenger Init Confirmed from Station {station_number}");
-                    }
-                }
-
-                println!("End of TIck one passenger calculations");
-
-                // TODO: Find out if I have alredy dealt with this. If not, deal with it
-
-                // Remove passengers who cannot get onto a bus, since if they cannot get on any bus
-                // now, they will not be able to later, because the schedules will not change. I
-                // might as well continue keeping track of them.
-
-                /* for passenger_index in rejected_passengers_indeces.into_iter().rev() {
-                    let rejected_passenger = passenger_list.remove(passenger_index);
-                    println!("Rejected passenger removed");
-                    rejected_passengers.push(rejected_passenger);
-                } */
-
-                passenger_thread_sender
-                    .send(BusMessages::InitPassengers)
-                    .unwrap();
-
-                println!("Passengers init message sent");
-                // TODO: Replace with something comperable to the panic message
-                assert_eq!(
-                    passenger_list.len() + rejected_passengers.len(),
-                    config.num_of_locations
-                );
-
-                break;
-            }
-
-            let total_rejected_passengers = rejected_passengers.len();
-            println!("There were a total of {total_rejected_passengers} rejected passengers");
+        let mut passenger_location_list: Vec<Vec<Passenger>> = Vec::new();
+        for _ in 0..(config.num_of_locations) {
+            passenger_location_list.push(Vec::new());
         }
+
+        let mut location_vec_deque = VecDeque::from(passenger_list.clone());
+
+        while let Some(passenger) = location_vec_deque.pop_back() {
+            let current_location_index = passenger.current_location.unwrap().index;
+            passenger_location_list[current_location_index].push(passenger);
+        }
+
+        for (index, passengers_in_locations) in passenger_location_list.into_iter().enumerate() {
+            station_sender_list.as_ref()[index]
+                .send(StationMessages::InitPassengerList(passengers_in_locations))
+                .unwrap();
+            println!("Init Passenger Info Message. Location Index: {index}");
+        }
+
+        for _ in 0..config.num_of_locations {
+            let sync_message = stations_receiver.recv().unwrap();
+            if let StationToPassengersMessages::ConfirmInitPassengerList(station_number) =
+                sync_message
+            {
+                println!("Passenger Init Confirmed from Station {station_number}");
+            }
+        }
+
+        println!("End of TIck one passenger calculations");
+
+        // TODO: Find out if I have alredy dealt with this. If not, deal with it
+
+        // Remove passengers who cannot get onto a bus, since if they cannot get on any bus
+        // now, they will not be able to later, because the schedules will not change. I
+        // might as well continue keeping track of them.
+
+        /* for passenger_index in rejected_passengers_indeces.into_iter().rev() {
+            let rejected_passenger = passenger_list.remove(passenger_index);
+            println!("Rejected passenger removed");
+            rejected_passengers.push(rejected_passenger);
+        } */
+
+        passenger_thread_sender
+            .send(BusMessages::InitPassengers)
+            .unwrap();
+
+        println!("Passengers init message sent");
+        // TODO: Replace with something comperable to the panic message
+        assert_eq!(
+            passenger_list.len() + rejected_passengers.len(),
+            config.num_of_locations
+        );
+
+        // If I decide to use these, I will need to figure out how to
+
+        // let total_rejected_passengers = rejected_passengers.len();
+        // println!("There were a total of {total_rejected_passengers} rejected passengers");
     });
 
     handle_list.push(passengers_thread_handle);
 
     /* Beginning of Main/sync thread loop */
     // spawn other threads
-    let main_handle = std::thread::spawn(|| {});
 
     let send_to_stations = sender_sync_to_stations_list.clone();
+    let send_to_buses = sender_sync_to_bus_list.clone();
     let receiver_from_buses = rx_from_threads;
 
     // Main thread: Keeps track of the remaining threads as a whole. Sends messages
@@ -415,18 +428,27 @@ pub fn main_loop(
         } */
 
         for bus_receiver in receiver_sync_from_stations_list.iter() {
-            let incoming_message = bus_receiver.receiver.try_recv().unwrap();
+            let incoming_message = bus_receiver.receiver.try_recv();
+            let incoming_message = match incoming_message {
+                Ok(message) => message,
+                Err(TryRecvError::Empty) => continue,
+                Err(TryRecvError::Disconnected) => {
+                    panic!("{}", TryRecvError::Disconnected)
+                }
+            };
             // Convert to if then statement when ther
-            let crate::thread::StationToSyncMessages::CrashProgram { ref message } =
-                incoming_message;
-            for station_sender in send_to_stations.iter() {
-                station_sender
-                    .send(SyncToStationMessages::ProgramFinished(
-                        crate::thread::ProgramEndType::ProgramCrashed {
-                            message: message.to_string(),
-                        },
-                    ))
-                    .unwrap();
+            if let crate::thread::StationToSyncMessages::CrashProgram { ref message } =
+                incoming_message
+            {
+                for station_sender in send_to_stations.iter() {
+                    station_sender
+                        .send(SyncToStationMessages::ProgramFinished(
+                            crate::thread::ProgramEndType::ProgramCrashed {
+                                message: message.into(),
+                            },
+                        ))
+                        .unwrap();
+                }
             }
         }
 
@@ -631,12 +653,24 @@ pub fn main_loop(
                         .send(SyncToStationMessages::AdvanceTimeStep(current_time_tick))
                         .unwrap();
                 }
+
+                for bus_sender in &send_to_buses {
+                    bus_sender
+                        .send(crate::thread::SyncToBusMessages::AdvanceTimeStep(
+                            current_time_tick,
+                        ))
+                        .unwrap();
+                }
             }
 
             // TODO: Increment time tick
 
             continue;
         }
+    }
+
+    for handle in handle_list {
+        handle.join();
     }
 
     {}
