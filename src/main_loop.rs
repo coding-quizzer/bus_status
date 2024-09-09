@@ -94,26 +94,38 @@ pub fn main_loop(
 
     // let current_time_tick_clone = current_time_tick.clone();
 
-    // #[track_caller]
-    // fn increment_and_drop_time_step(
-    //     mut time_tick: sync::MutexGuard<'_, TimeTick>,
-    //     station_senders: &Vec<mpsc::Sender<SyncToStationMessages>>,
-    // ) {
-    //     let call_location = std::panic::Location::caller();
-    //     println!("---------- All buses are finished at their stops -----------");
-    //     println!("Time step incremented from {}", call_location);
-    //     // At this point sending the message here is not neccesary.
-    //     // Because the time step mutiex is held for both time step increments,
-    //     // the station will be stuck in the unloading phase when all the buses are moving
-    //     // Eventually a message might be neccesary for that case but this implimentation works for now
-    //     /*
-    //       // This message will only be sent after the bus unloading stage is finished
-    //         station_sender
-    //           .send(SyncToStationMessages::AdvanceTimeStep(*time_tick))
-    //           .unwrap();
-    //     */
-    //     (*time_tick).increment_time_tick();
-    // }
+    #[track_caller]
+    fn increment_time_step(
+        mut time_tick: TimeTick,
+        station_senders: &Vec<mpsc::Sender<SyncToStationMessages>>,
+        bus_senders: &Vec<mpsc::Sender<SyncToBusMessages>>,
+    ) {
+        let call_location = std::panic::Location::caller();
+        println!("---------- All buses are finished at their stops -----------");
+        println!("Time step incremented from {}", call_location);
+        // At this point sending the message here is not neccesary.
+        // Because the time step mutiex is held for both time step increments,
+        // the station will be stuck in the unloading phase when all the buses are moving
+        // Eventually a message might be neccesary for that case but this implimentation works for now
+        /*
+          // This message will only be sent after the bus unloading stage is finished
+            station_sender
+              .send(SyncToStationMessages::AdvanceTimeStep(*time_tick))
+              .unwrap();
+        */
+        (time_tick).increment_time_tick();
+        for station_sender in station_senders {
+            station_sender
+                .send(SyncToStationMessages::AdvanceTimeStep(time_tick))
+                .unwrap();
+        }
+
+        for bus_sender in bus_senders {
+            bus_sender
+                .send(crate::thread::SyncToBusMessages::AdvanceTimeStep(time_tick))
+                .unwrap();
+        }
+    }
 
     // fn manage_time_tick_increase_for_finished_loading_tick(
     //     mut current_time_tick: sync::MutexGuard<'_, TimeTick>,
@@ -141,7 +153,7 @@ pub fn main_loop(
 
     let (sender_sync_to_bus_list, receiver_sync_to_bus_list) =
         initialize_channel_list::<SyncToBusMessages>(config.num_of_buses);
-    let mut receiver_sync_to_bus_list = receiver_sync_to_bus_list
+    let mut receiver_sync_to_bus_channels = receiver_sync_to_bus_list
         .into_iter()
         .map(Some)
         .collect::<Vec<_>>();
@@ -181,16 +193,18 @@ pub fn main_loop(
     // Beginning of bus thread loops
 
     let bus_receiver_channels_arc = Arc::new(Mutex::new(receive_from_bus_channels));
+    let receiver_sync_to_bus_channels_arc = Arc::new(Mutex::new(receiver_sync_to_bus_channels));
 
     for _ in 0..config.num_of_buses {
+        let receiver_sync_to_bus_channels_clone = receiver_sync_to_bus_channels_arc.clone();
         let bus_route_vector_clone = bus_route_vec_arc.clone();
         let station_senders_clone = send_to_station_channels_arc.clone();
         let sender = tx_from_bus_threads.clone();
         let bus_receiver_channels_from_station = bus_receiver_channels_arc.clone();
 
-        let receiver_sync_to_bus_list: &mut Vec<
-            Option<crate::ReceiverWithIndex<SyncToBusMessages>>,
-        > = receiver_sync_to_bus_list.as_mut();
+        // let new_receiver_sync_to_bus_list: &mut Vec<
+        //     Option<crate::ReceiverWithIndex<SyncToBusMessages>>,
+        // > = receiver_sync_to_bus_list.as_mut();
         let current_time_tick = TimeTick::default();
 
         // TODO: Remove if not useful
@@ -202,13 +216,15 @@ pub fn main_loop(
             drop(bus_receiver_channels_from_station);
             // Since the receiver obtained is not deterministic, set the bus index based on what channel was obtained
             let bus_index = current_bus_receiver_from_station_with_index.index;
-            let current_bus_receiver_from_sync = receiver_sync_to_bus_list
+            let current_bus_receiver_from_sync = receiver_sync_to_bus_channels_clone
+                .lock()
+                .unwrap()
                 .get_mut(bus_index)
                 .expect("List should be long enough for all the buses")
                 .take()
                 .expect("This value should not have been taken already");
             println!("Bus index: {}", bus_index);
-            let bus_receiver = current_bus_receiver_from_station_with_index.receiver;
+            let bus_receiver_from_station = current_bus_receiver_from_station_with_index.receiver;
 
             let mut bus_route_vector = bus_route_vector_clone.lock().unwrap();
             let bus_route = bus_route_vector.get(bus_index).unwrap();
@@ -233,10 +249,14 @@ pub fn main_loop(
                 .unwrap();
             println!("Bus Message sent");
 
-            let previous_time_tick = TimeTick::default();
+            let mut previous_time_tick = TimeTick::default();
             loop {
                 // TODO: Set current time tick to the appropriate value, incorporating messages from the main/sync thread
-                let current_time_tick: TimeTick = todo!();
+                let incoming_message = current_bus_receiver_from_sync.receiver.recv().unwrap();
+                let current_time_tick: TimeTick = match incoming_message {
+                    SyncToBusMessages::AdvanceTimeStep(time_step) => time_step,
+                    _ => panic!(),
+                };
 
                 if current_time_tick == previous_time_tick
                     || (current_time_tick).stage == TimeTickStage::PassengerInit
@@ -255,7 +275,7 @@ pub fn main_loop(
 
                 let bus_update_output = simulated_bus.update(
                     &station_senders_clone,
-                    &bus_receiver,
+                    &bus_receiver_from_station,
                     &sender,
                     &current_time_tick,
                 );
