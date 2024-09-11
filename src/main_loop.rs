@@ -1,8 +1,5 @@
 use crate::bus::Bus;
-use crate::consts::{
-    DEFAULT_BUS_CAPACITY, DEFAULT_GLOBAL_LOCATION_COUNT, DEFAULT_NUM_OF_BUSES,
-    GLOBAL_PASSENGER_COUNT, WRITE_JSON,
-};
+use crate::consts::WRITE_JSON;
 use crate::data;
 use crate::data::InputDataStructure;
 use crate::initialize_channel_list;
@@ -17,9 +14,8 @@ use crate::{TimeTick, TimeTickStage};
 
 use std::collections::VecDeque;
 use std::ops::ControlFlow;
-use std::os::unix::process;
 use std::sync::mpsc::TryRecvError;
-use std::sync::{self, mpsc, Arc, Mutex};
+use std::sync::{mpsc, Arc, Mutex};
 
 #[derive(Debug, Default, Clone)]
 pub struct FinalPassengerLists {
@@ -31,6 +27,7 @@ pub struct FinalPassengerLists {
 
 pub struct ConfigStruct {
     pub num_of_buses: usize,
+    pub num_of_passengers: usize,
     pub num_of_locations: usize,
     // TODO: turn this into a property on the buses instead of the global config_structure
     pub bus_capacity: u32,
@@ -39,7 +36,7 @@ pub struct ConfigStruct {
 // The main bus system loop. This should probably output something eventually to give something to test against
 // The return value might be a object containing lists of passengers from every location and the list of passengers that have not
 // gotten on any bus
-pub fn main_loop(
+pub fn run_simulation(
     location_vector: Vec<Location>,
     total_passenger_list: Vec<Passenger>,
     all_bus_routes: Vec<Vec<BusLocation>>,
@@ -253,31 +250,33 @@ pub fn main_loop(
             loop {
                 // TODO: Set current time tick to the appropriate value, incorporating messages from the main/sync thread
                 let incoming_message = current_bus_receiver_from_sync.receiver.recv().unwrap();
-                let current_time_tick: TimeTick = match incoming_message {
-                    SyncToBusMessages::AdvanceTimeStep(time_step) => time_step,
-                    _ => panic!(),
+                let time_tick: TimeTick = match incoming_message {
+                    SyncToBusMessages::AdvanceTimeStep(time_step) => {
+                        if (time_step.number - previous_time_tick.number >= 1) {
+                            panic!(
+                                "Skipped from time tick {previous_time_tick:?} to {time_step:?} "
+                            )
+                        } else {
+                            time_step
+                        }
+                    }
+                    // So far, there are no other options
+                    _ => unreachable!(),
                 };
 
-                if current_time_tick == previous_time_tick
-                    || (current_time_tick).stage == TimeTickStage::PassengerInit
+                //
+                if time_tick == previous_time_tick
+                    || (time_tick).stage == TimeTickStage::PassengerInit
                 {
                     continue;
                 }
-
-                previous_time_tick = current_time_tick;
-
-                if time_clone_check == (current_time_tick).number {
-                    continue;
-                } else {
-                    time_clone_check = current_time_tick.number;
-                }
-                let time_tick = current_time_tick;
+                previous_time_tick = time_tick;
 
                 let bus_update_output = simulated_bus.update(
                     &station_senders_clone,
                     &bus_receiver_from_station,
                     &sender,
-                    &current_time_tick,
+                    &time_tick,
                 );
 
                 if bus_update_output == ControlFlow::Break(()) {
@@ -374,7 +373,7 @@ pub fn main_loop(
         // TODO: Replace with something comperable to the panic message
         assert_eq!(
             passenger_list.len() + rejected_passengers.len(),
-            config.num_of_locations
+            config.num_of_passengers
         );
 
         // If I decide to use these, I will need to figure out how to
@@ -690,7 +689,7 @@ pub fn main_loop(
     }
 
     for handle in handle_list {
-        handle.join();
+        handle.join().unwrap();
     }
 
     {}

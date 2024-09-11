@@ -6,7 +6,7 @@ use bus_system::bus::BusLocation;
 use bus_system::consts::*;
 use bus_system::data::{self, InputDataStructure};
 use bus_system::location::Location;
-use bus_system::main_loop::{main_loop, ConfigStruct};
+use bus_system::main_loop::{run_simulation, ConfigStruct};
 
 fn main() {
     let initial_data: InputDataStructure = if READ_JSON {
@@ -30,6 +30,7 @@ fn main() {
 
     let num_of_buses = bus_routes.len();
     let num_of_locations = location_vector.len();
+    let num_of_passengers = passengers.len();
 
     let location_vector: Vec<Location> = if READ_JSON {
         location_vector
@@ -66,8 +67,10 @@ fn main() {
     let config_struct = ConfigStruct {
         num_of_buses,
         num_of_locations,
+        bus_capacity: DEFAULT_BUS_CAPACITY as u32,
+        num_of_passengers,
     };
-    main_loop(
+    run_simulation(
         location_vector,
         total_passenger_list,
         bus_route_vec,
