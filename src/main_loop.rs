@@ -77,7 +77,7 @@ pub fn run_simulation(
 
     let (tx_to_passengers, rx_to_passengers) = mpsc::channel::<Option<Vec<Passenger>>>();
 
-    let (tx_stations_to_passengers, mut rx_stations_to_passengers) =
+    let (tx_stations_to_passengers, rx_stations_to_passengers) =
         mpsc::channel::<StationToPassengersMessages>();
     let (send_to_station_channels, receive_in_station_channels) =
         crate::initialize_channel_list::<StationMessages>(config.num_of_locations);
@@ -150,7 +150,7 @@ pub fn run_simulation(
 
     let (sender_sync_to_bus_list, receiver_sync_to_bus_list) =
         initialize_channel_list::<SyncToBusMessages>(config.num_of_buses);
-    let mut receiver_sync_to_bus_channels = receiver_sync_to_bus_list
+    let receiver_sync_to_bus_channels = receiver_sync_to_bus_list
         .into_iter()
         .map(Some)
         .collect::<Vec<_>>();
@@ -226,7 +226,7 @@ pub fn run_simulation(
             let mut bus_route_vector = bus_route_vector_clone.lock().unwrap();
             let bus_route = bus_route_vector.get(bus_index).unwrap();
             println!("Bus {bus_index} bus route: {bus_route:#?}");
-            let mut simulated_bus_option =
+            let simulated_bus_option =
                 Bus::try_new(bus_route.clone(), config.bus_capacity as usize, bus_index);
 
             println!(
@@ -252,7 +252,7 @@ pub fn run_simulation(
                 let incoming_message = current_bus_receiver_from_sync.receiver.recv().unwrap();
                 let time_tick: TimeTick = match incoming_message {
                     SyncToBusMessages::AdvanceTimeStep(time_step) => {
-                        if (time_step.number - previous_time_tick.number >= 1) {
+                        if time_step.number - previous_time_tick.number >= 1 {
                             panic!(
                                 "Skipped from time tick {previous_time_tick:?} to {time_step:?} "
                             )

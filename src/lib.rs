@@ -203,10 +203,10 @@ pub fn initialize_channel_list<T>(
     (sender_vector, receiver_vector)
 }
 
-pub fn calculate_passenger_schedule_for_bus_check_available_buses<'a>(
-    new_passenger: &'a Passenger,
+pub fn calculate_passenger_schedule_for_bus_check_available_buses(
+    new_passenger: &Passenger,
     current_time_tick: u32,
-    bus_route_list: &Vec<Vec<PassengerBusLocation>>,
+    bus_route_list: &[Vec<PassengerBusLocation>],
     buses_unavailable: Vec<usize>,
 ) -> Result<Vec<PassengerOnboardingBusSchedule>, Passenger> {
     // TODO: Add tests to prove that this method of removing those indeces actually work
@@ -239,11 +239,11 @@ pub fn calculate_passenger_schedule_for_bus_check_available_buses<'a>(
 
     // Take bus routes with the same time tick in unavailable buses out
 
-    calculate_passenger_schedule_for_bus(&new_passenger, current_time_tick, &new_bus_route_list)
+    calculate_passenger_schedule_for_bus(new_passenger, current_time_tick, &new_bus_route_list)
 }
 
-pub fn calculate_passenger_schedule_for_bus<'a>(
-    passenger: &'a Passenger,
+pub fn calculate_passenger_schedule_for_bus(
+    passenger: &Passenger,
     current_time_tick: u32,
     bus_route_list: &Vec<Vec<PassengerBusLocation>>,
 ) -> Result<Vec<PassengerOnboardingBusSchedule>, Passenger> {

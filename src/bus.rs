@@ -285,7 +285,7 @@ impl Bus {
                             // FIX: find a better way to get the list of location indeces that doesn't involve misusing any
                             current_passenger_location_index = location_index;
                             passenger_location.stop_location == current_location
-                                && &passenger_location.time_tick >= &(time_tick.number)
+                                && passenger_location.time_tick >= time_tick.number
                         });
 
                     println!("Is Offboarding: {is_offboarding}");
@@ -462,7 +462,7 @@ impl Bus {
                 bus_num,
             } = passenger
                 .bus_schedule
-                .get(0)
+                .first()
                 .expect("Passenger schedule cannot be empty");
 
             println!("Onboarding time tick: {onboarding_time_tick}.");

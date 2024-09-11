@@ -13,8 +13,6 @@ use crate::{
     calculate_passenger_schedule_for_bus_check_available_buses,
 };
 use crate::{ReceiverWithIndex, TimeTickStage};
-use core::time;
-use std::os::linux::raw::stat;
 use std::sync::mpsc::TryRecvError;
 use std::sync::{
     mpsc::{Receiver, Sender},
@@ -162,7 +160,7 @@ pub fn get_station_threads(
     rejected_passengers_pointer: &Arc<Mutex<Vec<Passenger>>>,
 
     tx_stations_to_passengers: Sender<StationToPassengersMessages>,
-    mut rx_sync_to_stations_list: Arc<Mutex<Vec<Option<ReceiverWithIndex<SyncToStationMessages>>>>>,
+    rx_sync_to_stations_list: Arc<Mutex<Vec<Option<ReceiverWithIndex<SyncToStationMessages>>>>>,
     final_passenger_list_arc: &Arc<Mutex<FinalPassengerLists>>,
 ) -> Vec<JoinHandle<()>> {
     // let station_location_list = location_vector_arc.clone();
@@ -261,7 +259,6 @@ pub fn create_station_thread(
             match time_tick.stage {
                 TimeTickStage::PassengerInit => {
                     if bus_passengers_initialized {
-                        drop(time_tick);
                         continue;
                     }
 
