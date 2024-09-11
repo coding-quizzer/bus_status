@@ -292,8 +292,6 @@ pub fn create_station_thread(
                                 });
                         }
 
-                        drop(time_tick);
-
                         for passenger_index in rejected_passenger_indeces.into_iter().rev() {
                             let removed_passenger = list.remove(passenger_index);
                             (*rejected_passenger_clone.lock().unwrap()).push(removed_passenger);
@@ -344,7 +342,6 @@ pub fn create_station_thread(
                             panic!("{}", TryRecvError::Disconnected);
                         }
                     };
-                    drop(time_tick);
                     println!(
                         "Station {} BusUnloadingPassengers timetick stage",
                         station_index
@@ -649,7 +646,6 @@ pub fn create_station_thread(
 
                     // Occasionally, this turns into an infinite loop
 
-                    drop(time_tick);
                     // Why is this not running on time tick 1?
                     'bus_loading: loop {
                         // For test data, program is stuck in this loop, even though the time step has proceeded to the next one
@@ -711,8 +707,6 @@ pub fn create_station_thread(
                         };
 
                         if let StationMessages::BusDeparted { bus_index } = received_message {
-                            drop(time_tick);
-
                             // Confirm that the station contains the bus that should be removed
                             assert!(current_station
                                 .docked_buses
