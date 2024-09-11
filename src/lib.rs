@@ -182,6 +182,7 @@ pub fn initialize_location_list(count: usize) -> Vec<Location> {
     location_list
 }
 
+#[derive(Debug)]
 pub struct ReceiverWithIndex<T> {
     pub receiver: Receiver<T>,
     pub index: usize,

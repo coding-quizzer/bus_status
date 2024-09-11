@@ -12,6 +12,7 @@ fn main() {
     let initial_data: InputDataStructure = if READ_JSON {
         data::read_data_from_file(Path::new("bus_route_data.json")).unwrap()
     } else {
+        // These need to actually be set
         let mut bus_routes = Vec::new();
         bus_routes.resize(DEFAULT_NUM_OF_BUSES, Vec::new());
         // bus_routes is only used if READ_JSON
@@ -29,8 +30,16 @@ fn main() {
     } = initial_data;
 
     let num_of_buses = bus_routes.len();
-    let num_of_locations = location_vector.len();
-    let num_of_passengers = passengers.len();
+    let num_of_locations = if READ_JSON {
+        location_vector.len()
+    } else {
+        DEFAULT_GLOBAL_LOCATION_COUNT
+    };
+    let num_of_passengers = if READ_JSON {
+        passengers.len()
+    } else {
+        GLOBAL_PASSENGER_COUNT
+    };
 
     let location_vector: Vec<Location> = if READ_JSON {
         location_vector

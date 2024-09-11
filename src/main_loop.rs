@@ -147,6 +147,11 @@ pub fn run_simulation(
 
     let (sender_sync_to_stations_list, receiver_sync_to_stations_list) =
         initialize_channel_list::<SyncToStationMessages>(config.num_of_locations);
+    println!("channel count: {}", config.num_of_locations);
+    println!(
+        "Sync to stations list: {:?}",
+        receiver_sync_to_stations_list
+    );
 
     let (sender_sync_to_bus_list, receiver_sync_to_bus_list) =
         initialize_channel_list::<SyncToBusMessages>(config.num_of_buses);
