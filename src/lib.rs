@@ -206,11 +206,11 @@ pub fn initialize_channel_list<T>(
 pub fn calculate_passenger_schedule_for_bus_check_available_buses(
     new_passenger: &Passenger,
     current_time_tick: u32,
-    bus_route_list: &[Vec<PassengerBusLocation>],
+    bus_route_list: &mut [Vec<PassengerBusLocation>],
     buses_unavailable: Vec<usize>,
 ) -> Result<Vec<PassengerOnboardingBusSchedule>, Passenger> {
     // TODO: Add tests to prove that this method of removing those indeces actually work
-    let mut new_bus_route_list = bus_route_list.clone();
+    let mut new_bus_route_list = bus_route_list;
 
     // mutable iterator containing the routes that will need to remove the
     let special_routes_iter =
@@ -239,13 +239,13 @@ pub fn calculate_passenger_schedule_for_bus_check_available_buses(
 
     // Take bus routes with the same time tick in unavailable buses out
 
-    calculate_passenger_schedule_for_bus(new_passenger, current_time_tick, &new_bus_route_list)
+    calculate_passenger_schedule_for_bus(new_passenger, current_time_tick, new_bus_route_list)
 }
 
 pub fn calculate_passenger_schedule_for_bus(
     passenger: &Passenger,
     current_time_tick: u32,
-    bus_route_list: &Vec<Vec<PassengerBusLocation>>,
+    bus_route_list: &[Vec<PassengerBusLocation>],
 ) -> Result<Vec<PassengerOnboardingBusSchedule>, Passenger> {
     calculate_passenger_schedule_for_bus_with_recursion(
         passenger.current_location.unwrap(),
@@ -265,7 +265,7 @@ fn calculate_passenger_schedule_for_bus_with_recursion(
     destination_location: Location,
     destination_time_tick: Option<u32>,
     current_time_tick: u32,
-    bus_route_list: &Vec<Vec<PassengerBusLocation>>,
+    bus_route_list: &[Vec<PassengerBusLocation>],
     visited_locations: Vec<Location>,
     next_bus_index: Option<usize>,
 ) -> Option<VecDeque<PassengerOnboardingBusSchedule>> {

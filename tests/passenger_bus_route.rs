@@ -108,13 +108,13 @@ fn finds_shortest_route() {
 // Use --no-capture to ensure stdout is displayed
 #[test]
 fn special_route_removing_some_bus_locations() {
-    let (passenger_facing_bus_routes, location_list) =
+    let (mut passenger_facing_bus_routes, location_list) =
         get_passenger_bus_routes_from_input_data(Path::new("simple_data.json"));
     let test_passenger = Passenger::new(location_list[3], location_list[2]);
     let calculated_passenger_bus_route = calculate_passenger_schedule_for_bus_check_available_buses(
         &test_passenger,
         4,
-        &passenger_facing_bus_routes,
+        &mut passenger_facing_bus_routes,
         vec![0],
     );
 

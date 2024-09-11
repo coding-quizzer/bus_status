@@ -101,7 +101,7 @@ impl Station {
         &mut self,
         mut new_passenger: Passenger,
         current_time_tick: &TimeTick,
-        bus_route_list: &Vec<Vec<PassengerBusLocation>>,
+        bus_route_list: &mut [Vec<PassengerBusLocation>],
         buses_unavailable: Vec<usize>,
     ) -> Result<(), Passenger> {
         println!(
@@ -625,7 +625,7 @@ pub fn create_station_thread(
                                 .add_passenger_check_available_buses(
                                     passenger,
                                     &time_tick,
-                                    &station_thread_passenger_bus_route_list.lock().unwrap(),
+                                    &mut station_thread_passenger_bus_route_list.lock().unwrap(),
                                     unavailable_buses,
                                 )
                                 .unwrap();
