@@ -420,8 +420,17 @@ pub fn run_simulation(
     loop {
         // bus index could be helpful for
 
-        // Receive and process game-terminating messages from the buses
-        let message_from_buses = receiver_from_buses.try_recv().unwrap();
+        // Receive and process program-terminating messages from the buses
+        let message_from_buses_result = receiver_from_buses.try_recv();
+        let message_from_buses = match message_from_buses_result {
+            Ok(message) => message,
+            Err(TryRecvError::Empty) => {
+                continue;
+            }
+            Err(TryRecvError::Disconnected) => {
+                panic!("{}", TryRecvError::Disconnected)
+            }
+        };
         // Receive panics from all
         if let crate::thread::BusMessages::BusPanicked {
             bus_index: _,
