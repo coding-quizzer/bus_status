@@ -238,7 +238,7 @@ pub fn run_simulation(
                 "Simulated bus option for bus {}: {:?}",
                 bus_index, simulated_bus_option
             );
-
+            // TODO: Convert expect to a message to the sync thread
             let mut simulated_bus = simulated_bus_option
                 .expect("Each bus must have more than one location in its route");
             bus_route_vector[simulated_bus.bus_index] = simulated_bus.get_bus_route();
@@ -268,6 +268,7 @@ pub fn run_simulation(
                     // So far, there are no other options
                     _ => unreachable!(),
                 };
+                println!("Time tick incremented. Time tick: {time_tick:?}");
 
                 //
                 if time_tick == previous_time_tick
@@ -356,7 +357,7 @@ pub fn run_simulation(
             }
         }
 
-        println!("End of TIck one passenger calculations");
+        println!("End of Tick one passenger calculations");
 
         // TODO: Find out if I have alredy dealt with this. If not, deal with it
 
@@ -431,6 +432,10 @@ pub fn run_simulation(
                 panic!("{}", TryRecvError::Disconnected)
             }
         };
+        println!(
+            "Route sync message received. Message: {:?}",
+            message_from_buses
+        );
         // Receive panics from all
         if let crate::thread::BusMessages::BusPanicked {
             bus_index: _,
@@ -661,6 +666,7 @@ pub fn run_simulation(
                     .any(|valid_status| bus_thread_status == valid_status)
             }) {
                 println!("All buses moving on time step {}", current_time_tick.number);
+                increment_time_step(current_time_tick, &send_to_stations, &send_to_buses);
 
                 // TODO: increment the time tick
             } else {
@@ -681,19 +687,7 @@ pub fn run_simulation(
                     current_time_tick, bus_status_vector
                 );
 
-                for station_sender in &send_to_stations {
-                    station_sender
-                        .send(SyncToStationMessages::AdvanceTimeStep(current_time_tick))
-                        .unwrap();
-                }
-
-                for bus_sender in &send_to_buses {
-                    bus_sender
-                        .send(crate::thread::SyncToBusMessages::AdvanceTimeStep(
-                            current_time_tick,
-                        ))
-                        .unwrap();
-                }
+                increment_time_step(current_time_tick, &send_to_stations, &send_to_buses);
             }
 
             // TODO: Increment time tick
