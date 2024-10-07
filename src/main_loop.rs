@@ -94,6 +94,7 @@ pub fn run_simulation(
 
     #[track_caller]
     fn increment_time_step(
+        initial: bool,
         mut time_tick: TimeTick,
         station_senders: &Vec<mpsc::Sender<SyncToStationMessages>>,
         bus_senders: &Vec<mpsc::Sender<SyncToBusMessages>>,
@@ -111,7 +112,11 @@ pub fn run_simulation(
               .send(SyncToStationMessages::AdvanceTimeStep(*time_tick))
               .unwrap();
         */
-        (time_tick).increment_time_tick();
+        if initial {
+            time_tick.increment_time_tick();
+        } else {
+            time_tick.increment_from_initialized();
+        }
         for station_sender in station_senders {
             station_sender
                 .send(SyncToStationMessages::AdvanceTimeStep(time_tick))
@@ -254,11 +259,12 @@ pub fn run_simulation(
 
             let mut previous_time_tick = TimeTick::default();
             loop {
+                println!("Beginning of Bus loop. Bus num: {}", bus_index);
                 // TODO: Set current time tick to the appropriate value, incorporating messages from the main/sync thread
                 let incoming_message = current_bus_receiver_from_sync.receiver.recv().unwrap();
                 let time_tick: TimeTick = match incoming_message {
                     SyncToBusMessages::AdvanceTimeStep(time_step) => {
-                        if time_step.number - previous_time_tick.number >= 1 {
+                        if time_step.number - previous_time_tick.number > 1 {
                             panic!(
                                 "Skipped from time tick {previous_time_tick:?} to {time_step:?} "
                             )
@@ -360,8 +366,6 @@ pub fn run_simulation(
 
         println!("End of Tick one passenger calculations");
 
-        // TODO: Find out if I have alredy dealt with this. If not, deal with it
-
         // Remove passengers who cannot get onto a bus, since if they cannot get on any bus
         // now, they will not be able to later, because the schedules will not change. I
         // might as well continue keeping track of them.
@@ -418,9 +422,10 @@ pub fn run_simulation(
     let route_sync_location_vec_arc = location_vector_arc.clone();
     let route_sync_passenger_list_arc = passenger_list_pointer.clone();
     let route_sync_bus_route_vec_arc = bus_route_vec_arc.clone();
+    let mut passengers_initialized = false;
 
     loop {
-        println!("Begining of route sync loop");
+        println!("Beginning of route sync loop");
         // bus index could be helpful for
 
         // Receive and process program-terminating messages from the buses
@@ -469,8 +474,15 @@ pub fn run_simulation(
         for bus_receiver in receiver_sync_from_stations_list.iter() {
             let incoming_message = bus_receiver.receiver.try_recv();
             let incoming_message = match incoming_message {
-                Ok(message) => message,
-                Err(TryRecvError::Empty) => continue,
+                Ok(message) => {
+                    println!("Sync message received from station: {message:?}");
+                    message
+                }
+                Err(TryRecvError::Empty) => {
+                    // Weirdly, this prints exactly 5 times and then stops
+                    println!("No message received. Continuing");
+                    continue;
+                }
                 Err(TryRecvError::Disconnected) => {
                     panic!("{}", TryRecvError::Disconnected)
                 }
@@ -565,7 +577,12 @@ pub fn run_simulation(
             }
 
             BusMessages::InitPassengers => {
-                println!("Passenger initialized");
+                if (current_time_tick.number == 0) {
+                    println!("Passengers initialized");
+                    passengers_initialized = true;
+                }
+                // Are passengers set up to initialize after the buses
+                println!("Passengers initialized");
                 // TODO: increment time step
             }
         }
@@ -610,6 +627,10 @@ pub fn run_simulation(
                     std::path::Path::new("bus_route_data.json"),
                 )
                 .unwrap();
+            }
+
+            if passengers_initialized {
+                increment_time_step(true, current_time_tick, &send_to_stations, &send_to_buses);
             }
 
             println!(
@@ -681,7 +702,7 @@ pub fn run_simulation(
                     .any(|valid_status| bus_thread_status == valid_status)
             }) {
                 println!("All buses moving on time step {}", current_time_tick.number);
-                increment_time_step(current_time_tick, &send_to_stations, &send_to_buses);
+                increment_time_step(false, current_time_tick, &send_to_stations, &send_to_buses);
 
                 // TODO: increment the time tick
             } else {
@@ -701,13 +722,13 @@ pub fn run_simulation(
                     current_time_tick, bus_status_vector
                 );
 
-                increment_time_step(current_time_tick, &send_to_stations, &send_to_buses);
+                increment_time_step(false, current_time_tick, &send_to_stations, &send_to_buses);
             }
 
             // TODO: Increment time tick
         }
 
-        println!("End of main loop. Line 713.");
+        println!("End of route sync loop. Line 713.");
     }
 
     for handle in handle_list {

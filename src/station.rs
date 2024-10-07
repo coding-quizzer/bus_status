@@ -41,6 +41,7 @@ impl From<VecDeque<PassengerOnboardingBusSchedule>> for PassengerScheduleWithDis
 }
 
 use std::collections::{HashMap, VecDeque};
+use std::time::Duration;
 
 #[derive(Debug)]
 pub struct Station {
@@ -230,6 +231,7 @@ pub fn create_station_thread(
         let mut bus_passengers_initialized = false;
 
         'main: loop {
+            // println!("Station thread beginning. Station index: {}", station_index);
             if let Ok(SyncToStationMessages::ProgramFinished(
                 crate::thread::ProgramEndType::ProgramFinished,
             )) = sync_to_stations_receiver.try_recv()
@@ -259,6 +261,7 @@ pub fn create_station_thread(
             match time_tick.stage {
                 TimeTickStage::PassengerInit => {
                     if bus_passengers_initialized {
+                        thread::sleep(Duration::from_millis(10));
                         continue;
                     }
 
@@ -329,7 +332,6 @@ pub fn create_station_thread(
                     let received_message = current_receiver.try_recv();
                     let received_message = match received_message {
                         Ok(message) => {
-                            // I set up an infinite loop in BusLoading passengers and the break statement was never hit. How did the program get here on time tick 2?
                             println!(
                                 "Station {} received message {:?} on BusUnloadingPassengers stage received on time tick {:?}", current_location.index , message, time_tick
                             );
@@ -354,9 +356,8 @@ pub fn create_station_thread(
 
                     // On some runs, the received message is BusDeparted, for some reason
 
-                    // THe bus keeps leaving and then returning again. The the passengers are not duplicated in the bus and the bus is not duplicated in the station.
+                    // The bus keeps leaving and then returning again. The the passengers are not duplicated in the bus and the bus is not duplicated in the station.
 
-                    // DEBUG: This message is sometimes not received. But it does seem to consistantly be sent. What is happening?
                     if let StationMessages::BusArrived {
                         mut passengers_onboarding,
                         bus_info,

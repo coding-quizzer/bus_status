@@ -14,6 +14,7 @@ pub enum StationMessages {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum StationToPassengersMessages {
     ConfirmInitPassengerList(usize),
 }
@@ -51,11 +52,13 @@ pub enum SyncToStationMessages {
 }
 
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum StationToSyncMessages {
     CrashProgram { message: String },
 }
 
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum SyncToBusMessages {
     AdvanceTimeStep(crate::TimeTick),
 }
