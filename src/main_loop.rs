@@ -502,22 +502,21 @@ pub fn run_simulation(
             processed_moving_bus_received_count = 0;
             if rejected_passengers_list.is_empty() {
                 passenger_sender.send(None).unwrap();
+            } else {
+                println!(
+                    "There were rejected passengers received. Count: {}",
+                    rejected_passengers_list.len()
+                );
 
-                continue;
+                passenger_sender
+                    .send(Some(rejected_passengers_list.clone()))
+                    .unwrap();
+
+                rejected_passengers_list.clear();
             }
-
-            println!(
-                "There were rejected passengers received. Count: {}",
-                rejected_passengers_list.len()
-            );
-
-            passenger_sender
-                .send(Some(rejected_passengers_list.clone()))
-                .unwrap();
-
-            rejected_passengers_list.clear();
         }
         println!("Waiting for message from bus");
+        // At this point, the program is held up here
         let received_bus_stop_message = receiver_from_buses.recv().unwrap();
         println!("Bus message received: {received_bus_stop_message:?}. ");
 
