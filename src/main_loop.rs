@@ -16,6 +16,7 @@ use std::collections::VecDeque;
 use std::ops::ControlFlow;
 use std::sync::mpsc::TryRecvError;
 use std::sync::{mpsc, Arc, Mutex};
+use std::thread;
 
 #[derive(Debug, Default, Clone)]
 pub struct FinalPassengerLists {
@@ -249,7 +250,7 @@ pub fn run_simulation(
                     bus_index: simulated_bus.bus_index,
                 })
                 .unwrap();
-            println!("Bus Message sent");
+            println!("Bus Message sent from bus {}", simulated_bus.bus_index);
 
             let mut previous_time_tick = TimeTick::default();
             loop {
@@ -419,39 +420,39 @@ pub fn run_simulation(
     let route_sync_bus_route_vec_arc = bus_route_vec_arc.clone();
 
     loop {
+        println!("Begining of route sync loop");
         // bus index could be helpful for
 
         // Receive and process program-terminating messages from the buses
+
+        // Definately something really wrong
+
+        // Timing problem
+        /*
         let message_from_buses_result = receiver_from_buses.try_recv();
-        let message_from_buses = match message_from_buses_result {
-            Ok(message) => message,
-            Err(TryRecvError::Empty) => {
-                continue;
+
+        match message_from_buses_result {
+            Ok(message_from_buses) => {
+                println!(
+                    "Route sync message received. Message: {:?}",
+                    message_from_buses
+                );
+                // Receive panics from all
+                if let crate::thread::BusMessages::BusPanicked {
+                    bus_index: _,
+                    ref message,
+                } = message_from_buses
+                {
+
+                }
             }
+            Err(TryRecvError::Empty) => {}
             Err(TryRecvError::Disconnected) => {
                 panic!("{}", TryRecvError::Disconnected)
             }
         };
-        println!(
-            "Route sync message received. Message: {:?}",
-            message_from_buses
-        );
-        // Receive panics from all
-        if let crate::thread::BusMessages::BusPanicked {
-            bus_index: _,
-            ref message,
-        } = message_from_buses
-        {
-            for station_sender in &send_to_stations {
-                station_sender
-                    .send(SyncToStationMessages::ProgramFinished(
-                        crate::thread::ProgramEndType::ProgramCrashed {
-                            message: message.to_string(),
-                        },
-                    ))
-                    .unwrap();
-            }
-        }
+        */
+
         // Remove once confirmed bus finished case is dealt with already. Remove SyncToStationMessages::ProgramFinished as well
         /* else if let crate::thread::BusMessages::BusFinished { bus_index: _ } = message_from_buses
         {
@@ -516,12 +517,24 @@ pub fn run_simulation(
 
             rejected_passengers_list.clear();
         }
-
+        println!("Waiting for message from bus");
         let received_bus_stop_message = receiver_from_buses.recv().unwrap();
+        println!("Bus message received: {received_bus_stop_message:?}. ");
 
         match received_bus_stop_message {
-            BusMessages::BusPanicked { .. } => {
-                panic!("{received_bus_stop_message:?} should have been processed already");
+            BusMessages::BusPanicked {
+                bus_index: _,
+                ref message,
+            } => {
+                for station_sender in &send_to_stations {
+                    station_sender
+                        .send(SyncToStationMessages::ProgramFinished(
+                            crate::thread::ProgramEndType::ProgramCrashed {
+                                message: message.to_string(),
+                            },
+                        ))
+                        .unwrap();
+                }
             }
 
             BusMessages::AdvanceTimeStepForUnloadedBus { bus_index } => {
@@ -560,7 +573,7 @@ pub fn run_simulation(
 
         println!("Processed received: {processed_bus_received_count}");
         println!(
-            "{}",
+            "Number of buses not finished: {}",
             bus_status_vector
                 .iter()
                 .filter(|status| *status != &BusThreadStatus::BusFinishedRoute)
@@ -604,7 +617,8 @@ pub fn run_simulation(
                 "All Buses Initialized. Time tick 0 message: {:?}",
                 received_bus_stop_message
             );
-            continue;
+
+            // Time tick could increment here
         }
 
         let finished_buses = bus_status_vector
@@ -625,6 +639,8 @@ pub fn run_simulation(
                     ))
                     .unwrap();
             }
+
+            // This is the place for code after the loop
 
             println!("Program Complete");
             break;
@@ -675,7 +691,6 @@ pub fn run_simulation(
                     current_time_tick, bus_status_vector
                 );
             }
-            continue;
         } else if let TimeTickStage::BusLoadingPassengers { .. } = current_time_tick.stage {
             if (bus_status_vector.iter().all(|bus_thread_status| {
                 LOADING_BUS_VALID_STATUSES
@@ -691,9 +706,9 @@ pub fn run_simulation(
             }
 
             // TODO: Increment time tick
-
-            continue;
         }
+
+        println!("End of main loop. Line 713.");
     }
 
     for handle in handle_list {
