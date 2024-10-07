@@ -17,6 +17,8 @@ pub enum StationMessages {
 pub enum StationToPassengersMessages {
     ConfirmInitPassengerList(usize),
 }
+
+#[derive(Debug)]
 pub enum StationToBusMessages {
     AcknowledgeArrival(),
     SendPassengers(Vec<Passenger>),
@@ -48,10 +50,12 @@ pub enum SyncToStationMessages {
     ProgramFinished(ProgramEndType),
 }
 
+#[derive(Debug)]
 pub enum StationToSyncMessages {
     CrashProgram { message: String },
 }
 
+#[derive(Debug)]
 pub enum SyncToBusMessages {
     AdvanceTimeStep(crate::TimeTick),
 }
