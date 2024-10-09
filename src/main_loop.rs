@@ -94,10 +94,11 @@ pub fn run_simulation(
 
     #[track_caller]
     fn increment_time_step(
-        initial: bool,
-        mut time_tick: TimeTick,
+        is_first_run: bool,
+        time_tick: &mut TimeTick,
         station_senders: &Vec<mpsc::Sender<SyncToStationMessages>>,
         bus_senders: &Vec<mpsc::Sender<SyncToBusMessages>>,
+        bus_status_vector: &mut [BusThreadStatus],
     ) {
         let call_location = std::panic::Location::caller();
         println!("---------- All buses are finished at their stops -----------");
@@ -112,20 +113,31 @@ pub fn run_simulation(
               .send(SyncToStationMessages::AdvanceTimeStep(*time_tick))
               .unwrap();
         */
-        if initial {
-            time_tick.increment_time_tick();
-        } else {
+        for status in bus_status_vector.iter_mut() {
+            // Reset the statuses for the next time step
+            if status == &BusThreadStatus::FinishedLoadingPassengers
+                || status == &BusThreadStatus::Moving
+            {
+                *status = BusThreadStatus::WaitingForTimeStep;
+            }
+        }
+
+        if is_first_run {
             time_tick.increment_from_initialized();
+        } else {
+            time_tick.increment_time_tick();
         }
         for station_sender in station_senders {
             station_sender
-                .send(SyncToStationMessages::AdvanceTimeStep(time_tick))
+                .send(SyncToStationMessages::AdvanceTimeStep(*time_tick))
                 .unwrap();
         }
 
         for bus_sender in bus_senders {
             bus_sender
-                .send(crate::thread::SyncToBusMessages::AdvanceTimeStep(time_tick))
+                .send(crate::thread::SyncToBusMessages::AdvanceTimeStep(
+                    *time_tick,
+                ))
                 .unwrap();
         }
     }
@@ -137,14 +149,7 @@ pub fn run_simulation(
     // ) {
     //     println!("Bus statuses: {:?}", &bus_status_array);
     //     // The bus_loading timestep is finished, so the array is reset the entire status array
-    //     for status in bus_status_array.iter_mut() {
-    //         // Reset the statuses for the next time step
-    //         if status == &BusThreadStatus::FinishedLoadingPassengers
-    //             || status == &BusThreadStatus::Moving
-    //         {
-    //             *status = BusThreadStatus::WaitingForTimeStep;
-    //         }
-    //     }
+
     //     increment_and_drop_time_step(current_time_tick, station_senders);
 
     //     println!("End of sync loop");
@@ -414,7 +419,7 @@ pub fn run_simulation(
 
     let mut rejected_passengers_list = Vec::new();
     // the time tick is stored here and sent to the other threads when it changes
-    let current_time_tick = TimeTick {
+    let mut current_time_tick = TimeTick {
         number: 0,
         stage: TimeTickStage::PassengerInit,
     };
@@ -630,7 +635,13 @@ pub fn run_simulation(
             }
 
             if passengers_initialized {
-                increment_time_step(true, current_time_tick, &send_to_stations, &send_to_buses);
+                increment_time_step(
+                    true,
+                    &mut current_time_tick,
+                    &send_to_stations,
+                    &send_to_buses,
+                    &mut bus_status_vector,
+                );
             }
 
             println!(
@@ -702,7 +713,13 @@ pub fn run_simulation(
                     .any(|valid_status| bus_thread_status == valid_status)
             }) {
                 println!("All buses moving on time step {}", current_time_tick.number);
-                increment_time_step(false, current_time_tick, &send_to_stations, &send_to_buses);
+                increment_time_step(
+                    false,
+                    &mut current_time_tick,
+                    &send_to_stations,
+                    &send_to_buses,
+                    &mut bus_status_vector,
+                );
 
                 // TODO: increment the time tick
             } else {
@@ -722,7 +739,13 @@ pub fn run_simulation(
                     current_time_tick, bus_status_vector
                 );
 
-                increment_time_step(false, current_time_tick, &send_to_stations, &send_to_buses);
+                increment_time_step(
+                    false,
+                    &mut current_time_tick,
+                    &send_to_stations,
+                    &send_to_buses,
+                    &mut bus_status_vector,
+                );
             }
 
             // TODO: Increment time tick
