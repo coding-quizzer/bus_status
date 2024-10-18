@@ -232,9 +232,12 @@ pub fn create_station_thread(
 
         'main: loop {
             // println!("Station thread beginning. Station index: {}", station_index);
+
+            // If this first message is Advance TIme tick, that message will be lost
+            let message_from_sync_result = sync_to_stations_receiver.try_recv();
             if let Ok(SyncToStationMessages::ProgramFinished(
                 crate::thread::ProgramEndType::ProgramFinished,
-            )) = sync_to_stations_receiver.try_recv()
+            )) = message_from_sync_result
             {
                 println!(
                     "All buses finished message received in station {}",
@@ -657,7 +660,7 @@ pub fn create_station_thread(
                         // sync_to_stations receiver moved before buses_receiver so that this check can run independantly of
                         // other messages.
                         if let Ok(SyncToStationMessages::AdvanceTimeStep(prev_time_tick)) =
-                            sync_to_stations_receiver.try_recv()
+                            message_from_sync_result
                         {
                             // By the time this message is received, two time tick iterations have gone by.
                             // I need to prevent the station from going on to a new stage before the increment time tick method is declared
