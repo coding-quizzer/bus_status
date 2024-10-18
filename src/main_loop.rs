@@ -95,6 +95,7 @@ pub fn run_simulation(
     #[track_caller]
     fn increment_time_step(
         is_first_run: bool,
+        all_buses_are_moving: bool,
         time_tick: &mut TimeTick,
         station_senders: &Vec<mpsc::Sender<SyncToStationMessages>>,
         bus_senders: &Vec<mpsc::Sender<SyncToBusMessages>>,
@@ -125,6 +126,12 @@ pub fn run_simulation(
         if is_first_run {
             time_tick.increment_from_initialized();
         } else {
+            if all_buses_are_moving {
+                if let TimeTickStage::BusUnloadingPassengers = time_tick.stage {
+                    println!("Additional increment time tick for bus moving stage");
+                    time_tick.increment_time_tick();
+                }
+            }
             time_tick.increment_time_tick();
         }
         for station_sender in station_senders {
@@ -532,6 +539,7 @@ pub fn run_simulation(
                 rejected_passengers_list.clear();
             }
         }
+        // DEBUG NOTE: no message is received at all during the bus loading stage. (Also note that all buses are moving at this stage)
         println!("Waiting for message from bus");
         // At this point, the program is held up here
         let received_bus_stop_message = receiver_from_buses.recv().unwrap();
@@ -588,11 +596,11 @@ pub fn run_simulation(
                 }
                 // Are passengers set up to initialize after the buses
                 println!("Passengers initialized");
-                // TODO: increment time step
             }
         }
 
         println!("Processed received: {processed_bus_received_count}");
+        println!("Bus Status Vector: {:?}", bus_status_vector);
         println!(
             "Number of buses not finished: {}",
             bus_status_vector
@@ -637,6 +645,7 @@ pub fn run_simulation(
             if passengers_initialized {
                 increment_time_step(
                     true,
+                    false,
                     &mut current_time_tick,
                     &send_to_stations,
                     &send_to_buses,
@@ -713,15 +722,15 @@ pub fn run_simulation(
                     .any(|valid_status| bus_thread_status == valid_status)
             }) {
                 println!("All buses moving on time step {}", current_time_tick.number);
+                // TODO: increment the time tick
                 increment_time_step(
                     false,
+                    true,
                     &mut current_time_tick,
                     &send_to_stations,
                     &send_to_buses,
                     &mut bus_status_vector,
                 );
-
-                // TODO: increment the time tick
             } else {
                 println!(
                     "Finished timestep {:?}. Bus Status Vector: {:?}",
@@ -735,11 +744,12 @@ pub fn run_simulation(
                     .any(|valid_status| bus_thread_status == valid_status)
             })) {
                 println!(
-                    "Finished Timestep {:?}. Bus Status Array: {:?}",
+                    "Finished Timestep {:?}. Bus Status Vector: {:?}",
                     current_time_tick, bus_status_vector
                 );
 
                 increment_time_step(
+                    false,
                     false,
                     &mut current_time_tick,
                     &send_to_stations,
