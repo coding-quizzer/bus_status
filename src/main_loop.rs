@@ -16,7 +16,6 @@ use std::collections::VecDeque;
 use std::ops::ControlFlow;
 use std::sync::mpsc::TryRecvError;
 use std::sync::{mpsc, Arc, Mutex};
-use std::thread;
 
 #[derive(Debug, Default, Clone)]
 pub struct FinalPassengerLists {
@@ -539,7 +538,6 @@ pub fn run_simulation(
                 rejected_passengers_list.clear();
             }
         }
-        // DEBUG NOTE: no message is received at all during the bus loading stage. (Also note that all buses are moving at this stage)
         println!("Waiting for message from bus");
         // At this point, the program is held up here
         let received_bus_stop_message = receiver_from_buses.recv().unwrap();

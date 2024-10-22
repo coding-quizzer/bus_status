@@ -192,7 +192,7 @@ pub fn get_station_threads(
         let to_passengers_sender_clone = tx_stations_to_passengers.clone();
         let station_handle = create_station_thread(
             current_location,
-            current_time_tick.clone(),
+            *current_time_tick,
             send_to_bus_channels,
             station_channel,
             bus_route_list,
@@ -219,6 +219,7 @@ pub fn create_station_thread(
     sync_to_stations_receiver: Receiver<SyncToStationMessages>,
     final_passenger_list_clone: Arc<Mutex<FinalPassengerLists>>,
 ) -> JoinHandle<()> {
+    let station_time_tick = TimeTick::default();
     let station_handle = thread::spawn(move || {
         let mut current_station = Station::new(
             current_location,
@@ -230,7 +231,10 @@ pub fn create_station_thread(
         // Once passengerInit stage is finished, bus_passengers_initialized is set to false, so the loop does not need to run again
         let mut bus_passengers_initialized = false;
 
+        let time_tick = station_time_tick;
+
         'main: loop {
+            // TODO: Update time tick for station
             // println!("Station thread beginning. Station index: {}", station_index);
 
             // If this first message is Advance TIme tick, that message will be lost
@@ -250,7 +254,6 @@ pub fn create_station_thread(
             }
             // println!("Station {location_index}. time tick: {}", *time_tick);
 
-            let time_tick = station_time_tick;
             /* println!(
                 "Station {} loop beginning. Time tick: {:?}",
                 station_index, time_tick
@@ -264,6 +267,7 @@ pub fn create_station_thread(
             match time_tick.stage {
                 TimeTickStage::PassengerInit => {
                     if bus_passengers_initialized {
+                        println!("Bus passengers already initialized");
                         thread::sleep(Duration::from_millis(10));
                         continue;
                     }

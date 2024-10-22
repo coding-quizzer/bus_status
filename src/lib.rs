@@ -54,7 +54,7 @@ impl TimeTick {
             self.number = 1;
             self.stage = TimeTickStage::BusUnloadingPassengers;
         } else {
-            panic!("Init");
+            panic!("Should be initial");
         }
 
         Some(())
