@@ -482,8 +482,8 @@ pub fn run_simulation(
             }
         } */
 
-        for bus_receiver in receiver_sync_from_stations_list.iter() {
-            let incoming_message = bus_receiver.receiver.try_recv();
+        for sync_receiver in receiver_sync_from_stations_list.iter() {
+            let incoming_message = sync_receiver.receiver.try_recv();
             let incoming_message = match incoming_message {
                 Ok(message) => {
                     println!("Sync message received from station: {message:?}");

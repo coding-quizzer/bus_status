@@ -209,6 +209,7 @@ pub fn get_station_threads(
 
 pub fn create_station_thread(
     current_location: Location,
+    // TODO: I have shadowed this
     station_time_tick: TimeTick,
     send_to_bus_channels: Arc<Vec<Sender<StationToBusMessages>>>,
     station_channel_receiver: ReceiverWithIndex<StationMessages>,
@@ -231,7 +232,7 @@ pub fn create_station_thread(
         // Once passengerInit stage is finished, bus_passengers_initialized is set to false, so the loop does not need to run again
         let mut bus_passengers_initialized = false;
 
-        let time_tick = station_time_tick;
+        let mut time_tick = station_time_tick;
 
         'main: loop {
             // TODO: Update time tick for station
@@ -252,6 +253,17 @@ pub fn create_station_thread(
                     current_station.arrived_passengers;
                 break;
             }
+
+            if let Ok(SyncToStationMessages::AdvanceTimeStep(new_time_step)) =
+                message_from_sync_result
+            {
+                // TODO:
+                if (new_time_step.number - time_tick.number > 1) {
+                    panic!("Station time tick difference is more than one. new_time_step: {new_time_step:?}. Current Time Tick: {time_tick:?}");
+                }
+                time_tick = new_time_step
+            }
+
             // println!("Station {location_index}. time tick: {}", *time_tick);
 
             /* println!(
@@ -351,10 +363,6 @@ pub fn create_station_thread(
                             panic!("{}", TryRecvError::Disconnected);
                         }
                     };
-                    println!(
-                        "Station {} BusUnloadingPassengers timetick stage",
-                        station_index
-                    );
 
                     println!(
                         "station {} received message received on BusUnloadingPassengers stage",
@@ -412,8 +420,6 @@ pub fn create_station_thread(
                             station_index, bus_index
                         );
                     } else {
-                        let time_tick = station_time_tick;
-
                         panic!(
                             "Invalid Message:{:?} for present timetick: {:?}. Expected BusArrived ",
                             received_message, time_tick
@@ -663,6 +669,8 @@ pub fn create_station_thread(
                         );
                         // sync_to_stations receiver moved before buses_receiver so that this check can run independantly of
                         // other messages.
+
+                        // NOTE: This should not be neccesary because the buses are controlling the loop, not the
                         if let Ok(SyncToStationMessages::AdvanceTimeStep(prev_time_tick)) =
                             message_from_sync_result
                         {
@@ -675,7 +683,9 @@ pub fn create_station_thread(
                             );
                             println!("Time tick: {:?}", station_time_tick);
                             // At this point if all the buses have finished their tick, they should be gone from the station
-                            let time_tick = station_time_tick;
+
+                            // let time_tick = station_time_tick;
+
                             println!("Time tick locked on Station bus_loading loop");
 
                             if !(current_station.docked_buses.is_empty()) {
@@ -703,7 +713,7 @@ pub fn create_station_thread(
                             break 'bus_loading;
                         }
 
-                        let time_tick = station_time_tick;
+                        // let time_tick = station_time_tick;
 
                         let received_message = current_receiver.try_recv();
                         let received_message = match received_message {
