@@ -700,6 +700,8 @@ pub fn run_simulation(
             [BusThreadStatus::BusFinishedRoute, BusThreadStatus::Moving];
         // TODO: add a function for incrementing the timetick from the bus loading phase
         // and use that function instead of this messy refactor
+
+        // DEBUG: Why is this conditional not hit, even though the conditions seem to be met
         if current_time_tick.stage == TimeTickStage::BusUnloadingPassengers
             && bus_status_vector.iter().all(|bus_thread_status| {
                 UNLOADING_BUS_VALID_STATUSES
@@ -712,29 +714,22 @@ pub fn run_simulation(
                 current_time_tick, bus_status_vector
             );
 
-            // TODO: send the increase time tick message
-
-            if bus_status_vector.iter().all(|bus_thread_status| {
+            let all_buses_are_moving = bus_status_vector.iter().all(|bus_thread_status| {
                 ALL_MOVING_BUS_VALID_STATUSES
                     .iter()
                     .any(|valid_status| bus_thread_status == valid_status)
-            }) {
-                println!("All buses moving on time step {}", current_time_tick.number);
-                // TODO: increment the time tick
-                increment_time_step(
-                    false,
-                    true,
-                    &mut current_time_tick,
-                    &send_to_stations,
-                    &send_to_buses,
-                    &mut bus_status_vector,
-                );
-            } else {
-                println!(
-                    "Finished timestep {:?}. Bus Status Vector: {:?}",
-                    current_time_tick, bus_status_vector
-                );
-            }
+            });
+
+            // TODO: increment the time tick
+            // Increment the time-step by one if the buses are moving and by 2 if they are not moving
+            increment_time_step(
+                false,
+                all_buses_are_moving,
+                &mut current_time_tick,
+                &send_to_stations,
+                &send_to_buses,
+                &mut bus_status_vector,
+            );
         } else if let TimeTickStage::BusLoadingPassengers { .. } = current_time_tick.stage {
             if (bus_status_vector.iter().all(|bus_thread_status| {
                 LOADING_BUS_VALID_STATUSES
@@ -758,8 +753,13 @@ pub fn run_simulation(
 
             // TODO: Increment time tick
         }
+        println!(
+            "Bus Route Vector at end of Main Loop: {:?}",
+            bus_status_vector
+        );
 
         println!("End of route sync loop. Line 713.");
+        //  println!("Time tick: {:?}", current_time_tick);
     }
 
     for handle in handle_list {
