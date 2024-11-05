@@ -564,6 +564,9 @@ pub fn run_simulation(
             }
 
             BusMessages::AdvanceTimeStepForLoadedBus { bus_index } => {
+                // DEBUG: why did all the buses send this message, if bus 2 did not exit the station
+                println!("Bus {bus_index} is finished loading.");
+
                 bus_status_vector[bus_index] = BusThreadStatus::FinishedLoadingPassengers;
             }
 
@@ -701,7 +704,6 @@ pub fn run_simulation(
         // TODO: add a function for incrementing the timetick from the bus loading phase
         // and use that function instead of this messy refactor
 
-        // DEBUG: Why is this conditional not hit, even though the conditions seem to be met
         if current_time_tick.stage == TimeTickStage::BusUnloadingPassengers
             && bus_status_vector.iter().all(|bus_thread_status| {
                 UNLOADING_BUS_VALID_STATUSES
@@ -750,8 +752,6 @@ pub fn run_simulation(
                     &mut bus_status_vector,
                 );
             }
-
-            // TODO: Increment time tick
         }
         println!(
             "Bus Route Vector at end of Main Loop: {:?}",

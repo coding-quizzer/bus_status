@@ -254,9 +254,12 @@ pub fn create_station_thread(
                 break;
             }
 
+            // FIXME: this if statement will only work if the message is OK and this is the right message, the receiver is at the very top now. This
             if let Ok(SyncToStationMessages::AdvanceTimeStep(new_time_step)) =
                 message_from_sync_result
             {
+                println!("New Time Step: {:?}", new_time_step);
+                println!("Old Time Step: {:?}", time_tick);
                 // TODO:
                 if (new_time_step.number - time_tick.number > 1) {
                     panic!("Station time tick difference is more than one. new_time_step: {new_time_step:?}. Current Time Tick: {time_tick:?}");
@@ -660,9 +663,7 @@ pub fn create_station_thread(
 
                     // Occasionally, this turns into an infinite loop
 
-                    // Why is this not running on time tick 1?
                     'bus_loading: loop {
-                        // For test data, program is stuck in this loop, even though the time step has proceeded to the next one
                         println!(
                             "Bus loading loop beginning in station {} at time tick {:?}",
                             current_location.index, station_time_tick
@@ -674,9 +675,6 @@ pub fn create_station_thread(
                         if let Ok(SyncToStationMessages::AdvanceTimeStep(prev_time_tick)) =
                             message_from_sync_result
                         {
-                            // By the time this message is received, two time tick iterations have gone by.
-                            // I need to prevent the station from going on to a new stage before the increment time tick method is declared
-
                             println!(
                                 "Advance Time tick message received in station {}",
                                 station_index
@@ -692,6 +690,8 @@ pub fn create_station_thread(
                                 println!("Station {} time ticks", current_location.index);
                                 println!("Time tick before incrementing: {:?}", prev_time_tick);
                                 println!("Current time tick: {:?}", time_tick);
+                                // DEBUG: Why is the time step allowed to continue before bus 2 leaves the station?
+                                // I'm noticing that the time tick is not actually changing, although the message must have been sent twince. Should that be normal?
                                 panic!(
                                     "Station {} still contains buses: {:?}",
                                     current_station.location.index, current_station.docked_buses
