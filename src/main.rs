@@ -57,7 +57,7 @@ fn main() {
     };
 
     let mut bus_route_vec: Vec<Vec<BusLocation>> = Vec::new();
-    bus_route_vec.resize(DEFAULT_BUS_CAPACITY, Vec::new());
+    bus_route_vec.resize(DEFAULT_NUM_OF_BUSES, Vec::new());
     if READ_JSON {
         bus_route_vec = bus_routes;
     } else {

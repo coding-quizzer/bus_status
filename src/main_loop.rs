@@ -205,6 +205,7 @@ pub fn run_simulation(
         tx_stations_to_passengers,
         sync_to_stations_receiver,
         &final_passengers_arc,
+        &config,
     );
 
     handle_list.append(&mut station_handle_list);

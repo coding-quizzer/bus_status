@@ -1,7 +1,7 @@
 use crate::bus::{BusLocation, SendableBus};
 use crate::consts::DEFAULT_NUM_OF_BUSES;
 use crate::location::{Location, PassengerBusLocation};
-use crate::main_loop::FinalPassengerLists;
+use crate::main_loop::{ConfigStruct, FinalPassengerLists};
 use crate::passenger::Passenger;
 use crate::passenger::PassengerOnboardingBusSchedule;
 use crate::thread::{
@@ -58,7 +58,9 @@ impl Station {
         let location_time_tick_hashmap =
             get_station_buses_index_hash_map(location.index, passenger_bus_routes);
         // the passenger bus route may not have the bus route yet.
-        dbg!(&location_time_tick_hashmap);
+
+        // dbg!(&location_time_tick_hashmap);
+
         Station {
             location,
             docked_buses: Vec::new(),
@@ -134,7 +136,7 @@ pub fn get_station_buses_index_hash_map(
     // time_tick: u32,
 ) -> HashMap<u32, Vec<usize>> {
     let mut route_hash_map = HashMap::new();
-    dbg!(bus_routes);
+    // dbg!(bus_routes);
     for (bus_index, route) in bus_routes.iter().enumerate() {
         for bus_location in route {
             if bus_location.location.index == station_index {
@@ -163,6 +165,7 @@ pub fn get_station_threads(
     tx_stations_to_passengers: Sender<StationToPassengersMessages>,
     rx_sync_to_stations_list: Arc<Mutex<Vec<Option<ReceiverWithIndex<SyncToStationMessages>>>>>,
     final_passenger_list_arc: &Arc<Mutex<FinalPassengerLists>>,
+    config: &ConfigStruct,
 ) -> Vec<JoinHandle<()>> {
     // let station_location_list = location_vector_arc.clone();
 
@@ -201,6 +204,7 @@ pub fn get_station_threads(
             to_passengers_sender_clone,
             sync_to_stations_reciever,
             final_passenger_list_clone,
+            config,
         );
         handle_list.push(station_handle);
     }
@@ -219,6 +223,7 @@ pub fn create_station_thread(
     to_passengers_sender_clone: Sender<StationToPassengersMessages>,
     sync_to_stations_receiver: Receiver<SyncToStationMessages>,
     final_passenger_list_clone: Arc<Mutex<FinalPassengerLists>>,
+    config: &ConfigStruct,
 ) -> JoinHandle<()> {
     let station_time_tick = TimeTick::default();
     let station_handle = thread::spawn(move || {
@@ -573,7 +578,7 @@ pub fn create_station_thread(
                         }
                     }
 
-                    dbg!(&next_passengers_for_buses_array);
+                    // dbg!(&next_passengers_for_buses_array);
                     current_station.passengers = remaining_passengers;
 
                     // End of newly pasted code
@@ -664,10 +669,10 @@ pub fn create_station_thread(
                     // Occasionally, this turns into an infinite loop
 
                     'bus_loading: loop {
-                        println!(
+                        /*  println!(
                             "Bus loading loop beginning in station {} at time tick {:?}",
                             current_location.index, station_time_tick
-                        );
+                        ); */
                         // sync_to_stations receiver moved before buses_receiver so that this check can run independantly of
                         // other messages.
 

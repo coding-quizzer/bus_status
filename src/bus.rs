@@ -353,6 +353,9 @@ impl Bus {
 
             let mut bus_departed = false;
 
+            // DEBUG: this is not allowing the bus to transition from the bus unloading logic to the bus loading logic
+
+            // command for bus departing is happening before
             while !bus_departed {
                 println!("Waiting for station messages");
                 let received_message = station_receiver.recv().unwrap();
@@ -361,9 +364,10 @@ impl Bus {
                         println!("Bus {} acknowledgement received", self.bus_index);
                     }
                     StationToBusMessages::RequestDeparture => {
-                        dbg!(time_tick);
+                        // dbg!(time_tick);
                         let TimeTickStage::BusLoadingPassengers { .. } = time_tick.stage else {
-                            panic!("The request departure message must occur at the BusLoadingPassengers stage.");
+                            // TODO: Replace with waiting for time tick
+                            panic!("The request departure message must occur at the BusLoadingPassengers stage. Time Tick: {:?}", time_tick);
                         };
 
                         next_station_sender
