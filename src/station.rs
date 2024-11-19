@@ -695,12 +695,14 @@ pub fn create_station_thread(
                                 println!("Station {} time ticks", current_location.index);
                                 println!("Time tick before incrementing: {:?}", prev_time_tick);
                                 println!("Current time tick: {:?}", time_tick);
+                                // break from the loop so that the time tick has an opportunity to update
+                                break;
                                 // DEBUG: Why is the time step allowed to continue before bus 2 leaves the station?
                                 // I'm noticing that the time tick is not actually changing, although the message must have been sent twince. Should that be normal?
-                                panic!(
+                                /*  panic!(
                                     "Station {} still contains buses: {:?}",
                                     current_station.location.index, current_station.docked_buses
-                                );
+                                ); */
                             };
 
                             println!(
