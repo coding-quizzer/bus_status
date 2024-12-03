@@ -7,11 +7,11 @@ use crate::passenger::PassengerOnboardingBusSchedule;
 use crate::thread::{
     StationMessages, StationToBusMessages, StationToPassengersMessages, SyncToStationMessages,
 };
-use crate::TimeTick;
 use crate::{
     calculate_passenger_schedule_for_bus,
     calculate_passenger_schedule_for_bus_check_available_buses,
 };
+use crate::{station, TimeTick};
 use crate::{ReceiverWithIndex, TimeTickStage};
 use std::sync::mpsc::TryRecvError;
 use std::sync::{
@@ -435,7 +435,10 @@ pub fn create_station_thread(
                     }
                 }
                 TimeTickStage::BusLoadingPassengers { .. } => {
-                    println!("BusLoadingPassengers timetick beginning.");
+                    println!(
+                        "BusLoadingPassengers timetick beginning. Timetick: {}",
+                        time_tick.number
+                    );
                     // New pasted material
                     println!(
                         "Is first iteration: {:?}. Station: {}. Time tick: {:?}",
@@ -656,7 +659,12 @@ pub fn create_station_thread(
                     }
 
                     println!("Time tick when buses are dismissed: {:?}", &time_tick);
+                    // One station is doing this twice. why?
                     for bus in current_station.docked_buses.iter() {
+                        println!(
+                            "Request departure from station {} for bus {}",
+                            current_station.location.index, bus.bus_index
+                        );
                         send_to_bus_channels[bus.bus_index]
                             .send(StationToBusMessages::RequestDeparture)
                             .unwrap();
@@ -696,7 +704,7 @@ pub fn create_station_thread(
                                 println!("Time tick before incrementing: {:?}", prev_time_tick);
                                 println!("Current time tick: {:?}", time_tick);
                                 // break from the loop so that the time tick has an opportunity to update
-                                break;
+
                                 // DEBUG: Why is the time step allowed to continue before bus 2 leaves the station?
                                 // I'm noticing that the time tick is not actually changing, although the message must have been sent twince. Should that be normal?
                                 /*  panic!(
@@ -731,12 +739,19 @@ pub fn create_station_thread(
                             }
                         };
 
+                        // For some reason the same bus is often deleted twice
                         if let StationMessages::BusDeparted { bus_index } = received_message {
+                            // Why is there a bus that should be removed which is not on the list of docked buses?
                             // Confirm that the station contains the bus that should be removed
-                            assert!(current_station
-                                .docked_buses
-                                .iter()
-                                .any(|bus| bus.bus_index == bus_index));
+                            assert!(
+                                current_station
+                                    .docked_buses
+                                    .iter()
+                                    .any(|bus| bus.bus_index == bus_index),
+                                "Bus index to remove: {bus_index:?}. Station: {:?}. Docked buses: {:?}",
+                                current_station.location.index,
+                                current_station.docked_buses
+                            );
 
                             current_station
                                 .docked_buses

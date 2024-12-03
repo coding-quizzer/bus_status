@@ -301,7 +301,7 @@ pub fn run_simulation(
                     &station_senders_clone,
                     &bus_receiver_from_station,
                     &sender,
-                    &time_tick,
+                    &current_bus_receiver_from_sync.receiver,
                 );
 
                 if bus_update_output == ControlFlow::Break(()) {

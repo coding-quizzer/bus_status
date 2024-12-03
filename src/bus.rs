@@ -1,9 +1,11 @@
 use crate::passenger::Passenger;
 use crate::passenger::PassengerOnboardingBusSchedule;
 use crate::station::Station;
+use crate::thread::SyncToBusMessages;
 use crate::thread::{BusMessages, StationMessages, StationToBusMessages};
 use crate::TimeTick;
 use crate::TimeTickStage;
+use core::time;
 use std::thread::current;
 use std::vec;
 // use bus_system::Location;
@@ -83,7 +85,8 @@ pub struct Bus {
     capacity: usize,
     // number of passengers
     numbers_of_passengers_serviced: u32,
-    // time_tick_num: u32,
+    // TODO: propigate
+    time_tick: TimeTick,
     pub bus_index: usize,
 }
 
@@ -114,7 +117,7 @@ impl Bus {
             bus_route_vec,
             capacity,
             numbers_of_passengers_serviced: 0,
-            // time_tick_num: 0,
+            time_tick: TimeTick::default(),
             bus_index: bus_num,
         })
     }
@@ -229,9 +232,12 @@ impl Bus {
         station_senders: &[Sender<StationMessages>],
         station_receiver: &Receiver<StationToBusMessages>,
         sync_sender: &Sender<BusMessages>,
-        time_tick: &TimeTick,
+        sync_receiver: &Receiver<SyncToBusMessages>,
     ) -> ControlFlow<()> {
-        println!("Bus {} update time tick: {:?}", self.bus_index, time_tick);
+        println!(
+            "Bus {} update time tick: {:?}",
+            self.bus_index, self.time_tick
+        );
         println!("Bus movement: {:?}", self.status.movement);
         if let MovementState::Moving(distance) = self.status.movement {
             println!("Moving bus update");
@@ -241,7 +247,7 @@ impl Bus {
             // );
 
             // Only manage movement state during bus_unloading_passengers stage so that the bus only moves once
-            if let TimeTickStage::BusLoadingPassengers { .. } = time_tick.stage {
+            if let TimeTickStage::BusLoadingPassengers { .. } = self.time_tick.stage {
                 return ControlFlow::Continue(());
             }
             if distance > 1 {
@@ -285,7 +291,7 @@ impl Bus {
                             // FIX: find a better way to get the list of location indeces that doesn't involve misusing any
                             current_passenger_location_index = location_index;
                             passenger_location.stop_location == current_location
-                                && passenger_location.time_tick >= time_tick.number
+                                && passenger_location.time_tick >= self.time_tick.number
                         });
 
                     println!("Is Offboarding: {is_offboarding}");
@@ -365,9 +371,19 @@ impl Bus {
                     }
                     StationToBusMessages::RequestDeparture => {
                         // dbg!(time_tick);
-                        let TimeTickStage::BusLoadingPassengers { .. } = time_tick.stage else {
+                        if let TimeTickStage::BusLoadingPassengers { .. } = self.time_tick.stage {
+                        } else {
+                            println!("Debug: waiting for time step to advance in bus");
                             // TODO: Replace with waiting for time tick
-                            panic!("The request departure message must occur at the BusLoadingPassengers stage. Time Tick: {:?}", time_tick);
+                            let incoming_message = sync_receiver.recv().unwrap();
+
+                            let time_tick: TimeTick = match incoming_message {
+                                SyncToBusMessages::AdvanceTimeStep(time_step) => time_step,
+                                // So far, there are no other options
+                                _ => unreachable!(),
+                            };
+                            println!("Time tick incremented. Time tick: {time_tick:?}");
+                            self.time_tick = time_tick;
                         };
 
                         next_station_sender
@@ -377,8 +393,11 @@ impl Bus {
                             .unwrap();
 
                         println!(
-                            "Bus {} departure recieved from station and sent again from bus",
-                            self.bus_index
+                            "Bus {} departure recieved from station {} and sent again on bus time tick {:?}",
+                            self.bus_index,
+                            current_location_index,
+                            self.time_tick,
+
                         );
                     }
                     StationToBusMessages::SendPassengers(passenger_list) => {
