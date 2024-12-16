@@ -6,7 +6,7 @@ use crate::initialize_channel_list;
 use crate::location::{BusLocation, PassengerBusLocation};
 use crate::station;
 use crate::thread::{
-    BusMessages, BusThreadStatus, StationMessages, StationToPassengersMessages,
+    BusMessages, BusThreadStatus, StationEventMessages, StationToPassengersMessages,
     StationToSyncMessages, SyncToBusMessages, SyncToStationMessages,
 };
 use crate::{Location, Passenger};
@@ -80,7 +80,7 @@ pub fn run_simulation(
     let (tx_stations_to_passengers, rx_stations_to_passengers) =
         mpsc::channel::<StationToPassengersMessages>();
     let (send_to_station_channels, receive_in_station_channels) =
-        crate::initialize_channel_list::<StationMessages>(config.num_of_locations);
+        crate::initialize_channel_list::<StationEventMessages>(config.num_of_locations);
     let receive_in_station_channels: Vec<Option<_>> =
         receive_in_station_channels.into_iter().map(Some).collect();
 
@@ -362,7 +362,9 @@ pub fn run_simulation(
 
         for (index, passengers_in_locations) in passenger_location_list.into_iter().enumerate() {
             station_sender_list.as_ref()[index]
-                .send(StationMessages::InitPassengerList(passengers_in_locations))
+                .send(StationEventMessages::InitPassengerList(
+                    passengers_in_locations,
+                ))
                 .unwrap();
             println!("Init Passenger Info Message. Location Index: {index}");
         }

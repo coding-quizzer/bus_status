@@ -2,7 +2,7 @@ use crate::passenger::Passenger;
 use crate::passenger::PassengerOnboardingBusSchedule;
 use crate::station::Station;
 use crate::thread::SyncToBusMessages;
-use crate::thread::{BusMessages, StationMessages, StationToBusMessages};
+use crate::thread::{BusMessages, StationEventMessages, StationToBusMessages};
 use crate::TimeTick;
 use crate::TimeTickStage;
 use core::time;
@@ -229,7 +229,7 @@ impl Bus {
 
     pub fn update(
         &mut self,
-        station_senders: &[Sender<StationMessages>],
+        station_senders: &[Sender<StationEventMessages>],
         station_receiver: &Receiver<StationToBusMessages>,
         sync_sender: &Sender<BusMessages>,
         sync_receiver: &Receiver<SyncToBusMessages>,
@@ -347,7 +347,7 @@ impl Bus {
             );
 
             next_station_sender
-                .send(StationMessages::BusArrived {
+                .send(StationEventMessages::BusArrived {
                     passengers_onboarding: outgoing_passengers,
                     bus_info: bus_info_for_station,
                 })
@@ -387,7 +387,7 @@ impl Bus {
                         };
 
                         next_station_sender
-                            .send(StationMessages::BusDeparted {
+                            .send(StationEventMessages::BusDeparted {
                                 bus_index: self.bus_index,
                             })
                             .unwrap();

@@ -2,7 +2,7 @@ use crate::bus::SendableBus;
 use crate::passenger::Passenger;
 #[derive(PartialEq, Debug)]
 // Messages to the station
-pub enum StationMessages {
+pub enum StationEventMessages {
     InitPassengerList(Vec<Passenger>),
     BusArrived {
         passengers_onboarding: Vec<Passenger>,

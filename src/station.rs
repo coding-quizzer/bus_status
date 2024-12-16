@@ -5,7 +5,7 @@ use crate::main_loop::{ConfigStruct, FinalPassengerLists};
 use crate::passenger::Passenger;
 use crate::passenger::PassengerOnboardingBusSchedule;
 use crate::thread::{
-    StationMessages, StationToBusMessages, StationToPassengersMessages, SyncToStationMessages,
+    StationEventMessages, StationToBusMessages, StationToPassengersMessages, SyncToStationMessages,
 };
 use crate::{
     calculate_passenger_schedule_for_bus,
@@ -13,6 +13,7 @@ use crate::{
 };
 use crate::{station, TimeTick};
 use crate::{ReceiverWithIndex, TimeTickStage};
+use core::time;
 use std::sync::mpsc::TryRecvError;
 use std::sync::{
     mpsc::{Receiver, Sender},
@@ -157,7 +158,9 @@ pub fn get_station_threads(
     station_location_list: &Vec<Location>,
     current_time_tick: &TimeTick,
     send_to_bus_channels_arc: &Arc<Vec<Sender<StationToBusMessages>>>,
-    receive_in_station_channels_arc: &Arc<Mutex<Vec<Option<ReceiverWithIndex<StationMessages>>>>>,
+    receive_in_station_channels_arc: &Arc<
+        Mutex<Vec<Option<ReceiverWithIndex<StationEventMessages>>>>,
+    >,
     bus_route_vec_arc: &Arc<Mutex<Vec<Vec<BusLocation>>>>,
     passenger_bus_route_arc: &Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>,
     rejected_passengers_pointer: &Arc<Mutex<Vec<Passenger>>>,
@@ -195,7 +198,7 @@ pub fn get_station_threads(
         let to_passengers_sender_clone = tx_stations_to_passengers.clone();
         let station_handle = create_station_thread(
             current_location,
-            *current_time_tick,
+            // *current_time_tick,
             send_to_bus_channels,
             station_channel,
             bus_route_list,
@@ -214,9 +217,9 @@ pub fn get_station_threads(
 pub fn create_station_thread(
     current_location: Location,
     // TODO: I have shadowed this
-    station_time_tick: TimeTick,
+    // station_time_tick: TimeTick,
     send_to_bus_channels: Arc<Vec<Sender<StationToBusMessages>>>,
-    station_channel_receiver: ReceiverWithIndex<StationMessages>,
+    station_channel_receiver: ReceiverWithIndex<StationEventMessages>,
     bus_route_list: Arc<Mutex<Vec<Vec<BusLocation>>>>,
     station_thread_passenger_bus_route_list: Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>,
     rejected_passenger_clone: Arc<Mutex<Vec<Passenger>>>,
@@ -238,26 +241,17 @@ pub fn create_station_thread(
         let mut bus_passengers_initialized = false;
 
         let mut time_tick = station_time_tick;
+        let mut previous_time_tick: Option<TimeTick> = None;
 
         'main: loop {
             // TODO: Update time tick for station
             // println!("Station thread beginning. Station index: {}", station_index);
 
-            // If this first message is Advance TIme tick, that message will be lost
             let message_from_sync_result = sync_to_stations_receiver.try_recv();
             if let Ok(SyncToStationMessages::ProgramFinished(
                 crate::thread::ProgramEndType::ProgramFinished,
             )) = message_from_sync_result
-            {
-                println!(
-                    "All buses finished message received in station {}",
-                    station_index
-                );
-                let mut final_passenger_list = final_passenger_list_clone.lock().unwrap();
-                final_passenger_list.location_lists[station_index] =
-                    current_station.arrived_passengers;
-                break;
-            }
+            {}
 
             // FIXME: this if statement will only work if the message is OK and this is the right message, the receiver is at the very top now. This
             if let Ok(SyncToStationMessages::AdvanceTimeStep(new_time_step)) =
@@ -301,7 +295,7 @@ pub fn create_station_thread(
                     );
 
                     // If I change this to be a new reciever, the other stages will not need to filter out this option
-                    if let StationMessages::InitPassengerList(mut list) = received_message {
+                    if let StationEventMessages::InitPassengerList(mut list) = received_message {
                         assert_eq!(time_tick.number, 0);
                         println!("Station: {station_index} Message: {list:#?}");
                         let mut rejected_passenger_indeces = Vec::new();
@@ -381,7 +375,7 @@ pub fn create_station_thread(
 
                     // The bus keeps leaving and then returning again. The the passengers are not duplicated in the bus and the bus is not duplicated in the station.
 
-                    if let StationMessages::BusArrived {
+                    if let StationEventMessages::BusArrived {
                         mut passengers_onboarding,
                         bus_info,
                     } = received_message
@@ -457,7 +451,7 @@ pub fn create_station_thread(
                     //let time_tick = station_time_tick.lock().unwrap();
 
                     // An iterator containing tuples containing the bus_index of each docked bus and a list of passengers that will get on that bus
-                    let mut docked_bus_passenger_pairs_iter = current_station
+                    let docked_bus_passenger_pairs_iter = current_station
                         .docked_buses
                         .iter()
                         .map(|bus| (bus.bus_index, Vec::<Passenger>::new()));
@@ -660,10 +654,14 @@ pub fn create_station_thread(
 
                     println!("Time tick when buses are dismissed: {:?}", &time_tick);
                     // One station is doing this twice. why?
+                    let current_thread = thread::current();
                     for bus in current_station.docked_buses.iter() {
                         println!(
-                            "Request departure from station {} for bus {}",
-                            current_station.location.index, bus.bus_index
+                            "Request departure from station {} for bus {} on timetick {:?} on thread {:?}",
+                            current_station.location.index,
+                            bus.bus_index,
+                            time_tick,
+                            current_thread.id()
                         );
                         send_to_bus_channels[bus.bus_index]
                             .send(StationToBusMessages::RequestDeparture)
@@ -676,6 +674,8 @@ pub fn create_station_thread(
 
                     // Occasionally, this turns into an infinite loop
 
+                    // TODO: Figure out the flow
+
                     'bus_loading: loop {
                         /*  println!(
                             "Bus loading loop beginning in station {} at time tick {:?}",
@@ -683,6 +683,8 @@ pub fn create_station_thread(
                         ); */
                         // sync_to_stations receiver moved before buses_receiver so that this check can run independantly of
                         // other messages.
+
+                        let message_from_sync_result = sync_to_stations_receiver.try_recv();
 
                         // NOTE: This should not be neccesary because the buses are controlling the loop, not the
                         if let Ok(SyncToStationMessages::AdvanceTimeStep(prev_time_tick)) =
@@ -725,11 +727,25 @@ pub fn create_station_thread(
                                 time_tick
                             );
                             current_station.bus_loading_first_iteration = None;
+                            println!("Break Bus Loading");
                             break 'bus_loading;
+                        } else if let Ok(SyncToStationMessages::ProgramFinished(_)) =
+                            message_from_sync_result
+                        {
+                            println!(
+                                "All buses finished message received in station {}",
+                                station_index
+                            );
+                            let mut final_passenger_list =
+                                final_passenger_list_clone.lock().unwrap();
+                            final_passenger_list.location_lists[station_index] =
+                                current_station.arrived_passengers.clone();
+                            break;
                         }
 
                         // let time_tick = station_time_tick;
 
+                        // Receive messages about buses
                         let received_message = current_receiver.try_recv();
                         let received_message = match received_message {
                             Ok(message) => message,
@@ -740,7 +756,7 @@ pub fn create_station_thread(
                         };
 
                         // For some reason the same bus is often deleted twice
-                        if let StationMessages::BusDeparted { bus_index } = received_message {
+                        if let StationEventMessages::BusDeparted { bus_index } = received_message {
                             // Why is there a bus that should be removed which is not on the list of docked buses?
                             // Confirm that the station contains the bus that should be removed
                             assert!(
