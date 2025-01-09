@@ -86,8 +86,12 @@ impl Station {
 
         let new_bus_schedule =
             calculate_passenger_schedule_for_bus(&new_passenger, time_tick.number, bus_route_list)?;
-        println!("New Bus Schedule: {:#?}", new_bus_schedule);
-        println!("Passengers added.");
+        println!(
+            "Thread ID: {:?}New Bus Schedule: {:#?}",
+            thread::current().id(),
+            new_bus_schedule,
+        );
+        println!("Thread ID: {:?} Passengers added.", thread::current().id());
         new_passenger.bus_schedule_iterator = new_bus_schedule.clone().into_iter().peekable();
         new_passenger.bus_schedule = new_bus_schedule;
 
@@ -120,8 +124,12 @@ impl Station {
             bus_route_list,
             buses_unavailable,
         )?;
-        println!("New Bus Schedule: {:#?}", new_bus_schedule);
-        println!("Passengers added.");
+        println!(
+            "Thread ID: {:?}New Bus Schedule: {:#?}",
+            thread::current().id(),
+            new_bus_schedule,
+        );
+        println!("Thread ID: {:?}Passengers added.", thread::current().id());
         new_passenger.bus_schedule_iterator = new_bus_schedule.clone().into_iter().peekable();
         new_passenger.bus_schedule = new_bus_schedule;
         self.passengers.push(new_passenger);
@@ -235,17 +243,21 @@ pub fn create_station_thread(
             &station_thread_passenger_bus_route_list.lock().unwrap(),
         );
         let station_index = station_channel_receiver.index;
-        println!("Station index: {station_index}");
+        println!(
+            "Thread ID: {:?}Station index: {station_index}",
+            thread::current().id()
+        );
         let current_receiver = station_channel_receiver.receiver;
         // Once passengerInit stage is finished, bus_passengers_initialized is set to false, so the loop does not need to run again
         let mut bus_passengers_initialized = false;
 
         let mut time_tick = station_time_tick;
         let mut previous_time_tick: Option<TimeTick> = None;
+        let current_thread_id = thread::current().id();
 
         'main: loop {
             // TODO: Update time tick for station
-            // println!("Station thread beginning. Station index: {}", station_index);
+            // println!("Station {station_index} Thread ID: {current_thread_id}Station thread beginning. Station index: {}", station_index);
 
             let message_from_sync_result = sync_to_stations_receiver.try_recv();
             if let Ok(SyncToStationMessages::ProgramFinished(
@@ -257,8 +269,16 @@ pub fn create_station_thread(
             if let Ok(SyncToStationMessages::AdvanceTimeStep(new_time_step)) =
                 message_from_sync_result
             {
-                println!("New Time Step: {:?}", new_time_step);
-                println!("Old Time Step: {:?}", time_tick);
+                println!(
+                    "Station {station_index} Thread ID: {:?} New Time Step: {:?}",
+                    thread::current().id(),
+                    new_time_step
+                );
+                println!(
+                    "Thread ID: {:?}Old Time Step: {:?}",
+                    thread::current().id(),
+                    time_tick
+                );
                 // TODO:
                 if (new_time_step.number - time_tick.number > 1) {
                     panic!("Station time tick difference is more than one. new_time_step: {new_time_step:?}. Current Time Tick: {time_tick:?}");
@@ -266,7 +286,7 @@ pub fn create_station_thread(
                 time_tick = new_time_step
             }
 
-            // println!("Station {location_index}. time tick: {}", *time_tick);
+            // println!("Station {station_index} Thread ID: {current_thread_id}Station {location_index}. time tick: {}", *time_tick);
 
             /* println!(
                 "Station {} loop beginning. Time tick: {:?}",
@@ -281,12 +301,12 @@ pub fn create_station_thread(
             match time_tick.stage {
                 TimeTickStage::PassengerInit => {
                     if bus_passengers_initialized {
-                        println!("Bus passengers already initialized");
+                        println!("Station {station_index} Thread ID: {current_thread_id:?}Bus passengers already initialized");
                         thread::sleep(Duration::from_millis(10));
                         continue;
                     }
 
-                    println!("Station {} first timetick", station_index);
+                    println!("Station {station_index} Thread ID: {current_thread_id:?}Station {} first timetick", station_index);
                     let received_message = current_receiver.recv().unwrap();
 
                     println!(
@@ -297,13 +317,16 @@ pub fn create_station_thread(
                     // If I change this to be a new reciever, the other stages will not need to filter out this option
                     if let StationEventMessages::InitPassengerList(mut list) = received_message {
                         assert_eq!(time_tick.number, 0);
-                        println!("Station: {station_index} Message: {list:#?}");
+                        println!("Station {station_index} Thread ID: {current_thread_id:?} Station: {station_index} Message: {list:#?}");
                         let mut rejected_passenger_indeces = Vec::new();
-                        println!("List: {:?}", list);
+                        println!(
+                            "Station {station_index} Thread ID: {current_thread_id:?}List: {:?}",
+                            list
+                        );
                         for (index, passenger) in list.iter().enumerate() {
                             // let passenger_bus_route_list =
                             //     station_thread_passenger_bus_route_list.lock().unwrap();
-                            println!("Passenger will be added to station {}", station_index);
+                            println!("Station {station_index} Thread ID: {current_thread_id:?}Passenger will be added to station {}", station_index);
                             current_station
                                 .add_passenger(
                                     passenger.clone().into(),
@@ -312,7 +335,7 @@ pub fn create_station_thread(
                                 )
                                 .unwrap_or_else(|passenger| {
                                     rejected_passenger_indeces.push(index);
-                                    println!("Passenger {:?} had no valid routes", passenger);
+                                    println!("Station {station_index} Thread ID: {current_thread_id:?}Passenger {:?} had no valid routes", passenger);
                                 });
                         }
 
@@ -320,9 +343,9 @@ pub fn create_station_thread(
                             let removed_passenger = list.remove(passenger_index);
                             (*rejected_passenger_clone.lock().unwrap()).push(removed_passenger);
                         }
-                        println!("Passengers added to station {}", station_index);
+                        println!("Station {station_index} Thread ID: {current_thread_id:?}Passengers added to station {}", station_index);
                         // drop(time_tick);
-                        println!("total passenger_count: {}", list.len());
+                        println!("Station {station_index} Thread ID: {current_thread_id:?}total passenger_count: {}", list.len());
                         to_passengers_sender_clone
                             .send(StationToPassengersMessages::ConfirmInitPassengerList(
                                 station_index,
@@ -398,7 +421,7 @@ pub fn create_station_thread(
                         );
                         current_station.passengers.extend(passengers_onboarding);
                         let bus_index = bus_info.bus_index;
-                        println!("Bus {bus_index} arrived at station {station_index}. Received from station");
+                        println!("Station {station_index} Thread ID: {current_thread_id:?}Bus {bus_index} arrived at station {station_index}. Received from station");
 
                         assert!(!current_station
                             .docked_buses
@@ -476,7 +499,7 @@ pub fn create_station_thread(
                         docked_bus_passenger_pairs_vec.into_iter();
 
                     let mut next_vec = docked_bus_passenger_pairs_iter.next();
-                    println!("Station {} next vec: {:?}", station_index, next_vec);
+                    println!("Station {station_index} Thread ID: {current_thread_id:?}Station {} next vec: {:?}", station_index, next_vec);
 
                     // Add empty arrays at the indeces of buses docked at the station
                     next_passengers_for_buses_array = next_passengers_for_buses_array
@@ -531,11 +554,11 @@ pub fn create_station_thread(
                                 // The next location will be the next station, which should be None if this is the last one
                                 // This will be some, given the next location represents the current station
                                 let next_location = passenger_iterator_clone.next();
-                                println!("Passenger schedule: {:#?}", passenger.bus_schedule);
-                                println!("Passenger, {:#?}", passenger);
-                                println!("Current location number: {}", station_index);
-                                println!("Next location {:#?}", next_location);
-                                println!("Time tick: {:?}", time_tick);
+                                println!("Station {station_index} Thread ID: {current_thread_id:?}Passenger schedule: {:#?}", passenger.bus_schedule);
+                                println!("Station {station_index} Thread ID: {current_thread_id:?}Passenger, {:#?}", passenger);
+                                println!("Station {station_index} Thread ID: {current_thread_id:?}Current location number: {}", station_index);
+                                println!("Station {station_index} Thread ID: {current_thread_id:?}Next location {:#?}", next_location);
+                                println!("Station {station_index} Thread ID: {current_thread_id:?}Time tick: {:?}", time_tick);
 
                                 next_location.is_some()
                             });
@@ -548,19 +571,21 @@ pub fn create_station_thread(
                         .iter()
                         .all(|passenger| passenger.destination_location == current_location));
 
-                    // println!("Passengers for next destination: {:?}", &passengers_for_next_destination);;
+                    // println!("Station {station_index} Thread ID: {current_thread_id}Passengers for next destination: {:?}", &passengers_for_next_destination);;
 
                     let mut remaining_passengers: Vec<Passenger> = Vec::new();
                     // overflowed passengers have their own list so that they can be recalculated
                     let mut passengers_overflowed: Vec<Passenger> = Vec::new();
-                    // println!("Arrived Passengers: {:?}", &arrived_passengers);
+                    // println!("Station {station_index} Thread ID: {current_thread_id}Arrived Passengers: {:?}", &arrived_passengers);
                     // FIXME: Some passengers are showing up at the station when they should be on the bus. How does this work?
                     println!(
                         "Station {} Passengers for next destination: {:#?}",
                         station_index, passengers_for_next_destination
                     );
                     for passenger in passengers_for_next_destination {
-                        println!("passenger_loop");
+                        println!(
+                            "Station {station_index} Thread ID: {current_thread_id:?}passenger_loop"
+                        );
                         // Does this work, or will this be the next next location?
                         let next_bus_index = passenger.next_bus_num.expect(
                           "Since there is a location after this, the next bus index should not be None",
@@ -583,10 +608,13 @@ pub fn create_station_thread(
                     let docked_buses = &(current_station.docked_buses.clone());
 
                     for bus in docked_buses {
-                        // println!("Station loop beginning.");
-                        println!("Station Bus Time tick: {:?}", time_tick);
-                        println!("Station: {}", current_station.location.index);
-                        println!("Bus: {}", bus.bus_index);
+                        // println!("Station {station_index} Thread ID: {current_thread_id}Station loop beginning.");
+                        println!("Station {station_index} Thread ID: {current_thread_id:?}Station Bus Time tick: {:?}", time_tick);
+                        println!(
+                            " Thread ID: {current_thread_id:?}Station: {}",
+                            current_station.location.index
+                        );
+                        println!("Thread ID: {current_thread_id:?}Bus: {}", bus.bus_index);
                         let mut passengers_to_send = Vec::new();
                         let bus_index = bus.bus_index;
                         let remaining_capacity = bus.capacity_remaining;
@@ -632,7 +660,7 @@ pub fn create_station_thread(
                         // bus_route_vec[0][0].
 
                         drop(current_bus_route_list);
-                        println!("Current bus route list dropped");
+                        println!("Thread ID: {current_thread_id:?}Current bus route list dropped");
 
                         // TODO: Deal with passengers without an available route
                         for passenger in passengers_overflowed.clone() {
@@ -649,10 +677,13 @@ pub fn create_station_thread(
 
                         // drop(time_tick);
 
-                        println!("Pre-bus departure");
+                        println!("Thread ID: {current_thread_id:?}Pre-bus departure");
                     }
 
-                    println!("Time tick when buses are dismissed: {:?}", &time_tick);
+                    println!(
+                        "Thread ID: {current_thread_id:?}Time tick when buses are dismissed: {:?}",
+                        &time_tick
+                    );
                     // One station is doing this twice. why?
                     let current_thread = thread::current();
                     for bus in current_station.docked_buses.iter() {
@@ -668,7 +699,7 @@ pub fn create_station_thread(
                             .unwrap();
                     }
 
-                    println!("Departure message sent");
+                    println!("Station {station_index} Thread ID: {current_thread_id:?}Departure message sent");
 
                     current_station.bus_loading_first_iteration = Some(false);
 
@@ -694,17 +725,17 @@ pub fn create_station_thread(
                                 "Advance Time tick message received in station {}",
                                 station_index
                             );
-                            println!("Time tick: {:?}", station_time_tick);
+                            println!("Station {station_index} Thread ID: {current_thread_id:?}Time tick: {:?}", station_time_tick);
                             // At this point if all the buses have finished their tick, they should be gone from the station
 
                             // let time_tick = station_time_tick;
 
-                            println!("Time tick locked on Station bus_loading loop");
+                            println!("Station {station_index} Thread ID: {current_thread_id:?}Time tick locked on Station bus_loading loop");
 
                             if !(current_station.docked_buses.is_empty()) {
-                                println!("Station {} time ticks", current_location.index);
-                                println!("Time tick before incrementing: {:?}", prev_time_tick);
-                                println!("Current time tick: {:?}", time_tick);
+                                println!("Station {station_index} Thread ID: {current_thread_id:?}Station {} time ticks", current_location.index);
+                                println!("Station {station_index} Thread ID: {current_thread_id:?}Time tick before incrementing: {:?}", prev_time_tick);
+                                println!("Station {station_index} Thread ID: {current_thread_id:?}Current time tick: {:?}", time_tick);
                                 // break from the loop so that the time tick has an opportunity to update
 
                                 // DEBUG: Why is the time step allowed to continue before bus 2 leaves the station?
@@ -727,7 +758,7 @@ pub fn create_station_thread(
                                 time_tick
                             );
                             current_station.bus_loading_first_iteration = None;
-                            println!("Break Bus Loading");
+                            println!("Station {station_index} Thread ID: {current_thread_id:?} Break Bus Loading");
                             break 'bus_loading;
                         } else if let Ok(SyncToStationMessages::ProgramFinished(_)) =
                             message_from_sync_result
