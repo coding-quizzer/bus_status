@@ -270,6 +270,19 @@ pub fn run_simulation(
             println!("Bus Message sent from bus {}", simulated_bus.bus_index);
 
             let mut previous_time_tick = TimeTick::default();
+            // let incoming_message = current_bus_receiver_from_sync.receiver.recv().unwrap();
+            // let time_tick: TimeTick = match incoming_message {
+            //     SyncToBusMessages::AdvanceTimeStep(time_step) => {
+            //         if time_step.number - previous_time_tick.number > 1 {
+            //             panic!("Skipped from time tick {previous_time_tick:?} to {time_step:?} ")
+            //         } else {
+            //             time_step
+            //         }
+            //     }
+            //     // So far, there are no other options
+            //     _ => unreachable!(),
+            // };
+            // println!("Bus thread Time tick incremented. Time tick: {time_tick:?}");
             loop {
                 println!("Beginning of Bus loop. Bus num: {}", bus_index);
                 // TODO: Set current time tick to the appropriate value, incorporating messages from the main/sync thread
@@ -287,15 +300,15 @@ pub fn run_simulation(
                     // So far, there are no other options
                     _ => unreachable!(),
                 };
-                println!("Time tick incremented. Time tick: {time_tick:?}");
+                println!("Bus thread Time tick incremented. Time tick: {time_tick:?}");
 
-                //
                 if time_tick == previous_time_tick
                     || (time_tick).stage == TimeTickStage::PassengerInit
                 {
                     continue;
                 }
                 previous_time_tick = time_tick;
+                simulated_bus.time_tick = time_tick;
 
                 let bus_update_output = simulated_bus.update(
                     &station_senders_clone,

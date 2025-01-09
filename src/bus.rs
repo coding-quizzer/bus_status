@@ -86,7 +86,7 @@ pub struct Bus {
     // number of passengers
     numbers_of_passengers_serviced: u32,
     // TODO: propigate
-    time_tick: TimeTick,
+    pub time_tick: TimeTick,
     pub bus_index: usize,
 }
 
@@ -234,8 +234,9 @@ impl Bus {
         sync_sender: &Sender<BusMessages>,
         sync_receiver: &Receiver<SyncToBusMessages>,
     ) -> ControlFlow<()> {
+        // somewhere there is a time advane message that is not recorded
         println!(
-            "Bus {} update time tick: {:?}",
+            "Bus {} update function current time tick: {:?}",
             self.bus_index, self.time_tick
         );
         println!("Bus movement: {:?}", self.status.movement);
@@ -247,9 +248,9 @@ impl Bus {
             // );
 
             // Only manage movement state during bus_unloading_passengers stage so that the bus only moves once
-            if let TimeTickStage::BusLoadingPassengers { .. } = self.time_tick.stage {
-                return ControlFlow::Continue(());
-            }
+            // if let TimeTickStage::BusLoadingPassengers { .. } = self.time_tick.stage {
+            //     return ControlFlow::Continue(());
+            // }
             if distance > 1 {
                 println!("Bus {} distance to next stop: {}", self.bus_index, distance);
                 self.status.movement = MovementState::Moving(distance - 1);
@@ -303,11 +304,11 @@ impl Bus {
                 });
 
             println!(
-                "Bus {} Outgoing Passengers: {:?}",
+                "Bus {} Outgoing Passengers: {:#?}",
                 self.bus_index, outgoing_passengers
             );
             println!(
-                "Bus {} Remaining Passengers: {:?}",
+                "Bus {} Remaining Passengers: {:#?}",
                 self.bus_index, remaining_passengers
             );
             // This is a checks for an implimentation detail rather than the system as a whold
@@ -377,13 +378,20 @@ impl Bus {
                             // TODO: Replace with waiting for time tick
                             let incoming_message = sync_receiver.recv().unwrap();
 
-                            let time_tick: TimeTick = match incoming_message {
+                            let time_tick_temp: TimeTick = match incoming_message {
                                 SyncToBusMessages::AdvanceTimeStep(time_step) => time_step,
                                 // So far, there are no other options
                                 _ => unreachable!(),
                             };
-                            println!("Time tick incremented. Time tick: {time_tick:?}");
-                            self.time_tick = time_tick;
+                            println!(
+                                "Bus {} Time tick incremented. Time tick: {time_tick_temp:?}",
+                                self.bus_index
+                            );
+                            self.time_tick = time_tick_temp;
+                            println!(
+                                "Time tick incremented self. Time tick: {:?}",
+                                self.time_tick
+                            );
                         };
 
                         next_station_sender
