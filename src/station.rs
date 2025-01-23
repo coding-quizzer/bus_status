@@ -265,7 +265,6 @@ pub fn create_station_thread(
             )) = message_from_sync_result
             {}
 
-            // FIXME: this if statement will only work if the message is OK and this is the right message, the receiver is at the very top now. This
             if let Ok(SyncToStationMessages::AdvanceTimeStep(new_time_step)) =
                 message_from_sync_result
             {
@@ -318,15 +317,14 @@ pub fn create_station_thread(
                     if let StationEventMessages::InitPassengerList(mut list) = received_message {
                         assert_eq!(time_tick.number, 0);
                         println!("Station {station_index} Thread ID: {current_thread_id:?} Station: {station_index} Message: {list:#?}");
-                        let mut rejected_passenger_indeces = Vec::new();
                         println!(
                             "Station {station_index} Thread ID: {current_thread_id:?}List: {:?}",
                             list
                         );
-                        for (index, passenger) in list.iter().enumerate() {
+                        for passenger in list.iter() {
                             // let passenger_bus_route_list =
                             //     station_thread_passenger_bus_route_list.lock().unwrap();
-                            println!("Station {station_index} Thread ID: {current_thread_id:?}Passenger will be added to station {}", station_index);
+                            println!("Station {station_index} Thread ID: {current_thread_id:?} Passengers attempting to  be added to station {}", station_index);
                             current_station
                                 .add_passenger(
                                     passenger.clone().into(),
@@ -334,18 +332,13 @@ pub fn create_station_thread(
                                     &station_thread_passenger_bus_route_list.lock().unwrap(),
                                 )
                                 .unwrap_or_else(|passenger| {
-                                    rejected_passenger_indeces.push(index);
+                                    (*rejected_passenger_clone.lock().unwrap()).push(passenger.clone());
                                     println!("Station {station_index} Thread ID: {current_thread_id:?}Passenger {:?} had no valid routes", passenger);
                                 });
                         }
 
-                        for passenger_index in rejected_passenger_indeces.into_iter().rev() {
-                            let removed_passenger = list.remove(passenger_index);
-                            (*rejected_passenger_clone.lock().unwrap()).push(removed_passenger);
-                        }
-                        println!("Station {station_index} Thread ID: {current_thread_id:?}Passengers added to station {}", station_index);
                         // drop(time_tick);
-                        println!("Station {station_index} Thread ID: {current_thread_id:?}total passenger_count: {}", list.len());
+                        println!("Station {station_index} Thread ID: {current_thread_id:?}total passenger_count: {}", current_station.passengers.len());
                         to_passengers_sender_clone
                             .send(StationToPassengersMessages::ConfirmInitPassengerList(
                                 station_index,
@@ -718,7 +711,7 @@ pub fn create_station_thread(
                         let message_from_sync_result = sync_to_stations_receiver.try_recv();
 
                         // NOTE: This should not be neccesary because the buses are controlling the loop, not the
-                        if let Ok(SyncToStationMessages::AdvanceTimeStep(prev_time_tick)) =
+                        if let Ok(SyncToStationMessages::AdvanceTimeStep(new_time_tick)) =
                             message_from_sync_result
                         {
                             println!(
@@ -728,13 +721,13 @@ pub fn create_station_thread(
                             println!("Station {station_index} Thread ID: {current_thread_id:?}Time tick: {:?}", station_time_tick);
                             // At this point if all the buses have finished their tick, they should be gone from the station
 
-                            // let time_tick = station_time_tick;
+                            time_tick = new_time_tick;
 
                             println!("Station {station_index} Thread ID: {current_thread_id:?}Time tick locked on Station bus_loading loop");
 
                             if !(current_station.docked_buses.is_empty()) {
                                 println!("Station {station_index} Thread ID: {current_thread_id:?}Station {} time ticks", current_location.index);
-                                println!("Station {station_index} Thread ID: {current_thread_id:?}Time tick before incrementing: {:?}", prev_time_tick);
+                                println!("Station {station_index} Thread ID: {current_thread_id:?}Time tick before incrementing: {:?}", new_time_tick);
                                 println!("Station {station_index} Thread ID: {current_thread_id:?}Current time tick: {:?}", time_tick);
                                 // break from the loop so that the time tick has an opportunity to update
 

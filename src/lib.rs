@@ -274,7 +274,7 @@ fn calculate_passenger_schedule_for_bus_with_recursion(
     let mut valid_schedules: Vec<PassengerScheduleWithDistance> = Vec::new();
     let mut destination_list = Vec::new();
     // let mut bus_schedule: VecDeque<PassengerOnboardingBusSchedule> = VecDeque::new();
-    println!("bus route list: {:#?}", bus_route_list);
+    // println!("bus route list: {:#?}", bus_route_list);
 
     // Find the index of the bus route containing the destination location and the bus location containting the location and the time tick
     for (bus_index, bus_route) in bus_route_list.iter().enumerate() {

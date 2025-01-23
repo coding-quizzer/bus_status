@@ -10,6 +10,7 @@ use bus_system::main_loop::{run_simulation, ConfigStruct};
 
 fn main() {
     let initial_data: InputDataStructure = if READ_JSON {
+        println!("Reading data from file");
         data::read_data_from_file(Path::new("bus_route_data.json")).unwrap()
     } else {
         // These need to actually be set
@@ -85,5 +86,5 @@ fn main() {
         bus_route_vec,
         config_struct,
     );
-    // beginning of main game loop
+    println!("Simulation over");
 }

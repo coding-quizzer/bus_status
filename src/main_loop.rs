@@ -141,10 +141,8 @@ pub fn run_simulation(
 
         for bus_sender in bus_senders {
             bus_sender
-                .send(crate::thread::SyncToBusMessages::AdvanceTimeStep(
-                    *time_tick,
-                ))
-                .unwrap();
+                .send(SyncToBusMessages::AdvanceTimeStep(*time_tick))
+                .unwrap_or(());
         }
     }
 
@@ -354,7 +352,7 @@ pub fn run_simulation(
 
         let bus_route_list = passenger_thread_bus_route_list_clone.lock().unwrap();
 
-        println!("Bus route list: {bus_route_list:#?}");
+        // println!("Bus route list: {bus_route_list:#?}");
         drop(bus_route_list);
 
         println!("First time tick loop");
@@ -720,6 +718,14 @@ pub fn run_simulation(
         // TODO: add a function for incrementing the timetick from the bus loading phase
         // and use that function instead of this messy refactor
 
+        // if bus_status_vector
+        //     .iter()
+        //     .all(|bus_status| bus_status == BusThreadStatus::BusFinishedRoute)
+        // {
+        //     println!("")
+        //     break;
+        // }
+
         if current_time_tick.stage == TimeTickStage::BusUnloadingPassengers
             && bus_status_vector.iter().all(|bus_thread_status| {
                 UNLOADING_BUS_VALID_STATUSES
@@ -781,6 +787,4 @@ pub fn run_simulation(
     for handle in handle_list {
         handle.join().unwrap();
     }
-
-    {}
 }
