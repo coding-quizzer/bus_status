@@ -116,7 +116,8 @@ pub fn run_simulation(
         for status in bus_status_vector.iter_mut() {
             // Reset the statuses for the next time step
             if status == &BusThreadStatus::FinishedLoadingPassengers
-                || status == &BusThreadStatus::Moving
+                || (time_tick.stage == TimeTickStage::BusLoadingPassengers
+                    && status == &BusThreadStatus::Moving)
             {
                 *status = BusThreadStatus::WaitingForTimeStep;
             }
@@ -449,7 +450,7 @@ pub fn run_simulation(
     let route_sync_bus_route_vec_arc = bus_route_vec_arc.clone();
     let mut passengers_initialized = false;
 
-    loop {
+    'sync_loop: loop {
         println!("Beginning of route sync loop");
         // bus index could be helpful for
 
@@ -585,6 +586,10 @@ pub fn run_simulation(
             }
 
             BusMessages::AdvanceTimeStepForMovingBus { bus_index } => {
+                println!(
+                    "Sync thread received message from Bus {} for moving bus",
+                    bus_index
+                );
                 bus_status_vector[bus_index] = BusThreadStatus::Moving
             }
 
@@ -698,7 +703,7 @@ pub fn run_simulation(
             // This is the place for code after the loop
 
             println!("Program Complete");
-            break;
+            break 'sync_loop;
         }
 
         const LOADING_BUS_VALID_STATUSES: [BusThreadStatus; 3] = [
@@ -785,6 +790,16 @@ pub fn run_simulation(
     }
 
     for handle in handle_list {
+        println!("Joined handle {:?}", handle.thread().id());
         handle.join().unwrap();
     }
+
+    let rejected_passengers = rejected_passengers_pointer.lock().unwrap();
+
+    println!(
+        "Number of rejected passengers: {}",
+        rejected_passengers.len()
+    );
+
+    println!("Rejected Passengers: {:#?}", rejected_passengers)
 }

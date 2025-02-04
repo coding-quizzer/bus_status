@@ -269,7 +269,10 @@ pub fn create_station_thread(
             if let Ok(SyncToStationMessages::ProgramFinished(
                 crate::thread::ProgramEndType::ProgramFinished,
             )) = message_from_sync_result
-            {}
+            {
+                println!("Station {} finished", station_index);
+                break;
+            }
 
             if let Ok(SyncToStationMessages::AdvanceTimeStep(new_time_step)) =
                 message_from_sync_result

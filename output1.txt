@@ -1,0 +1,2457 @@
+Reading data from file
+channel count: 5
+Sync to stations list: [ReceiverWithIndex { receiver: Receiver { .. }, index: 0 }, ReceiverWithIndex { receiver: Receiver { .. }, index: 1 }, ReceiverWithIndex { receiver: Receiver { .. }, index: 2 }, ReceiverWithIndex { receiver: Receiver { .. }, index: 3 }, ReceiverWithIndex { receiver: Receiver { .. }, index: 4 }]
+Thread ID: ThreadId(2)Station index: 0
+Station 0 first timetick
+Thread ID: ThreadId(5)Station index: 3
+Station 3 first timetick
+Thread ID: ThreadId(6)Station index: 4
+Station 4 first timetick
+Thread ID: ThreadId(3)Station index: 1
+Station 1 first timetick
+Thread ID: ThreadId(4)Station index: 2
+Station 2 first timetick
+Bus index: 0
+Bus 0 bus route: [
+    BusLocation {
+        location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+        distance_to_location: 2,
+    },
+    BusLocation {
+        location: Location {
+            index: 0,
+            id: 21eaac51-b4e9-4338-99f0-869fe2e31d55,
+        },
+        distance_to_location: 1,
+    },
+    BusLocation {
+        location: Location {
+            index: 1,
+            id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+        },
+        distance_to_location: 1,
+    },
+]
+Calling Bus::new from bus 0
+bus route iterator: IntoIter([BusLocation { location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }, distance_to_location: 2 }, BusLocation { location: Location { index: 0, id: 21eaac51-b4e9-4338-99f0-869fe2e31d55 }, distance_to_location: 1 }, BusLocation { location: Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 }, distance_to_location: 1 }])
+Bus index: 1
+Simulated bus option for bus 0: Some(Bus { status: BusStatus { movement: Moving(2) }, passengers: [], current_location: Some(Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }), bus_route_iter: IntoIter([BusLocation { location: Location { index: 0, id: 21eaac51-b4e9-4338-99f0-869fe2e31d55 }, distance_to_location: 1 }, BusLocation { location: Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 }, distance_to_location: 1 }]), bus_route_vec: [BusLocation { location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }, distance_to_location: 2 }, BusLocation { location: Location { index: 0, id: 21eaac51-b4e9-4338-99f0-869fe2e31d55 }, distance_to_location: 1 }, BusLocation { location: Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 }, distance_to_location: 1 }], capacity: 10, numbers_of_passengers_serviced: 0, time_tick: TimeTick { number: 0, stage: PassengerInit }, bus_index: 0 })
+Bus index: 2
+Bus 2 bus route: [
+    BusLocation {
+        location: Location {
+            index: 1,
+            id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+        },
+        distance_to_location: 1,
+    },
+    BusLocation {
+        location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+        distance_to_location: 1,
+    },
+    BusLocation {
+        location: Location {
+            index: 1,
+            id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+        },
+        distance_to_location: 1,
+    },
+]
+Calling Bus::new from bus 2
+bus route iterator: IntoIter([BusLocation { location: Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 }, distance_to_location: 1 }, BusLocation { location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }, distance_to_location: 1 }, BusLocation { location: Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 }, distance_to_location: 1 }])
+Simulated bus option for bus 2: Some(Bus { status: BusStatus { movement: Moving(1) }, passengers: [], current_location: Some(Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 }), bus_route_iter: IntoIter([BusLocation { location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }, distance_to_location: 1 }, BusLocation { location: Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 }, distance_to_location: 1 }]), bus_route_vec: [BusLocation { location: Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 }, distance_to_location: 1 }, BusLocation { location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }, distance_to_location: 1 }, BusLocation { location: Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 }, distance_to_location: 1 }], capacity: 10, numbers_of_passengers_serviced: 0, time_tick: TimeTick { number: 0, stage: PassengerInit }, bus_index: 2 })
+Bus Message sent from bus 2
+Beginning of Bus loop. Bus num: 2
+Beginning of route sync loop
+No message received. Continuing
+No message received. Continuing
+Bus Message sent from bus 0
+Beginning of Bus loop. Bus num: 0
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+Waiting for message from bus
+Bus message received: InitBus { bus_index: 0 }. 
+Bus 0 Initialized
+Processed received: 0
+Bus 1 bus route: [
+    BusLocation {
+        location: Location {
+            index: 3,
+            id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+        },
+        distance_to_location: 1,
+    },
+    BusLocation {
+        location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+        distance_to_location: 1,
+    },
+    BusLocation {
+        location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+        distance_to_location: 1,
+    },
+]
+Calling Bus::new from bus 1
+bus route iterator: IntoIter([BusLocation { location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 }, distance_to_location: 1 }, BusLocation { location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }, distance_to_location: 1 }, BusLocation { location: Location { index: 2, id: cc1ad5ba-7a26-4127-969d-d52492776375 }, distance_to_location: 1 }])
+Simulated bus option for bus 1: Some(Bus { status: BusStatus { movement: Moving(1) }, passengers: [], current_location: Some(Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 }), bus_route_iter: IntoIter([BusLocation { location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }, distance_to_location: 1 }, BusLocation { location: Location { index: 2, id: cc1ad5ba-7a26-4127-969d-d52492776375 }, distance_to_location: 1 }]), bus_route_vec: [BusLocation { location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 }, distance_to_location: 1 }, BusLocation { location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }, distance_to_location: 1 }, BusLocation { location: Location { index: 2, id: cc1ad5ba-7a26-4127-969d-d52492776375 }, distance_to_location: 1 }], capacity: 10, numbers_of_passengers_serviced: 0, time_tick: TimeTick { number: 0, stage: PassengerInit }, bus_index: 1 })
+Bus Status Vector: [WaitingForTimeStep, Uninitialized, Uninitialized]
+First time tick loop
+Beginning of tick one passenger calculations
+Number of buses not finished: 3
+There are 0 finished buses.
+Bus Route Vector at end of Main Loop: [WaitingForTimeStep, Uninitialized, Uninitialized]
+Bus Message sent from bus 1
+Beginning of Bus loop. Bus num: 1
+End of route sync loop. Line 713.
+Beginning of route sync loop
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+Init Passenger Info Message. Location Index: 0
+Station 0 first message received: InitPassengerList(
+    [
+        Passenger {
+            id: 17001e20-45c2-4682-a278-e36472c20181,
+            destination_location: Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+            current_location: Some(
+                Location {
+                    index: 0,
+                    id: 21eaac51-b4e9-4338-99f0-869fe2e31d55,
+                },
+            ),
+            passed_stops: 0,
+            bus_schedule: [],
+            archived_stop_list: [],
+            next_bus_num: None,
+        },
+        Passenger {
+            id: 7899d237-2356-4e5c-8f4c-e494b7e752e5,
+            destination_location: Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+            current_location: Some(
+                Location {
+                    index: 0,
+                    id: 21eaac51-b4e9-4338-99f0-869fe2e31d55,
+                },
+            ),
+            passed_stops: 0,
+            bus_schedule: [],
+            archived_stop_list: [],
+            next_bus_num: None,
+        },
+    ],
+)
+Station 0 Thread ID: ThreadId(2) Station: 0 Message: [
+    Passenger {
+        id: 17001e20-45c2-4682-a278-e36472c20181,
+        destination_location: Location {
+            index: 3,
+            id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+        },
+        current_location: Some(
+            Location {
+                index: 0,
+                id: 21eaac51-b4e9-4338-99f0-869fe2e31d55,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [],
+        archived_stop_list: [],
+        next_bus_num: None,
+    },
+    Passenger {
+        id: 7899d237-2356-4e5c-8f4c-e494b7e752e5,
+        destination_location: Location {
+            index: 3,
+            id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+        },
+        current_location: Some(
+            Location {
+                index: 0,
+                id: 21eaac51-b4e9-4338-99f0-869fe2e31d55,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [],
+        archived_stop_list: [],
+        next_bus_num: None,
+    },
+]
+Station 0 Thread ID: ThreadId(2)List: [Passenger { id: 17001e20-45c2-4682-a278-e36472c20181, destination_location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 }, current_location: Some(Location { index: 0, id: 21eaac51-b4e9-4338-99f0-869fe2e31d55 }), passed_stops: 0, bus_schedule: [], archived_stop_list: [], next_bus_num: None }, Passenger { id: 7899d237-2356-4e5c-8f4c-e494b7e752e5, destination_location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 }, current_location: Some(Location { index: 0, id: 21eaac51-b4e9-4338-99f0-869fe2e31d55 }), passed_stops: 0, bus_schedule: [], archived_stop_list: [], next_bus_num: None }]
+Station 0 Thread ID: ThreadId(2) Passengers attempting to  be added to station 0
+Calculating Route from Location 0 to Location 3.
+Init Passenger Info Message. Location Index: 1
+Init Passenger Info Message. Location Index: 2
+Station 1 first message received: InitPassengerList(
+    [],
+)
+Station 1 Thread ID: ThreadId(3) Station: 1 Message: []
+No message received. Continuing
+No message received. Continuing
+Waiting for message from bus
+next bus index: None
+Destination list: [(1, PassengerBusLocation { location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 }, location_time_tick: 2 })]
+Init Passenger Info Message. Location Index: 3
+Station 2 first message received: InitPassengerList(
+    [],
+)
+Station 2 Thread ID: ThreadId(4) Station: 2 Message: []
+Station 2 Thread ID: ThreadId(4)List: []
+Station 2 Thread ID: ThreadId(4)total passenger_count: 0
+Station 1 Thread ID: ThreadId(3)List: []
+Bus passengers already initialized
+Bus message received: InitBus { bus_index: 2 }. 
+Init Passenger Info Message. Location Index: 4
+Station 4 first message received: InitPassengerList(
+    [
+        Passenger {
+            id: cbd53e6a-c064-4f27-a79d-3ac798303a8a,
+            destination_location: Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+            current_location: Some(
+                Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            ),
+            passed_stops: 0,
+            bus_schedule: [],
+            archived_stop_list: [],
+            next_bus_num: None,
+        },
+        Passenger {
+            id: afc7c2f8-b5e1-4401-996e-ca22b26069d3,
+            destination_location: Location {
+                index: 1,
+                id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+            },
+            current_location: Some(
+                Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            ),
+            passed_stops: 0,
+            bus_schedule: [],
+            archived_stop_list: [],
+            next_bus_num: None,
+        },
+        Passenger {
+            id: 108bdeee-818d-4f0b-b98e-47699e1d33f1,
+            destination_location: Location {
+                index: 2,
+                id: cc1ad5ba-7a26-4127-969d-d52492776375,
+            },
+            current_location: Some(
+                Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            ),
+            passed_stops: 0,
+            bus_schedule: [],
+            archived_stop_list: [],
+            next_bus_num: None,
+        },
+        Passenger {
+            id: 320f54e9-6790-4ee0-a0e3-ce59f4f9d72f,
+            destination_location: Location {
+                index: 2,
+                id: cc1ad5ba-7a26-4127-969d-d52492776375,
+            },
+            current_location: Some(
+                Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            ),
+            passed_stops: 0,
+            bus_schedule: [],
+            archived_stop_list: [],
+            next_bus_num: None,
+        },
+        Passenger {
+            id: eccf26b9-c3b4-40cc-9122-d8067d9090c9,
+            destination_location: Location {
+                index: 2,
+                id: cc1ad5ba-7a26-4127-969d-d52492776375,
+            },
+            current_location: Some(
+                Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            ),
+            passed_stops: 0,
+            bus_schedule: [],
+            archived_stop_list: [],
+            next_bus_num: None,
+        },
+    ],
+)
+Station 4 Thread ID: ThreadId(6) Station: 4 Message: [
+    Passenger {
+        id: cbd53e6a-c064-4f27-a79d-3ac798303a8a,
+        destination_location: Location {
+            index: 3,
+            id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+        },
+        current_location: Some(
+            Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [],
+        archived_stop_list: [],
+        next_bus_num: None,
+    },
+    Passenger {
+        id: afc7c2f8-b5e1-4401-996e-ca22b26069d3,
+        destination_location: Location {
+            index: 1,
+            id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+        },
+        current_location: Some(
+            Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [],
+        archived_stop_list: [],
+        next_bus_num: None,
+    },
+    Passenger {
+        id: 108bdeee-818d-4f0b-b98e-47699e1d33f1,
+        destination_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+        current_location: Some(
+            Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [],
+        archived_stop_list: [],
+        next_bus_num: None,
+    },
+    Passenger {
+        id: 320f54e9-6790-4ee0-a0e3-ce59f4f9d72f,
+        destination_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+        current_location: Some(
+            Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [],
+        archived_stop_list: [],
+        next_bus_num: None,
+    },
+    Passenger {
+        id: eccf26b9-c3b4-40cc-9122-d8067d9090c9,
+        destination_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+        current_location: Some(
+            Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [],
+        archived_stop_list: [],
+        next_bus_num: None,
+    },
+]
+Station 4 Thread ID: ThreadId(6)List: [Passenger { id: cbd53e6a-c064-4f27-a79d-3ac798303a8a, destination_location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 }, current_location: Some(Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }), passed_stops: 0, bus_schedule: [], archived_stop_list: [], next_bus_num: None }, Passenger { id: afc7c2f8-b5e1-4401-996e-ca22b26069d3, destination_location: Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 }, current_location: Some(Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }), passed_stops: 0, bus_schedule: [], archived_stop_list: [], next_bus_num: None }, Passenger { id: 108bdeee-818d-4f0b-b98e-47699e1d33f1, destination_location: Location { index: 2, id: cc1ad5ba-7a26-4127-969d-d52492776375 }, current_location: Some(Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }), passed_stops: 0, bus_schedule: [], archived_stop_list: [], next_bus_num: None }, Passenger { id: 320f54e9-6790-4ee0-a0e3-ce59f4f9d72f, destination_location: Location { index: 2, id: cc1ad5ba-7a26-4127-969d-d52492776375 }, current_location: Some(Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }), passed_stops: 0, bus_schedule: [], archived_stop_list: [], next_bus_num: None }, Passenger { id: eccf26b9-c3b4-40cc-9122-d8067d9090c9, destination_location: Location { index: 2, id: cc1ad5ba-7a26-4127-969d-d52492776375 }, current_location: Some(Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }), passed_stops: 0, bus_schedule: [], archived_stop_list: [], next_bus_num: None }]
+Station 4 Thread ID: ThreadId(6) Passengers attempting to  be added to station 4
+Bus 2 Initialized
+Processed received: 0
+Bus Status Vector: [WaitingForTimeStep, Uninitialized, WaitingForTimeStep]
+Number of buses not finished: 3
+Passenger Init Confirmed from Station 2
+Station 1 Thread ID: ThreadId(3)total passenger_count: 0
+Bus passengers already initialized
+Passenger Init Confirmed from Station 1
+Station 0 Thread ID: ThreadId(2)Passenger Passenger { id: 17001e20-45c2-4682-a278-e36472c20181, destination_location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 }, current_location: Some(Location { index: 0, id: 21eaac51-b4e9-4338-99f0-869fe2e31d55 }), passed_stops: 0, bus_schedule: [], archived_stop_list: [], next_bus_num: None } had no valid routes
+Station 0 Thread ID: ThreadId(2) Passengers attempting to  be added to station 0
+There are 0 finished buses.
+Bus Route Vector at end of Main Loop: [WaitingForTimeStep, Uninitialized, WaitingForTimeStep]
+End of route sync loop. Line 713.
+Beginning of route sync loop
+Station 3 first message received: InitPassengerList(
+    [
+        Passenger {
+            id: aadb64ae-7a51-406f-a3f8-f46cdcbd220c,
+            destination_location: Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+            current_location: Some(
+                Location {
+                    index: 3,
+                    id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+                },
+            ),
+            passed_stops: 0,
+            bus_schedule: [],
+            archived_stop_list: [],
+            next_bus_num: None,
+        },
+        Passenger {
+            id: 8bacdc36-ed7e-47a2-9a23-d5b61a186079,
+            destination_location: Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+            current_location: Some(
+                Location {
+                    index: 3,
+                    id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+                },
+            ),
+            passed_stops: 0,
+            bus_schedule: [],
+            archived_stop_list: [],
+            next_bus_num: None,
+        },
+        Passenger {
+            id: 4d6742aa-f1d8-414b-be46-b5d713f77420,
+            destination_location: Location {
+                index: 1,
+                id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+            },
+            current_location: Some(
+                Location {
+                    index: 3,
+                    id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+                },
+            ),
+            passed_stops: 0,
+            bus_schedule: [],
+            archived_stop_list: [],
+            next_bus_num: None,
+        },
+    ],
+)
+Station 3 Thread ID: ThreadId(5) Station: 3 Message: [
+    Passenger {
+        id: aadb64ae-7a51-406f-a3f8-f46cdcbd220c,
+        destination_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+        current_location: Some(
+            Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [],
+        archived_stop_list: [],
+        next_bus_num: None,
+    },
+    Passenger {
+        id: 8bacdc36-ed7e-47a2-9a23-d5b61a186079,
+        destination_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+        current_location: Some(
+            Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [],
+        archived_stop_list: [],
+        next_bus_num: None,
+    },
+    Passenger {
+        id: 4d6742aa-f1d8-414b-be46-b5d713f77420,
+        destination_location: Location {
+            index: 1,
+            id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+        },
+        current_location: Some(
+            Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [],
+        archived_stop_list: [],
+        next_bus_num: None,
+    },
+]
+Station 3 Thread ID: ThreadId(5)List: [Passenger { id: aadb64ae-7a51-406f-a3f8-f46cdcbd220c, destination_location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }, current_location: Some(Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 }), passed_stops: 0, bus_schedule: [], archived_stop_list: [], next_bus_num: None }, Passenger { id: 8bacdc36-ed7e-47a2-9a23-d5b61a186079, destination_location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }, current_location: Some(Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 }), passed_stops: 0, bus_schedule: [], archived_stop_list: [], next_bus_num: None }, Passenger { id: 4d6742aa-f1d8-414b-be46-b5d713f77420, destination_location: Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 }, current_location: Some(Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 }), passed_stops: 0, bus_schedule: [], archived_stop_list: [], next_bus_num: None }]
+Station 3 Thread ID: ThreadId(5) Passengers attempting to  be added to station 3
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+Calculating Route from Location 0 to Location 3.
+next bus index: None
+Waiting for message from bus
+Destination list: [(1, PassengerBusLocation { location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 }, location_time_tick: 2 })]
+Bus message received: InitBus { bus_index: 1 }. 
+Bus 1 Initialized
+Processed received: 0
+Bus Status Vector: [WaitingForTimeStep, WaitingForTimeStep, WaitingForTimeStep]
+Station 0 Thread ID: ThreadId(2)Passenger Passenger { id: 7899d237-2356-4e5c-8f4c-e494b7e752e5, destination_location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 }, current_location: Some(Location { index: 0, id: 21eaac51-b4e9-4338-99f0-869fe2e31d55 }), passed_stops: 0, bus_schedule: [], archived_stop_list: [], next_bus_num: None } had no valid routes
+Station 0 Thread ID: ThreadId(2)total passenger_count: 0
+Number of buses not finished: 3
+All buses initialized in sync thread
+Calculating Route from Location 4 to Location 3.
+Passenger Init Confirmed from Station 0
+All Buses Initialized. Time tick 0 message: InitBus { bus_index: 1 }
+There are 0 finished buses.
+Bus Route Vector at end of Main Loop: [WaitingForTimeStep, WaitingForTimeStep, WaitingForTimeStep]
+End of route sync loop. Line 713.
+Bus passengers already initialized
+next bus index: None
+Destination list: [(1, PassengerBusLocation { location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 }, location_time_tick: 2 })]
+Beginning of route sync loop
+No message received. Continuing
+No message received. Continuing
+Station 4 Thread ID: ThreadId(6)Passenger Passenger { id: cbd53e6a-c064-4f27-a79d-3ac798303a8a, destination_location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 }, current_location: Some(Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }), passed_stops: 0, bus_schedule: [], archived_stop_list: [], next_bus_num: None } had no valid routes
+Station 4 Thread ID: ThreadId(6) Passengers attempting to  be added to station 4
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+Calculating Route from Location 4 to Location 1.
+next bus index: None
+Destination list: [(0, PassengerBusLocation { location: Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 }, location_time_tick: 7 }), (2, PassengerBusLocation { location: Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 }, location_time_tick: 2 }), (2, PassengerBusLocation { location: Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 }, location_time_tick: 6 })]
+Waiting for message from bus
+next bus index: Some(0)
+Destination list: []
+Thread ID: ThreadId(6)New Bus Schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: Some(
+            2,
+        ),
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 6,
+        bus_num: None,
+        stop_location: Location {
+            index: 1,
+            id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+        },
+    },
+]
+Thread ID: ThreadId(6) Passengers added.
+Thread ID: ThreadId(6)New Bus Schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: Some(
+            2,
+        ),
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 6,
+        bus_num: None,
+        stop_location: Location {
+            index: 1,
+            id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+        },
+    },
+]
+Thread ID: ThreadId(6) Passengers added.
+Station 4 Thread ID: ThreadId(6) Passengers attempting to  be added to station 4
+Calculating Route from Location 4 to Location 2.
+next bus index: None
+Destination list: [(1, PassengerBusLocation { location: Location { index: 2, id: cc1ad5ba-7a26-4127-969d-d52492776375 }, location_time_tick: 6 })]
+next bus index: Some(1)
+Destination list: []
+Thread ID: ThreadId(6)New Bus Schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: Some(
+            1,
+        ),
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 6,
+        bus_num: None,
+        stop_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+    },
+]
+Thread ID: ThreadId(6) Passengers added.
+Thread ID: ThreadId(6)New Bus Schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: Some(
+            1,
+        ),
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 6,
+        bus_num: None,
+        stop_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+    },
+]
+Thread ID: ThreadId(6) Passengers added.
+Station 4 Thread ID: ThreadId(6) Passengers attempting to  be added to station 4
+Calculating Route from Location 4 to Location 2.
+next bus index: None
+Destination list: [(1, PassengerBusLocation { location: Location { index: 2, id: cc1ad5ba-7a26-4127-969d-d52492776375 }, location_time_tick: 6 })]
+next bus index: Some(1)
+Destination list: []
+Thread ID: ThreadId(6)New Bus Schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: Some(
+            1,
+        ),
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 6,
+        bus_num: None,
+        stop_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+    },
+]
+Thread ID: ThreadId(6) Passengers added.
+Thread ID: ThreadId(6)New Bus Schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: Some(
+            1,
+        ),
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 6,
+        bus_num: None,
+        stop_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+    },
+]
+Thread ID: ThreadId(6) Passengers added.
+Station 4 Thread ID: ThreadId(6) Passengers attempting to  be added to station 4
+Calculating Route from Location 4 to Location 2.
+next bus index: None
+Destination list: [(1, PassengerBusLocation { location: Location { index: 2, id: cc1ad5ba-7a26-4127-969d-d52492776375 }, location_time_tick: 6 })]
+next bus index: Some(1)
+Destination list: []
+Thread ID: ThreadId(6)New Bus Schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: Some(
+            1,
+        ),
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 6,
+        bus_num: None,
+        stop_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+    },
+]
+Thread ID: ThreadId(6) Passengers added.
+Thread ID: ThreadId(6)New Bus Schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: Some(
+            1,
+        ),
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 6,
+        bus_num: None,
+        stop_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+    },
+]
+Thread ID: ThreadId(6) Passengers added.
+Station 4 Thread ID: ThreadId(6)total passenger_count: 4
+Bus passengers already initialized
+Passenger Init Confirmed from Station 4
+Calculating Route from Location 3 to Location 4.
+next bus index: None
+Destination list: [(0, PassengerBusLocation { location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }, location_time_tick: 3 }), (1, PassengerBusLocation { location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }, location_time_tick: 4 }), (2, PassengerBusLocation { location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }, location_time_tick: 4 })]
+next bus index: Some(2)
+Destination list: []
+Thread ID: ThreadId(5)New Bus Schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 2,
+        bus_num: Some(
+            1,
+        ),
+        stop_location: Location {
+            index: 3,
+            id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: None,
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+]
+Thread ID: ThreadId(5) Passengers added.
+Thread ID: ThreadId(5)New Bus Schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 2,
+        bus_num: Some(
+            1,
+        ),
+        stop_location: Location {
+            index: 3,
+            id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: None,
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+]
+Thread ID: ThreadId(5) Passengers added.
+Station 3 Thread ID: ThreadId(5) Passengers attempting to  be added to station 3
+Calculating Route from Location 3 to Location 4.
+next bus index: None
+Destination list: [(0, PassengerBusLocation { location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }, location_time_tick: 3 }), (1, PassengerBusLocation { location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }, location_time_tick: 4 }), (2, PassengerBusLocation { location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }, location_time_tick: 4 })]
+next bus index: Some(2)
+Destination list: []
+Thread ID: ThreadId(5)New Bus Schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 2,
+        bus_num: Some(
+            1,
+        ),
+        stop_location: Location {
+            index: 3,
+            id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: None,
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+]
+Thread ID: ThreadId(5) Passengers added.
+Thread ID: ThreadId(5)New Bus Schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 2,
+        bus_num: Some(
+            1,
+        ),
+        stop_location: Location {
+            index: 3,
+            id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: None,
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+]
+Thread ID: ThreadId(5) Passengers added.
+Station 3 Thread ID: ThreadId(5) Passengers attempting to  be added to station 3
+Calculating Route from Location 3 to Location 1.
+next bus index: None
+Destination list: [(0, PassengerBusLocation { location: Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 }, location_time_tick: 7 }), (2, PassengerBusLocation { location: Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 }, location_time_tick: 2 }), (2, PassengerBusLocation { location: Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 }, location_time_tick: 6 })]
+next bus index: Some(0)
+Destination list: []
+next bus index: Some(0)
+Destination list: []
+next bus index: Some(2)
+Destination list: [(0, PassengerBusLocation { location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }, location_time_tick: 3 }), (1, PassengerBusLocation { location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }, location_time_tick: 4 })]
+Thread ID: ThreadId(5)New Bus Schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 2,
+        bus_num: Some(
+            1,
+        ),
+        stop_location: Location {
+            index: 3,
+            id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: Some(
+            2,
+        ),
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 6,
+        bus_num: None,
+        stop_location: Location {
+            index: 1,
+            id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+        },
+    },
+]
+Thread ID: ThreadId(5) Passengers added.
+Thread ID: ThreadId(5)New Bus Schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 2,
+        bus_num: Some(
+            1,
+        ),
+        stop_location: Location {
+            index: 3,
+            id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: Some(
+            2,
+        ),
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 6,
+        bus_num: None,
+        stop_location: Location {
+            index: 1,
+            id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+        },
+    },
+]
+Thread ID: ThreadId(5) Passengers added.
+Station 3 Thread ID: ThreadId(5)total passenger_count: 3
+Bus passengers already initialized
+Passenger Init Confirmed from Station 3
+End of Tick one passenger calculations
+Passengers init message sent
+Bus message received: InitPassengers. 
+Passengers initialized
+Passengers initialized
+Processed received: 0
+Bus Status Vector: [WaitingForTimeStep, WaitingForTimeStep, WaitingForTimeStep]
+Number of buses not finished: 3
+All buses initialized in sync thread
+---------- All buses are finished at their stops -----------
+Time step incremented from src/main_loop.rs:665:17
+All Buses Initialized. Time tick 0 message: InitPassengers
+There are 0 finished buses.
+Bus Route Vector at end of Main Loop: [WaitingForTimeStep, WaitingForTimeStep, WaitingForTimeStep]
+End of route sync loop. Line 713.
+Beginning of route sync loop
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+Bus thread Time tick incremented. Time tick: TimeTick { number: 1, stage: BusUnloadingPassengers }
+Bus 2 update function current time tick: TimeTick { number: 1, stage: BusUnloadingPassengers }
+Bus movement: Moving(1)
+No message received. Continuing
+No message received. Continuing
+Waiting for message from bus
+Bus thread Time tick incremented. Time tick: TimeTick { number: 1, stage: BusUnloadingPassengers }
+Bus 1 update function current time tick: TimeTick { number: 1, stage: BusUnloadingPassengers }
+Bus movement: Moving(1)
+Moving bus update
+Bus 1, will stop at next time tick
+Bus thread Time tick incremented. Time tick: TimeTick { number: 1, stage: BusUnloadingPassengers }
+Bus 0 update function current time tick: TimeTick { number: 1, stage: BusUnloadingPassengers }
+Bus message received: AdvanceTimeStepForMovingBus { bus_index: 1 }. 
+Sync thread received message from Bus 1 for moving bus
+Moving bus update
+Bus movement: Moving(2)
+Bus 1 sent message to sync thread for moving bus
+Beginning of Bus loop. Bus num: 1
+Processed received: 0
+Bus Status Vector: [WaitingForTimeStep, Moving, WaitingForTimeStep]
+Number of buses not finished: 3
+There are 0 finished buses.
+Moving bus update
+Bus 0 distance to next stop: 2
+Bus 0 sent message to sync thread for moving bus
+Bus 2, will stop at next time tick
+Bus 2 sent message to sync thread for moving bus
+Beginning of Bus loop. Bus num: 2
+Bus Route Vector at end of Main Loop: [WaitingForTimeStep, Moving, WaitingForTimeStep]
+End of route sync loop. Line 713.
+Beginning of route sync loop
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+Beginning of Bus loop. Bus num: 0
+Waiting for message from bus
+Bus message received: AdvanceTimeStepForMovingBus { bus_index: 0 }. 
+Sync thread received message from Bus 0 for moving bus
+Processed received: 0
+Bus Status Vector: [Moving, Moving, WaitingForTimeStep]
+Number of buses not finished: 3
+There are 0 finished buses.
+Bus Route Vector at end of Main Loop: [Moving, Moving, WaitingForTimeStep]
+End of route sync loop. Line 713.
+Beginning of route sync loop
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+Waiting for message from bus
+Bus message received: AdvanceTimeStepForMovingBus { bus_index: 2 }. 
+Sync thread received message from Bus 2 for moving bus
+Processed received: 0
+Bus Status Vector: [Moving, Moving, Moving]
+Number of buses not finished: 3
+There are 0 finished buses.
+Finished Timestep TimeTick { number: 1, stage: BusUnloadingPassengers }. Bus Status Vector: [Moving, Moving, Moving]
+---------- All buses are finished at their stops -----------
+Time step incremented from src/main_loop.rs:753:13
+Additional increment time tick for bus moving stage
+Time tick number incremented from 1
+Bus Route Vector at end of Main Loop: [WaitingForTimeStep, WaitingForTimeStep, WaitingForTimeStep]
+End of route sync loop. Line 713.
+Beginning of route sync loop
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+Bus thread Time tick incremented. Time tick: TimeTick { number: 2, stage: BusUnloadingPassengers }
+Bus 1 update function current time tick: TimeTick { number: 2, stage: BusUnloadingPassengers }
+Bus movement: Stopped
+Waiting for message from bus
+Bus thread Time tick incremented. Time tick: TimeTick { number: 2, stage: BusUnloadingPassengers }
+Bus 2 update function current time tick: TimeTick { number: 2, stage: BusUnloadingPassengers }
+Bus movement: Stopped
+Bus 2 Outgoing Passengers: []
+Bus 2 Remaining Passengers: []
+New Passengers list for Bus 2: []
+Bus 2 sending Passengers: []
+Bus 2 arrived at station 1. Sent message
+Waiting for station messages
+Bus thread Time tick incremented. Time tick: TimeTick { number: 2, stage: BusUnloadingPassengers }
+Bus 0 update function current time tick: TimeTick { number: 2, stage: BusUnloadingPassengers }
+Bus movement: Moving(1)
+Moving bus update
+Bus 0, will stop at next time tick
+Bus 1 Outgoing Passengers: []
+Bus message received: AdvanceTimeStepForMovingBus { bus_index: 0 }. 
+Sync thread received message from Bus 0 for moving bus
+Bus 1 Remaining Passengers: []
+Bus 0 sent message to sync thread for moving bus
+Processed received: 0
+Bus Status Vector: [Moving, WaitingForTimeStep, WaitingForTimeStep]
+New Passengers list for Bus 1: []
+Bus 1 sending Passengers: []
+Beginning of Bus loop. Bus num: 0
+Bus 1 arrived at station 3. Sent message
+Waiting for station messages
+Number of buses not finished: 3
+There are 0 finished buses.
+Bus Route Vector at end of Main Loop: [Moving, WaitingForTimeStep, WaitingForTimeStep]
+End of route sync loop. Line 713.
+Beginning of route sync loop
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+Waiting for message from bus
+Station 2 Thread ID: ThreadId(4) New Time Step: TimeTick { number: 1, stage: BusUnloadingPassengers }
+Thread ID: ThreadId(4)Old Time Step: TimeTick { number: 0, stage: PassengerInit }
+Station 2 Thread ID: ThreadId(4) New Time Step: TimeTick { number: 2, stage: BusUnloadingPassengers }
+Thread ID: ThreadId(4)Old Time Step: TimeTick { number: 1, stage: BusUnloadingPassengers }
+Station 1 Thread ID: ThreadId(3) New Time Step: TimeTick { number: 1, stage: BusUnloadingPassengers }
+Thread ID: ThreadId(3)Old Time Step: TimeTick { number: 0, stage: PassengerInit }
+Station 1 received message BusArrived { passengers_onboarding: [], bus_info: SendableBus { capacity_remaining: 10, bus_index: 2 } } on BusUnloadingPassengers stage received on time tick TimeTick { number: 1, stage: BusUnloadingPassengers }
+station 1 received message received on BusUnloadingPassengers stage
+Bus Arrived Message received in station 1 from bus 2
+Passengers Onboarding from bus 2: []
+Bus 2 arrived at station 1. Received from station
+Station 1 finished unloading bus 2 and sent message
+Station 1 Thread ID: ThreadId(3) New Time Step: TimeTick { number: 2, stage: BusUnloadingPassengers }
+Thread ID: ThreadId(3)Old Time Step: TimeTick { number: 1, stage: BusUnloadingPassengers }
+Bus 2 unloading message received in bus from station
+Waiting for station messages
+Bus message received: AdvanceTimeStepForUnloadedBus { bus_index: 2 }. 
+Processed received: 0
+Bus Status Vector: [Moving, WaitingForTimeStep, FinishedUnloadingPassengers]
+Number of buses not finished: 3
+There are 0 finished buses.
+Bus Route Vector at end of Main Loop: [Moving, WaitingForTimeStep, FinishedUnloadingPassengers]
+End of route sync loop. Line 713.
+Beginning of route sync loop
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+Waiting for message from bus
+Station 0 Thread ID: ThreadId(2) New Time Step: TimeTick { number: 1, stage: BusUnloadingPassengers }
+Thread ID: ThreadId(2)Old Time Step: TimeTick { number: 0, stage: PassengerInit }
+Station 0 Thread ID: ThreadId(2) New Time Step: TimeTick { number: 2, stage: BusUnloadingPassengers }
+Thread ID: ThreadId(2)Old Time Step: TimeTick { number: 1, stage: BusUnloadingPassengers }
+Station 4 Thread ID: ThreadId(6) New Time Step: TimeTick { number: 1, stage: BusUnloadingPassengers }
+Thread ID: ThreadId(6)Old Time Step: TimeTick { number: 0, stage: PassengerInit }
+Station 4 Thread ID: ThreadId(6) New Time Step: TimeTick { number: 2, stage: BusUnloadingPassengers }
+Thread ID: ThreadId(6)Old Time Step: TimeTick { number: 1, stage: BusUnloadingPassengers }
+Station 3 Thread ID: ThreadId(5) New Time Step: TimeTick { number: 1, stage: BusUnloadingPassengers }
+Thread ID: ThreadId(5)Old Time Step: TimeTick { number: 0, stage: PassengerInit }
+Station 3 received message BusArrived { passengers_onboarding: [], bus_info: SendableBus { capacity_remaining: 10, bus_index: 1 } } on BusUnloadingPassengers stage received on time tick TimeTick { number: 1, stage: BusUnloadingPassengers }
+station 3 received message received on BusUnloadingPassengers stage
+Bus Arrived Message received in station 3 from bus 1
+Passengers Onboarding from bus 1: []
+Bus 1 arrived at station 3. Received from station
+Station 3 finished unloading bus 1 and sent message
+Station 3 Thread ID: ThreadId(5) New Time Step: TimeTick { number: 2, stage: BusUnloadingPassengers }
+Thread ID: ThreadId(5)Old Time Step: TimeTick { number: 1, stage: BusUnloadingPassengers }
+Bus 1 unloading message received in bus from station
+Waiting for station messages
+Bus message received: AdvanceTimeStepForUnloadedBus { bus_index: 1 }. 
+Processed received: 0
+Bus Status Vector: [Moving, FinishedUnloadingPassengers, FinishedUnloadingPassengers]
+Number of buses not finished: 3
+There are 0 finished buses.
+Finished Timestep TimeTick { number: 2, stage: BusUnloadingPassengers }. Bus Status Vector: [Moving, FinishedUnloadingPassengers, FinishedUnloadingPassengers]
+---------- All buses are finished at their stops -----------
+Time step incremented from src/main_loop.rs:753:13
+Station 0 Thread ID: ThreadId(2) New Time Step: TimeTick { number: 2, stage: BusLoadingPassengers }
+Station 1 Thread ID: ThreadId(3) New Time Step: TimeTick { number: 2, stage: BusLoadingPassengers }
+Thread ID: ThreadId(3)Old Time Step: TimeTick { number: 2, stage: BusUnloadingPassengers }
+Station 3 Thread ID: ThreadId(5) New Time Step: TimeTick { number: 2, stage: BusLoadingPassengers }
+Thread ID: ThreadId(5)Old Time Step: TimeTick { number: 2, stage: BusUnloadingPassengers }
+BusLoadingPassengers timetick beginning. Timetick: 2
+Is first iteration: None. Station: 3. Time tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Station 4 Thread ID: ThreadId(6) New Time Step: TimeTick { number: 2, stage: BusLoadingPassengers }
+Thread ID: ThreadId(6)Old Time Step: TimeTick { number: 2, stage: BusUnloadingPassengers }
+BusLoadingPassengers timetick beginning. Timetick: 2
+Is first iteration: None. Station: 4. Time tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Array with locations for station 4: Map { iter: Iter([]) }
+Thread ID: ThreadId(2)Old Time Step: TimeTick { number: 2, stage: BusUnloadingPassengers }
+BusLoadingPassengers timetick beginning. Timetick: 2
+Is first iteration: None. Station: 0. Time tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Array with locations for station 0: Map { iter: Iter([]) }
+Bus Route Vector at end of Main Loop: [WaitingForTimeStep, FinishedUnloadingPassengers, FinishedUnloadingPassengers]
+End of route sync loop. Line 713.
+Beginning of route sync loop
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+BusLoadingPassengers timetick beginning. Timetick: 2
+Is first iteration: None. Station: 1. Time tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Array with locations for station 1: Map { iter: Iter([SendableBus { capacity_remaining: 10, bus_index: 2 }]) }
+Station 1 next vec: Some((2, []))
+Array with locations for station 3: Map { iter: Iter([SendableBus { capacity_remaining: 10, bus_index: 1 }]) }
+Station 3 next vec: Some((1, []))
+station 3 next passengers for buses array: [None, Some([]), None]
+Station 3 Passengers: [
+    Passenger {
+        id: aadb64ae-7a51-406f-a3f8-f46cdcbd220c,
+        destination_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+        current_location: Some(
+            Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [
+            PassengerOnboardingBusSchedule {
+                time_tick: 2,
+                bus_num: Some(
+                    1,
+                ),
+                stop_location: Location {
+                    index: 3,
+                    id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+                },
+            },
+            PassengerOnboardingBusSchedule {
+                time_tick: 4,
+                bus_num: None,
+                stop_location: Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            },
+        ],
+        archived_stop_list: [],
+        next_bus_num: Some(
+            1,
+        ),
+    },
+    Passenger {
+        id: 8bacdc36-ed7e-47a2-9a23-d5b61a186079,
+        destination_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+        current_location: Some(
+            Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [
+            PassengerOnboardingBusSchedule {
+                time_tick: 2,
+                bus_num: Some(
+                    1,
+                ),
+                stop_location: Location {
+                    index: 3,
+                    id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+                },
+            },
+            PassengerOnboardingBusSchedule {
+                time_tick: 4,
+                bus_num: None,
+                stop_location: Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            },
+        ],
+        archived_stop_list: [],
+        next_bus_num: Some(
+            1,
+        ),
+    },
+    Passenger {
+        id: 4d6742aa-f1d8-414b-be46-b5d713f77420,
+        destination_location: Location {
+            index: 1,
+            id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+        },
+        current_location: Some(
+            Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [
+            PassengerOnboardingBusSchedule {
+                time_tick: 2,
+                bus_num: Some(
+                    1,
+                ),
+                stop_location: Location {
+                    index: 3,
+                    id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+                },
+            },
+            PassengerOnboardingBusSchedule {
+                time_tick: 4,
+                bus_num: Some(
+                    2,
+                ),
+                stop_location: Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            },
+            PassengerOnboardingBusSchedule {
+                time_tick: 6,
+                bus_num: None,
+                stop_location: Location {
+                    index: 1,
+                    id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+                },
+            },
+        ],
+        archived_stop_list: [],
+        next_bus_num: Some(
+            1,
+        ),
+    },
+]
+Station 3 Thread ID: ThreadId(5)Passenger schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 2,
+        bus_num: Some(
+            1,
+        ),
+        stop_location: Location {
+            index: 3,
+            id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: None,
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+]
+Station 3 Thread ID: ThreadId(5)Passenger, Passenger {
+    id: aadb64ae-7a51-406f-a3f8-f46cdcbd220c,
+    destination_location: Location {
+        index: 4,
+        id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+    },
+    current_location: Some(
+        Location {
+            index: 3,
+            id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+        },
+    ),
+    passed_stops: 0,
+    bus_schedule: [
+        PassengerOnboardingBusSchedule {
+            time_tick: 2,
+            bus_num: Some(
+                1,
+            ),
+            stop_location: Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+        },
+        PassengerOnboardingBusSchedule {
+            time_tick: 4,
+            bus_num: None,
+            stop_location: Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+        },
+    ],
+    archived_stop_list: [],
+    next_bus_num: Some(
+        1,
+    ),
+}
+Station 3 Thread ID: ThreadId(5)Current location number: 3
+Station 3 Thread ID: ThreadId(5)Next location Some(
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: None,
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+)
+No message received. Continuing
+No message received. Continuing
+Waiting for message from bus
+Bus thread Time tick incremented. Time tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Bus 0 update function current time tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Bus movement: Stopped
+Station 4 next vec: None
+station 4 next passengers for buses array: [None, None, None]
+Station 2 Thread ID: ThreadId(4) New Time Step: TimeTick { number: 2, stage: BusLoadingPassengers }
+Thread ID: ThreadId(4)Old Time Step: TimeTick { number: 2, stage: BusUnloadingPassengers }
+BusLoadingPassengers timetick beginning. Timetick: 2
+Is first iteration: None. Station: 2. Time tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Array with locations for station 2: Map { iter: Iter([]) }
+Station 3 Thread ID: ThreadId(5)Time tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Station 3 Thread ID: ThreadId(5)Passenger schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 2,
+        bus_num: Some(
+            1,
+        ),
+        stop_location: Location {
+            index: 3,
+            id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: None,
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+]
+Station 3 Thread ID: ThreadId(5)Passenger, Passenger {
+    id: 8bacdc36-ed7e-47a2-9a23-d5b61a186079,
+    destination_location: Location {
+        index: 4,
+        id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+    },
+    current_location: Some(
+        Location {
+            index: 3,
+            id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+        },
+    ),
+    passed_stops: 0,
+    bus_schedule: [
+        PassengerOnboardingBusSchedule {
+            time_tick: 2,
+            bus_num: Some(
+                1,
+            ),
+            stop_location: Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+        },
+        PassengerOnboardingBusSchedule {
+            time_tick: 4,
+            bus_num: None,
+            stop_location: Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+        },
+    ],
+    archived_stop_list: [],
+    next_bus_num: Some(
+        1,
+    ),
+}
+Station 3 Thread ID: ThreadId(5)Current location number: 3
+Station 3 Thread ID: ThreadId(5)Next location Some(
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: None,
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+)
+Station 3 Thread ID: ThreadId(5)Time tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Station 3 Thread ID: ThreadId(5)Passenger schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 2,
+        bus_num: Some(
+            1,
+        ),
+        stop_location: Location {
+            index: 3,
+            id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: Some(
+            2,
+        ),
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 6,
+        bus_num: None,
+        stop_location: Location {
+            index: 1,
+            id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+        },
+    },
+]
+Station 3 Thread ID: ThreadId(5)Passenger, Passenger {
+    id: 4d6742aa-f1d8-414b-be46-b5d713f77420,
+    destination_location: Location {
+        index: 1,
+        id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+    },
+    current_location: Some(
+        Location {
+            index: 3,
+            id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+        },
+    ),
+    passed_stops: 0,
+    bus_schedule: [
+        PassengerOnboardingBusSchedule {
+            time_tick: 2,
+            bus_num: Some(
+                1,
+            ),
+            stop_location: Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+        },
+        PassengerOnboardingBusSchedule {
+            time_tick: 4,
+            bus_num: Some(
+                2,
+            ),
+            stop_location: Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+        },
+        PassengerOnboardingBusSchedule {
+            time_tick: 6,
+            bus_num: None,
+            stop_location: Location {
+                index: 1,
+                id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+            },
+        },
+    ],
+    archived_stop_list: [],
+    next_bus_num: Some(
+        1,
+    ),
+}
+Station 3 Thread ID: ThreadId(5)Current location number: 3
+Station 3 Thread ID: ThreadId(5)Next location Some(
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: Some(
+            2,
+        ),
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+)
+Station 3 Thread ID: ThreadId(5)Time tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Time_tick: 2, Station 3 Arrived Passengers: []
+Station 3 Passengers for next destination: [
+    Passenger {
+        id: aadb64ae-7a51-406f-a3f8-f46cdcbd220c,
+        destination_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+        current_location: Some(
+            Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [
+            PassengerOnboardingBusSchedule {
+                time_tick: 2,
+                bus_num: Some(
+                    1,
+                ),
+                stop_location: Location {
+                    index: 3,
+                    id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+                },
+            },
+            PassengerOnboardingBusSchedule {
+                time_tick: 4,
+                bus_num: None,
+                stop_location: Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            },
+        ],
+        archived_stop_list: [],
+        next_bus_num: Some(
+            1,
+        ),
+    },
+    Passenger {
+        id: 8bacdc36-ed7e-47a2-9a23-d5b61a186079,
+        destination_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+        current_location: Some(
+            Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [
+            PassengerOnboardingBusSchedule {
+                time_tick: 2,
+                bus_num: Some(
+                    1,
+                ),
+                stop_location: Location {
+                    index: 3,
+                    id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+                },
+            },
+            PassengerOnboardingBusSchedule {
+                time_tick: 4,
+                bus_num: None,
+                stop_location: Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            },
+        ],
+        archived_stop_list: [],
+        next_bus_num: Some(
+            1,
+        ),
+    },
+    Passenger {
+        id: 4d6742aa-f1d8-414b-be46-b5d713f77420,
+        destination_location: Location {
+            index: 1,
+            id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+        },
+        current_location: Some(
+            Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [
+            PassengerOnboardingBusSchedule {
+                time_tick: 2,
+                bus_num: Some(
+                    1,
+                ),
+                stop_location: Location {
+                    index: 3,
+                    id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+                },
+            },
+            PassengerOnboardingBusSchedule {
+                time_tick: 4,
+                bus_num: Some(
+                    2,
+                ),
+                stop_location: Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            },
+            PassengerOnboardingBusSchedule {
+                time_tick: 6,
+                bus_num: None,
+                stop_location: Location {
+                    index: 1,
+                    id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+                },
+            },
+        ],
+        archived_stop_list: [],
+        next_bus_num: Some(
+            1,
+        ),
+    },
+]
+passenger_loop
+passenger_loop
+passenger_loop
+Station Bus Time tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Station: 3
+Bus 0 Outgoing Passengers: []
+Bus 0 Remaining Passengers: []
+New Passengers list for Bus 0: []
+Bus 0 sending Passengers: []
+Bus 0 arrived at station 4. Sent message
+Waiting for station messages
+Station 4 Passengers: [
+    Passenger {
+        id: afc7c2f8-b5e1-4401-996e-ca22b26069d3,
+        destination_location: Location {
+            index: 1,
+            id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+        },
+        current_location: Some(
+            Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [
+            PassengerOnboardingBusSchedule {
+                time_tick: 4,
+                bus_num: Some(
+                    2,
+                ),
+                stop_location: Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            },
+            PassengerOnboardingBusSchedule {
+                time_tick: 6,
+                bus_num: None,
+                stop_location: Location {
+                    index: 1,
+                    id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+                },
+            },
+        ],
+        archived_stop_list: [],
+        next_bus_num: Some(
+            2,
+        ),
+    },
+    Passenger {
+        id: 108bdeee-818d-4f0b-b98e-47699e1d33f1,
+        destination_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+        current_location: Some(
+            Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [
+            PassengerOnboardingBusSchedule {
+                time_tick: 4,
+                bus_num: Some(
+                    1,
+                ),
+                stop_location: Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            },
+            PassengerOnboardingBusSchedule {
+                time_tick: 6,
+                bus_num: None,
+                stop_location: Location {
+                    index: 2,
+                    id: cc1ad5ba-7a26-4127-969d-d52492776375,
+                },
+            },
+        ],
+        archived_stop_list: [],
+        next_bus_num: Some(
+            1,
+        ),
+    },
+    Passenger {
+        id: 320f54e9-6790-4ee0-a0e3-ce59f4f9d72f,
+        destination_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+        current_location: Some(
+            Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [
+            PassengerOnboardingBusSchedule {
+                time_tick: 4,
+                bus_num: Some(
+                    1,
+                ),
+                stop_location: Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            },
+            PassengerOnboardingBusSchedule {
+                time_tick: 6,
+                bus_num: None,
+                stop_location: Location {
+                    index: 2,
+                    id: cc1ad5ba-7a26-4127-969d-d52492776375,
+                },
+            },
+        ],
+        archived_stop_list: [],
+        next_bus_num: Some(
+            1,
+        ),
+    },
+    Passenger {
+        id: eccf26b9-c3b4-40cc-9122-d8067d9090c9,
+        destination_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+        current_location: Some(
+            Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [
+            PassengerOnboardingBusSchedule {
+                time_tick: 4,
+                bus_num: Some(
+                    1,
+                ),
+                stop_location: Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            },
+            PassengerOnboardingBusSchedule {
+                time_tick: 6,
+                bus_num: None,
+                stop_location: Location {
+                    index: 2,
+                    id: cc1ad5ba-7a26-4127-969d-d52492776375,
+                },
+            },
+        ],
+        archived_stop_list: [],
+        next_bus_num: Some(
+            1,
+        ),
+    },
+]
+Station 4 Thread ID: ThreadId(6)Passenger schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: Some(
+            2,
+        ),
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 6,
+        bus_num: None,
+        stop_location: Location {
+            index: 1,
+            id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+        },
+    },
+]
+Station 4 Thread ID: ThreadId(6)Passenger, Passenger {
+    id: afc7c2f8-b5e1-4401-996e-ca22b26069d3,
+    destination_location: Location {
+        index: 1,
+        id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+    },
+    current_location: Some(
+        Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    ),
+    passed_stops: 0,
+    bus_schedule: [
+        PassengerOnboardingBusSchedule {
+            time_tick: 4,
+            bus_num: Some(
+                2,
+            ),
+            stop_location: Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+        },
+        PassengerOnboardingBusSchedule {
+            time_tick: 6,
+            bus_num: None,
+            stop_location: Location {
+                index: 1,
+                id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+            },
+        },
+    ],
+    archived_stop_list: [],
+    next_bus_num: Some(
+        2,
+    ),
+}
+Station 4 Thread ID: ThreadId(6)Current location number: 4
+Station 4 Thread ID: ThreadId(6)Next location Some(
+    PassengerOnboardingBusSchedule {
+        time_tick: 6,
+        bus_num: None,
+        stop_location: Location {
+            index: 1,
+            id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+        },
+    },
+)
+Station 4 Thread ID: ThreadId(6)Time tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Station 4 Thread ID: ThreadId(6)Passenger schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: Some(
+            1,
+        ),
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 6,
+        bus_num: None,
+        stop_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+    },
+]
+Station 4 Thread ID: ThreadId(6)Passenger, Passenger {
+    id: 108bdeee-818d-4f0b-b98e-47699e1d33f1,
+    destination_location: Location {
+        index: 2,
+        id: cc1ad5ba-7a26-4127-969d-d52492776375,
+    },
+    current_location: Some(
+        Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    ),
+    passed_stops: 0,
+    bus_schedule: [
+        PassengerOnboardingBusSchedule {
+            time_tick: 4,
+            bus_num: Some(
+                1,
+            ),
+            stop_location: Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+        },
+        PassengerOnboardingBusSchedule {
+            time_tick: 6,
+            bus_num: None,
+            stop_location: Location {
+                index: 2,
+                id: cc1ad5ba-7a26-4127-969d-d52492776375,
+            },
+        },
+    ],
+    archived_stop_list: [],
+    next_bus_num: Some(
+        1,
+    ),
+}
+Station 4 Thread ID: ThreadId(6)Current location number: 4
+Station 4 Thread ID: ThreadId(6)Next location Some(
+    PassengerOnboardingBusSchedule {
+        time_tick: 6,
+        bus_num: None,
+        stop_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+    },
+)
+Station 4 Thread ID: ThreadId(6)Time tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Station 4 Thread ID: ThreadId(6)Passenger schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: Some(
+            1,
+        ),
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 6,
+        bus_num: None,
+        stop_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+    },
+]
+Station 4 Thread ID: ThreadId(6)Passenger, Passenger {
+    id: 320f54e9-6790-4ee0-a0e3-ce59f4f9d72f,
+    destination_location: Location {
+        index: 2,
+        id: cc1ad5ba-7a26-4127-969d-d52492776375,
+    },
+    current_location: Some(
+        Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    ),
+    passed_stops: 0,
+    bus_schedule: [
+        PassengerOnboardingBusSchedule {
+            time_tick: 4,
+            bus_num: Some(
+                1,
+            ),
+            stop_location: Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+        },
+        PassengerOnboardingBusSchedule {
+            time_tick: 6,
+            bus_num: None,
+            stop_location: Location {
+                index: 2,
+                id: cc1ad5ba-7a26-4127-969d-d52492776375,
+            },
+        },
+    ],
+    archived_stop_list: [],
+    next_bus_num: Some(
+        1,
+    ),
+}
+Station 4 Thread ID: ThreadId(6)Current location number: 4
+Station 4 Thread ID: ThreadId(6)Next location Some(
+    PassengerOnboardingBusSchedule {
+        time_tick: 6,
+        bus_num: None,
+        stop_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+    },
+)
+Station 4 Thread ID: ThreadId(6)Time tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Station 4 Thread ID: ThreadId(6)Passenger schedule: [
+    PassengerOnboardingBusSchedule {
+        time_tick: 4,
+        bus_num: Some(
+            1,
+        ),
+        stop_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    },
+    PassengerOnboardingBusSchedule {
+        time_tick: 6,
+        bus_num: None,
+        stop_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+    },
+]
+Station 4 Thread ID: ThreadId(6)Passenger, Passenger {
+    id: eccf26b9-c3b4-40cc-9122-d8067d9090c9,
+    destination_location: Location {
+        index: 2,
+        id: cc1ad5ba-7a26-4127-969d-d52492776375,
+    },
+    current_location: Some(
+        Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+    ),
+    passed_stops: 0,
+    bus_schedule: [
+        PassengerOnboardingBusSchedule {
+            time_tick: 4,
+            bus_num: Some(
+                1,
+            ),
+            stop_location: Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+        },
+        PassengerOnboardingBusSchedule {
+            time_tick: 6,
+            bus_num: None,
+            stop_location: Location {
+                index: 2,
+                id: cc1ad5ba-7a26-4127-969d-d52492776375,
+            },
+        },
+    ],
+    archived_stop_list: [],
+    next_bus_num: Some(
+        1,
+    ),
+}
+Station 4 Thread ID: ThreadId(6)Current location number: 4
+Station 4 Thread ID: ThreadId(6)Next location Some(
+    PassengerOnboardingBusSchedule {
+        time_tick: 6,
+        bus_num: None,
+        stop_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+    },
+)
+Station 4 Thread ID: ThreadId(6)Time tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Time_tick: 2, Station 4 Arrived Passengers: []
+Station 4 Passengers for next destination: [
+    Passenger {
+        id: afc7c2f8-b5e1-4401-996e-ca22b26069d3,
+        destination_location: Location {
+            index: 1,
+            id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+        },
+        current_location: Some(
+            Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [
+            PassengerOnboardingBusSchedule {
+                time_tick: 4,
+                bus_num: Some(
+                    2,
+                ),
+                stop_location: Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            },
+            PassengerOnboardingBusSchedule {
+                time_tick: 6,
+                bus_num: None,
+                stop_location: Location {
+                    index: 1,
+                    id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+                },
+            },
+        ],
+        archived_stop_list: [],
+        next_bus_num: Some(
+            2,
+        ),
+    },
+    Passenger {
+        id: 108bdeee-818d-4f0b-b98e-47699e1d33f1,
+        destination_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+        current_location: Some(
+            Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [
+            PassengerOnboardingBusSchedule {
+                time_tick: 4,
+                bus_num: Some(
+                    1,
+                ),
+                stop_location: Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            },
+            PassengerOnboardingBusSchedule {
+                time_tick: 6,
+                bus_num: None,
+                stop_location: Location {
+                    index: 2,
+                    id: cc1ad5ba-7a26-4127-969d-d52492776375,
+                },
+            },
+        ],
+        archived_stop_list: [],
+        next_bus_num: Some(
+            1,
+        ),
+    },
+    Passenger {
+        id: 320f54e9-6790-4ee0-a0e3-ce59f4f9d72f,
+        destination_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+        current_location: Some(
+            Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [
+            PassengerOnboardingBusSchedule {
+                time_tick: 4,
+                bus_num: Some(
+                    1,
+                ),
+                stop_location: Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            },
+            PassengerOnboardingBusSchedule {
+                time_tick: 6,
+                bus_num: None,
+                stop_location: Location {
+                    index: 2,
+                    id: cc1ad5ba-7a26-4127-969d-d52492776375,
+                },
+            },
+        ],
+        archived_stop_list: [],
+        next_bus_num: Some(
+            1,
+        ),
+    },
+    Passenger {
+        id: eccf26b9-c3b4-40cc-9122-d8067d9090c9,
+        destination_location: Location {
+            index: 2,
+            id: cc1ad5ba-7a26-4127-969d-d52492776375,
+        },
+        current_location: Some(
+            Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [
+            PassengerOnboardingBusSchedule {
+                time_tick: 4,
+                bus_num: Some(
+                    1,
+                ),
+                stop_location: Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            },
+            PassengerOnboardingBusSchedule {
+                time_tick: 6,
+                bus_num: None,
+                stop_location: Location {
+                    index: 2,
+                    id: cc1ad5ba-7a26-4127-969d-d52492776375,
+                },
+            },
+        ],
+        archived_stop_list: [],
+        next_bus_num: Some(
+            1,
+        ),
+    },
+]
+passenger_loop
+passenger_loop
+passenger_loop
+passenger_loop
+Time tick when buses are dismissed: TimeTick { number: 2, stage: BusLoadingPassengers }
+Departure message sent
+station 1 next passengers for buses array: [None, None, Some([])]
+Station 1 Passengers: []
+Time_tick: 2, Station 1 Arrived Passengers: []
+Station 1 Passengers for next destination: []
+Station Bus Time tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Station: 1
+Bus: 2
+Next passengers for buses, [None, None, Some([])]. Bus index: 2
+Passengers to send from station 1: []
+Station 0 next vec: None
+station 0 next passengers for buses array: [None, None, None]
+Station 0 Passengers: []
+Bus: 1
+Next passengers for buses, [None, Some([Passenger { id: aadb64ae-7a51-406f-a3f8-f46cdcbd220c, destination_location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }, current_location: Some(Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 }), passed_stops: 0, bus_schedule: [PassengerOnboardingBusSchedule { time_tick: 2, bus_num: Some(1), stop_location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 } }, PassengerOnboardingBusSchedule { time_tick: 4, bus_num: None, stop_location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 } }], archived_stop_list: [], next_bus_num: Some(1) }, Passenger { id: 8bacdc36-ed7e-47a2-9a23-d5b61a186079, destination_location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 }, current_location: Some(Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 }), passed_stops: 0, bus_schedule: [PassengerOnboardingBusSchedule { time_tick: 2, bus_num: Some(1), stop_location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 } }, PassengerOnboardingBusSchedule { time_tick: 4, bus_num: None, stop_location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 } }], archived_stop_list: [], next_bus_num: Some(1) }, Passenger { id: 4d6742aa-f1d8-414b-be46-b5d713f77420, destination_location: Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 }, current_location: Some(Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 }), passed_stops: 0, bus_schedule: [PassengerOnboardingBusSchedule { time_tick: 2, bus_num: Some(1), stop_location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 } }, PassengerOnboardingBusSchedule { time_tick: 4, bus_num: Some(2), stop_location: Location { index: 4, id: 350abfe3-49e0-4019-8507-a376cb602ff7 } }, PassengerOnboardingBusSchedule { time_tick: 6, bus_num: None, stop_location: Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 } }], archived_stop_list: [], next_bus_num: Some(1) }]), None]. Bus index: 1
+Current bus route list dropped
+Pre-bus departure
+Time tick when buses are dismissed: TimeTick { number: 2, stage: BusLoadingPassengers }
+Request departure from station 1 for bus 2 on timetick TimeTick { number: 2, stage: BusLoadingPassengers } on thread ThreadId(3)
+Departure message sent
+Station 2 next vec: None
+station 2 next passengers for buses array: [None, None, None]
+Station 2 Passengers: []
+Passengers to send from station 3: [
+    Passenger {
+        id: aadb64ae-7a51-406f-a3f8-f46cdcbd220c,
+        destination_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+        current_location: Some(
+            Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [
+            PassengerOnboardingBusSchedule {
+                time_tick: 2,
+                bus_num: Some(
+                    1,
+                ),
+                stop_location: Location {
+                    index: 3,
+                    id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+                },
+            },
+            PassengerOnboardingBusSchedule {
+                time_tick: 4,
+                bus_num: None,
+                stop_location: Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            },
+        ],
+        archived_stop_list: [],
+        next_bus_num: Some(
+            1,
+        ),
+    },
+    Passenger {
+        id: 8bacdc36-ed7e-47a2-9a23-d5b61a186079,
+        destination_location: Location {
+            index: 4,
+            id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+        },
+        current_location: Some(
+            Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [
+            PassengerOnboardingBusSchedule {
+                time_tick: 2,
+                bus_num: Some(
+                    1,
+                ),
+                stop_location: Location {
+                    index: 3,
+                    id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+                },
+            },
+            PassengerOnboardingBusSchedule {
+                time_tick: 4,
+                bus_num: None,
+                stop_location: Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            },
+        ],
+        archived_stop_list: [],
+        next_bus_num: Some(
+            1,
+        ),
+    },
+    Passenger {
+        id: 4d6742aa-f1d8-414b-be46-b5d713f77420,
+        destination_location: Location {
+            index: 1,
+            id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+        },
+        current_location: Some(
+            Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+        ),
+        passed_stops: 0,
+        bus_schedule: [
+            PassengerOnboardingBusSchedule {
+                time_tick: 2,
+                bus_num: Some(
+                    1,
+                ),
+                stop_location: Location {
+                    index: 3,
+                    id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+                },
+            },
+            PassengerOnboardingBusSchedule {
+                time_tick: 4,
+                bus_num: Some(
+                    2,
+                ),
+                stop_location: Location {
+                    index: 4,
+                    id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+                },
+            },
+            PassengerOnboardingBusSchedule {
+                time_tick: 6,
+                bus_num: None,
+                stop_location: Location {
+                    index: 1,
+                    id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+                },
+            },
+        ],
+        archived_stop_list: [],
+        next_bus_num: Some(
+            1,
+        ),
+    },
+]
+Current bus route list dropped
+Pre-bus departure
+3 passengers added to bus 1
+0 passengers added to bus 2
+Waiting for station messages
+Time_tick: 2, Station 0 Arrived Passengers: []
+Station 0 Passengers for next destination: []
+Time tick when buses are dismissed: TimeTick { number: 2, stage: BusLoadingPassengers }
+Request departure from station 3 for bus 1 on timetick TimeTick { number: 2, stage: BusLoadingPassengers } on thread ThreadId(5)
+Departure message sent
+Waiting for station messages
+Debug: waiting for time step to advance in bus
+Bus 1 Time tick incremented. Time tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Time tick incremented self. Time tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Bus 1 departure recieved from station 3 and sent again on bus time tick TimeTick { number: 2, stage: BusLoadingPassengers }
+Waiting for station messages
+Debug: waiting for time step to advance in bus
+Bus 2 Time tick incremented. Time tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Time tick incremented self. Time tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Bus 2 departure recieved from station 1 and sent again on bus time tick TimeTick { number: 2, stage: BusLoadingPassengers }
+Waiting for station messages
+Time tick when buses are dismissed: TimeTick { number: 2, stage: BusLoadingPassengers }
+Departure message sent
+Time_tick: 2, Station 2 Arrived Passengers: []
+Station 2 Passengers for next destination: []
+Time tick when buses are dismissed: TimeTick { number: 2, stage: BusLoadingPassengers }
+Departure message sent
+Bus 2 removed from station 1
+Bus 1 removed from station 3
+StationRemovedBus message received from station. Bus number: 1
+StationRemovedBus message received from station. Bus number: 2
+Beginning of Bus loop. Bus num: 2
+Beginning of Bus loop. Bus num: 1
+Bus message received: AdvanceTimeStepForLoadedBus { bus_index: 1 }. 
+Bus 1 is finished loading.
+Processed received: 0
+Bus Status Vector: [WaitingForTimeStep, FinishedLoadingPassengers, FinishedUnloadingPassengers]
+Number of buses not finished: 3
+There are 0 finished buses.
+Bus Route Vector at end of Main Loop: [WaitingForTimeStep, FinishedLoadingPassengers, FinishedUnloadingPassengers]
+End of route sync loop. Line 713.
+Beginning of route sync loop
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+Waiting for message from bus
+Bus message received: AdvanceTimeStepForLoadedBus { bus_index: 2 }. 
+Bus 2 is finished loading.
+Processed received: 0
+Bus Status Vector: [WaitingForTimeStep, FinishedLoadingPassengers, FinishedLoadingPassengers]
+Number of buses not finished: 3
+There are 0 finished buses.
+Bus Route Vector at end of Main Loop: [WaitingForTimeStep, FinishedLoadingPassengers, FinishedLoadingPassengers]
+End of route sync loop. Line 713.
+Beginning of route sync loop
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+No message received. Continuing
+Waiting for message from bus
