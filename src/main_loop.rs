@@ -115,10 +115,7 @@ pub fn run_simulation(
         */
         for status in bus_status_vector.iter_mut() {
             // Reset the statuses for the next time step
-            if status == &BusThreadStatus::FinishedLoadingPassengers
-                || (time_tick.stage == TimeTickStage::BusLoadingPassengers
-                    && status == &BusThreadStatus::Moving)
-            {
+            if status != &BusThreadStatus::BusFinishedRoute {
                 *status = BusThreadStatus::WaitingForTimeStep;
             }
         }
@@ -126,12 +123,6 @@ pub fn run_simulation(
         if is_first_run {
             time_tick.increment_from_initialized();
         } else {
-            if all_buses_are_moving {
-                if let TimeTickStage::BusUnloadingPassengers = time_tick.stage {
-                    println!("Additional increment time tick for bus moving stage");
-                    time_tick.increment_time_tick();
-                }
-            }
             time_tick.increment_time_tick();
         }
         for station_sender in station_senders {
@@ -497,6 +488,7 @@ pub fn run_simulation(
             }
         } */
 
+        // Receive any crash signal from all the threads
         for sync_receiver in receiver_sync_from_stations_list.iter() {
             let incoming_message = sync_receiver.receiver.try_recv();
             let incoming_message = match incoming_message {

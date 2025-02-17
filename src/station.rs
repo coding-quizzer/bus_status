@@ -384,7 +384,7 @@ pub fn create_station_thread(
                             message
                         }
                         Err(TryRecvError::Empty) => {
-                            continue;
+                            continue 'main;
                         }
                         Err(TryRecvError::Disconnected) => {
                             panic!("{}", TryRecvError::Disconnected);
@@ -724,11 +724,9 @@ pub fn create_station_thread(
 
                             time_tick = new_time_tick;
 
-                            println!("Time tick locked on Station bus_loading loop");
-
                             if !(current_station.docked_buses.is_empty()) {
                                 println!("Station {station_index} Thread ID: {current_thread_id:?}Station {} time ticks", current_location.index);
-                                println!("Station {station_index} Thread ID: {current_thread_id:?}Time tick before incrementing: {:?}", new_time_tick);
+                                // println!("Station {station_index} Thread ID: {current_thread_id:?}Time tick before incrementing: {:?}", new_time_tick);
                                 println!("Station {station_index} Thread ID: {current_thread_id:?}Current time tick: {:?}", time_tick);
                                 // break from the loop so that the time tick has an opportunity to update
 
@@ -740,10 +738,10 @@ pub fn create_station_thread(
                                 ); */
                             };
 
-                            println!(
-                                "All Buses departed from station {} at time tick {:?}.",
-                                current_station.location.index, time_tick,
-                            );
+                            // println!(
+                            //     "All Buses departed from station {} at time tick {:?}.",
+                            //     current_station.location.index, time_tick,
+                            // );
 
                             // Clear buses unavailable list
                             current_station.buses_unavailable = Vec::new();
@@ -780,10 +778,25 @@ pub fn create_station_thread(
                             }
                         };
 
+                        if let StationEventMessages::BusArrived {
+                            passengers_onboarding,
+                            bus_info,
+                        } = received_message
+                        {
+                            panic!(
+                                "Bus {} arrived at station {} at a bad time tick",
+                                bus_info.bus_index, station_index
+                            );
+                        }
+
                         // For some reason the same bus is often deleted twice
                         if let StationEventMessages::BusDeparted { bus_index } = received_message {
                             // Why is there a bus that should be removed which is not on the list of docked buses?
                             // Confirm that the station contains the bus that should be removed
+                            println!(
+                                "Bus departure message received at station {} for bus {}",
+                                current_station.location.index, bus_index
+                            );
                             assert!(
                                 current_station
                                     .docked_buses

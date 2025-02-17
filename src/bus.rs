@@ -401,7 +401,7 @@ impl Bus {
                             .unwrap();
 
                         println!(
-                            "Bus {} departure recieved from station {} and sent again on bus time tick {:?}",
+                            "Bus {} request departure recieved from station {} and sent again on bus time tick {:?}",
                             self.bus_index,
                             current_location_index,
                             self.time_tick,

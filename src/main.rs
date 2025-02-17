@@ -80,6 +80,12 @@ fn main() {
         bus_capacity: DEFAULT_BUS_CAPACITY as u32,
         num_of_passengers,
     };
+
+    for bus_route in &mut bus_route_vec {
+        for location in bus_route {
+            location.distance_to_location *= 2;
+        }
+    }
     run_simulation(
         location_vector,
         total_passenger_list,
