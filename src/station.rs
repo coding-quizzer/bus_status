@@ -253,7 +253,7 @@ pub fn create_station_thread(
             "Thread ID: {:?}Station index: {station_index}",
             thread::current().id()
         );
-        let current_receiver = station_channel_receiver.receiver;
+        let bus_message_receiver = station_channel_receiver.receiver;
         // Once passengerInit stage is finished, bus_passengers_initialized is set to false, so the loop does not need to run again
         let mut bus_passengers_initialized = false;
 
@@ -306,6 +306,8 @@ pub fn create_station_thread(
 
             // let received_message = current_receiver.recv().unwrap();
 
+            let message_from_bus = bus_message_receiver.recv().unwrap();
+
             match time_tick.stage {
                 TimeTickStage::PassengerInit => {
                     if bus_passengers_initialized {
@@ -315,7 +317,7 @@ pub fn create_station_thread(
                     }
 
                     println!("Station {} first timetick", station_index);
-                    let received_message = current_receiver.recv().unwrap();
+                    let received_message = bus_message_receiver.recv().unwrap();
 
                     println!(
                         "Station {} first message received: {:#?}",
@@ -375,7 +377,7 @@ pub fn create_station_thread(
                     assert!(current_station.bus_loading_first_iteration.is_none());
 
                     // There is an indeterminate number of buses stopping at this stage. The received message should probably use try_recv to only take bus messages as they come and not wait for a message that is not coming
-                    let received_message = current_receiver.try_recv();
+                    let received_message = bus_message_receiver.try_recv();
                     let received_message = match received_message {
                         Ok(message) => {
                             println!(
@@ -465,6 +467,8 @@ pub fn create_station_thread(
                         current_location.index,
                         time_tick
                     );
+
+                    // FLOW: checks if this is this is the first iteration
                     if current_station.bus_loading_first_iteration.is_none() {
                         current_station.bus_loading_first_iteration = Some(true)
                     };
@@ -476,6 +480,8 @@ pub fn create_station_thread(
                     //let time_tick = station_time_tick.lock().unwrap();
 
                     // An iterator containing tuples containing the bus_index of each docked bus and a list of passengers that will get on that bus
+                    // the corresponding vector looks like this:
+                    // [(`bus_index_1`, []), (`bus_index_2`, []), ...]
                     let docked_bus_passenger_pairs_iter = current_station
                         .docked_buses
                         .iter()
@@ -494,9 +500,12 @@ pub fn create_station_thread(
                         docked_bus_passenger_pairs_iter.collect::<Vec<_>>();
 
                     // TODO: Improve adding to the list so that it does not need to be sorted
+                    //
+                    // docked bus pairs sorted by bus number
                     docked_bus_passenger_pairs_vec
                         .sort_by(|bus_prev, bus_next| bus_prev.0.cmp(&bus_next.0));
 
+                    // New iter with bus number - bus passengers pairs, sorted by bus number
                     let mut docked_bus_passenger_pairs_iter =
                         docked_bus_passenger_pairs_vec.into_iter();
 
@@ -701,126 +710,118 @@ pub fn create_station_thread(
 
                     // TODO: Figure out the flow
 
-                    'bus_loading: loop {
-                        /*  println!(
-                            "Bus loading loop beginning in station {} at time tick {:?}",
-                            current_location.index, station_time_tick
-                        ); */
-                        // sync_to_stations receiver moved before buses_receiver so that this check can run independantly of
-                        // other messages.
+                    // 'bus_loading: loop {
+                    /*  println!(
+                        "Bus loading loop beginning in station {} at time tick {:?}",
+                        current_location.index, station_time_tick
+                    ); */
+                    // sync_to_stations receiver moved before buses_receiver so that this check can run independantly of
+                    // other messages.
 
-                        let message_from_sync_result = sync_to_stations_receiver.try_recv();
+                    let message_from_sync_result = sync_to_stations_receiver.try_recv();
 
-                        // NOTE: This should not be neccesary because the buses are controlling the loop, not the
-                        if let Ok(SyncToStationMessages::AdvanceTimeStep(new_time_tick)) =
-                            message_from_sync_result
-                        {
-                            println!(
-                                "Advance Time tick message received in station {}",
-                                station_index
-                            );
-                            println!("Time tick: {:?}", station_time_tick);
-                            // At this point if all the buses have finished their tick, they should be gone from the station
+                    // NOTE: This should not be neccesary because the buses are controlling the loop, not the
+                    if let Ok(SyncToStationMessages::AdvanceTimeStep(new_time_tick)) =
+                        message_from_sync_result
+                    {
+                        println!(
+                            "Advance Time tick message received in station {}",
+                            station_index
+                        );
+                        println!("Time tick: {:?}", station_time_tick);
+                        // At this point if all the buses have finished their tick, they should be gone from the station
 
-                            time_tick = new_time_tick;
+                        time_tick = new_time_tick;
 
-                            if !(current_station.docked_buses.is_empty()) {
-                                println!("Station {station_index} Thread ID: {current_thread_id:?}Station {} time ticks", current_location.index);
-                                // println!("Station {station_index} Thread ID: {current_thread_id:?}Time tick before incrementing: {:?}", new_time_tick);
-                                println!("Station {station_index} Thread ID: {current_thread_id:?}Current time tick: {:?}", time_tick);
-                                // break from the loop so that the time tick has an opportunity to update
+                        if !(current_station.docked_buses.is_empty()) {
+                            println!("Station {station_index} Thread ID: {current_thread_id:?}Station {} time ticks", current_location.index);
+                            // println!("Station {station_index} Thread ID: {current_thread_id:?}Time tick before incrementing: {:?}", new_time_tick);
+                            println!("Station {station_index} Thread ID: {current_thread_id:?}Current time tick: {:?}", time_tick);
+                            // break from the loop so that the time tick has an opportunity to update
 
-                                // DEBUG: Why is the time step allowed to continue before bus 2 leaves the station?
-                                // I'm noticing that the time tick is not actually changing, although the message must have been sent twince. Should that be normal?
-                                /*  panic!(
-                                    "Station {} still contains buses: {:?}",
-                                    current_station.location.index, current_station.docked_buses
-                                ); */
-                            };
-
-                            // println!(
-                            //     "All Buses departed from station {} at time tick {:?}.",
-                            //     current_station.location.index, time_tick,
-                            // );
-
-                            // Clear buses unavailable list
-                            current_station.buses_unavailable = Vec::new();
-                            println!(
-                                "Station received AdvanceTimeStep message at time tick {:?}",
-                                time_tick
-                            );
-                            current_station.bus_loading_first_iteration = None;
-                            println!("Break Bus Loading");
-                            break 'bus_loading;
-                        } else if let Ok(SyncToStationMessages::ProgramFinished(_)) =
-                            message_from_sync_result
-                        {
-                            println!(
-                                "All buses finished message received in station {}",
-                                station_index
-                            );
-                            let mut final_passenger_list =
-                                final_passenger_list_clone.lock().unwrap();
-                            final_passenger_list.location_lists[station_index] =
-                                current_station.arrived_passengers.clone();
-                            break;
-                        }
-
-                        // let time_tick = station_time_tick;
-
-                        // Receive messages about buses
-                        let received_message = current_receiver.try_recv();
-                        let received_message = match received_message {
-                            Ok(message) => message,
-                            Err(TryRecvError::Empty) => continue 'bus_loading,
-                            Err(TryRecvError::Disconnected) => {
-                                panic!("{}", TryRecvError::Disconnected)
-                            }
+                            // DEBUG: Why is the time step allowed to continue before bus 2 leaves the station?
+                            // I'm noticing that the time tick is not actually changing, although the message must have been sent twince. Should that be normal?
+                            /*  panic!(
+                                "Station {} still contains buses: {:?}",
+                                current_station.location.index, current_station.docked_buses
+                            ); */
                         };
 
-                        if let StationEventMessages::BusArrived {
-                            passengers_onboarding,
-                            bus_info,
-                        } = received_message
-                        {
-                            panic!(
-                                "Bus {} arrived at station {} at a bad time tick",
-                                bus_info.bus_index, station_index
-                            );
-                        }
+                        // println!(
+                        //     "All Buses departed from station {} at time tick {:?}.",
+                        //     current_station.location.index, time_tick,
+                        // );
 
-                        // For some reason the same bus is often deleted twice
-                        if let StationEventMessages::BusDeparted { bus_index } = received_message {
-                            // Why is there a bus that should be removed which is not on the list of docked buses?
-                            // Confirm that the station contains the bus that should be removed
-                            println!(
-                                "Bus departure message received at station {} for bus {}",
-                                current_station.location.index, bus_index
-                            );
-                            assert!(
-                                current_station
-                                    .docked_buses
-                                    .iter()
-                                    .any(|bus| bus.bus_index == bus_index),
-                                "Bus index to remove: {bus_index:?}. Station: {:?}. Docked buses: {:?}",
-                                current_station.location.index,
-                                current_station.docked_buses
-                            );
+                        // Clear buses unavailable list
+                        current_station.buses_unavailable = Vec::new();
+                        println!(
+                            "Station received AdvanceTimeStep message at time tick {:?}",
+                            time_tick
+                        );
+                        current_station.bus_loading_first_iteration = None;
+                        println!("Break Bus Loading");
+                        // break 'bus_loading;
+                    } else if let Ok(SyncToStationMessages::ProgramFinished(_)) =
+                        message_from_sync_result
+                    {
+                        println!(
+                            "All buses finished message received in station {}",
+                            station_index
+                        );
+                        let mut final_passenger_list = final_passenger_list_clone.lock().unwrap();
+                        final_passenger_list.location_lists[station_index] =
+                            current_station.arrived_passengers.clone();
+                        break;
+                    }
 
+                    // let time_tick = station_time_tick;
+
+                    // Receive messages about buses
+                    let received_message = message_from_bus.clone();
+
+                    if let StationEventMessages::BusArrived {
+                        passengers_onboarding,
+                        bus_info,
+                    } = received_message
+                    {
+                        panic!(
+                            "Bus {} arrived at station {} at a bad time tick",
+                            bus_info.bus_index, station_index
+                        );
+                    }
+
+                    // For some reason the same bus is often deleted twice
+                    if let StationEventMessages::BusDeparted { bus_index } = received_message {
+                        // Why is there a bus that should be removed which is not on the list of docked buses?
+                        // Confirm that the station contains the bus that should be removed
+                        println!(
+                            "Bus departure message received at station {} for bus {}",
+                            current_station.location.index, bus_index
+                        );
+                        assert!(
                             current_station
                                 .docked_buses
-                                .retain(|bus| bus.bus_index != bus_index);
+                                .iter()
+                                .any(|bus| bus.bus_index == bus_index),
+                            "Bus index to remove: {bus_index:?}. Station: {:?}. Docked buses: {:?}",
+                            current_station.location.index,
+                            current_station.docked_buses
+                        );
 
-                            // How is the bus departure received before going through this?
-                            println!(
-                                "Bus {} removed from station {}",
-                                bus_index, current_location.index
-                            );
-                            send_to_bus_channels[bus_index]
-                                .send(StationToBusMessages::StationRemovedBus)
-                                .unwrap();
-                        }
+                        current_station
+                            .docked_buses
+                            .retain(|bus| bus.bus_index != bus_index);
+
+                        // How is the bus departure received before going through this?
+                        println!(
+                            "Bus {} removed from station {}",
+                            bus_index, current_location.index
+                        );
+                        send_to_bus_channels[bus_index]
+                            .send(StationToBusMessages::StationRemovedBus)
+                            .unwrap();
                     }
+                    // }
                     // bus_loading_first_iteration was set to None before breaking, so it should remain None
                     assert!(current_station.bus_loading_first_iteration.is_none());
                     println!(

@@ -488,7 +488,7 @@ pub fn run_simulation(
             }
         } */
 
-        // Receive any crash signal from all the threads
+        // Receive any crash signal from threads and send it to all the threads
         for sync_receiver in receiver_sync_from_stations_list.iter() {
             let incoming_message = sync_receiver.receiver.try_recv();
             let incoming_message = match incoming_message {
@@ -505,7 +505,7 @@ pub fn run_simulation(
                     panic!("{}", TryRecvError::Disconnected)
                 }
             };
-            // Convert to if then statement when ther
+            // Convert to if then statement if there are more kinds of messages
             if let crate::thread::StationToSyncMessages::CrashProgram { ref message } =
                 incoming_message
             {
