@@ -6,24 +6,15 @@
           "index": 4,
           "id": "350abfe3-49e0-4019-8507-a376cb602ff7"
         },
-        "distance_to_location": 1
+        "distance_to_location": 2
       },
       {
         "location": {
           "index": 0,
           "id": "21eaac51-b4e9-4338-99f0-869fe2e31d55"
         },
-        "distance_to_location": 1
+        "distance_to_location": 2
       },
-      {
-        "location": {
-          "index": 1,
-          "id": "0adf8f60-3748-4af0-a985-5eb0de081d70"
-        },
-        "distance_to_location": 1
-      }
-    ],
-    [
       {
         "location": {
           "index": 3,
@@ -33,17 +24,10 @@
       },
       {
         "location": {
-          "index": 4,
-          "id": "350abfe3-49e0-4019-8507-a376cb602ff7"
-        },
-        "distance_to_location": 1
-      },
-      {
-        "location": {
           "index": 2,
           "id": "cc1ad5ba-7a26-4127-969d-d52492776375"
         },
-        "distance_to_location": 1
+        "distance_to_location": 2
       }
     ],
     [
@@ -52,7 +36,7 @@
           "index": 1,
           "id": "0adf8f60-3748-4af0-a985-5eb0de081d70"
         },
-        "distance_to_location": 1
+        "distance_to_location": 3
       },
       {
         "location": {
@@ -65,6 +49,43 @@
         "location": {
           "index": 1,
           "id": "0adf8f60-3748-4af0-a985-5eb0de081d70"
+        },
+        "distance_to_location": 2
+      },
+      {
+        "location": {
+          "index": 0,
+          "id": "21eaac51-b4e9-4338-99f0-869fe2e31d55"
+        },
+        "distance_to_location": 2
+      }
+    ],
+    [
+      {
+        "location": {
+          "index": 1,
+          "id": "0adf8f60-3748-4af0-a985-5eb0de081d70"
+        },
+        "distance_to_location": 2
+      },
+      {
+        "location": {
+          "index": 3,
+          "id": "135f70d1-0f07-4a0f-a996-3412019ea584"
+        },
+        "distance_to_location": 3
+      },
+      {
+        "location": {
+          "index": 2,
+          "id": "cc1ad5ba-7a26-4127-969d-d52492776375"
+        },
+        "distance_to_location": 4
+      },
+      {
+        "location": {
+          "index": 0,
+          "id": "21eaac51-b4e9-4338-99f0-869fe2e31d55"
         },
         "distance_to_location": 1
       }

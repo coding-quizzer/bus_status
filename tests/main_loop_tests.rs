@@ -1,6 +1,7 @@
 use bus_system::consts::DEFAULT_BUS_CAPACITY;
 use bus_system::location::{BusLocation, Location};
 use bus_system::main_loop::run_simulation;
+use bus_system::main_loop::ConfigStruct;
 use bus_system::passenger::Passenger;
 #[test]
 fn rejected_passengers_and_arrived_passengers_are_accounted_for() {
@@ -26,8 +27,16 @@ fn rejected_passengers_and_arrived_passengers_are_accounted_for() {
 
     let all_bus_routes = vec![first_bus_route, vec![], vec![]];
 
-    // FIXME: main_loop is not finishing here for some reason
-    let final_passengers_list = run_simulation(location_vector, passenger_list, all_bus_routes);
+    let config_struct = ConfigStruct{
+      num_of_buses: 3,
+      num_of_passengers: TEST_PASSENGER_COUNT,
+      num_of_locations: 2,
+      bus_capacity: 10,
+    }
+
+    let final_passengers_list = run_simulation(location_vector, passenger_list, all_bus_routes, config_struct);
+
+    // TODO: return the passenger lists so that this part of the test is meaningful
     let passenger_count_at_station = final_passengers_list
         .location_lists
         .iter()

@@ -272,6 +272,7 @@ impl Bus {
             );
             return ControlFlow::Continue(());
         } else {
+            println!("Bus moving else branch");
             let current_location_index = self.current_location.unwrap().index;
             let next_station_sender = &station_senders[current_location_index];
             let current_location = self.current_location.unwrap();
@@ -368,6 +369,7 @@ impl Bus {
                 let received_message = station_receiver.recv().unwrap();
                 match received_message {
                     StationToBusMessages::AcknowledgeArrival() => {
+                        // Note: Not implimented
                         println!("Bus {} acknowledgement received", self.bus_index);
                     }
                     StationToBusMessages::RequestDeparture => {

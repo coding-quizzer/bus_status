@@ -19,7 +19,7 @@ use std::sync::{
     mpsc::{Receiver, Sender},
     Arc, Mutex,
 };
-use std::thread::{self, JoinHandle};
+use std::thread::{self, sleep, JoinHandle};
 
 pub struct PassengerScheduleWithDistance {
     pub passenger_schedule: VecDeque<PassengerOnboardingBusSchedule>,
@@ -260,41 +260,55 @@ pub fn create_station_thread(
         let mut time_tick = station_time_tick;
         let mut previous_time_tick: Option<TimeTick> = None;
         let current_thread_id = thread::current().id();
-
+        let mut station_unload_first_call_for_timetick = true;
         'main: loop {
+            println!("Beginning of station main loop");
             // TODO: Update time tick for station
             // println!("Station {station_index} Thread ID: {current_thread_id}Station thread beginning. Station index: {}", station_index);
 
-            let message_from_sync_result = sync_to_stations_receiver.try_recv();
-            if let Ok(SyncToStationMessages::ProgramFinished(
-                crate::thread::ProgramEndType::ProgramFinished,
-            )) = message_from_sync_result
-            {
-                println!("Station {} finished", station_index);
-                break;
-            }
+            let message_from_bus = bus_message_receiver.try_recv().unwrap_or_default();
 
-            if let Ok(SyncToStationMessages::AdvanceTimeStep(new_time_step)) =
-                message_from_sync_result
-            {
-                println!(
-                    "Station {station_index} Thread ID: {:?} New Time Step: {:?}",
-                    thread::current().id(),
-                    new_time_step
-                );
-                println!(
-                    "Thread ID: {:?}Old Time Step: {:?}",
-                    thread::current().id(),
-                    time_tick
-                );
-                // TODO:
-                if (new_time_step.number - time_tick.number > 1) {
-                    panic!("Station time tick difference is more than one. new_time_step: {new_time_step:?}. Current Time Tick: {time_tick:?}");
+            let mut time_tick_up_to_date = false;
+            while (!time_tick_up_to_date) {
+                let message_from_sync_result = sync_to_stations_receiver.try_recv();
+                match message_from_sync_result {
+                    Ok(SyncToStationMessages::ProgramFinished(_)) => {
+                        println!("Station {} finished", station_index);
+                        break 'main;
+                    }
+                    Ok(SyncToStationMessages::AdvanceTimeStep(new_time_step)) => {
+                        println!(
+                            "Station {station_index} Thread ID: {:?} New Time Step: {:?}",
+                            thread::current().id(),
+                            new_time_step
+                        );
+                        println!(
+                            "Thread ID: {:?}Old Time Step: {:?}",
+                            thread::current().id(),
+                            time_tick
+                        );
+                        // TODO:
+                        if (new_time_step.number - time_tick.number > 1) {
+                            panic!("Station time tick difference is more than one. new_time_step: {new_time_step:?}. Current Time Tick: {time_tick:?}");
+                        }
+                        time_tick = new_time_step;
+                        station_unload_first_call_for_timetick = true;
+                    }
+
+                    Err(TryRecvError::Empty) => {
+                        time_tick_up_to_date = true;
+                    }
+
+                    Err(TryRecvError::Disconnected) => {
+                        panic!("{}", TryRecvError::Disconnected);
+                    }
+                    _ => {}
                 }
-                time_tick = new_time_step
             }
-
-            // println!("Station {station_index} Thread ID: {current_thread_id}Station {location_index}. time tick: {}", *time_tick);
+            println!(
+                "Time tick up to date finished. Station {station_index} Thread ID: {:?}",
+                thread::current().id()
+            );
 
             /* println!(
                 "Station {} loop beginning. Time tick: {:?}",
@@ -306,8 +320,6 @@ pub fn create_station_thread(
 
             // let received_message = current_receiver.recv().unwrap();
 
-            let message_from_bus = bus_message_receiver.recv().unwrap();
-
             match time_tick.stage {
                 TimeTickStage::PassengerInit => {
                     if bus_passengers_initialized {
@@ -317,7 +329,8 @@ pub fn create_station_thread(
                     }
 
                     println!("Station {} first timetick", station_index);
-                    let received_message = bus_message_receiver.recv().unwrap();
+                    // let received_message = bus_message_receiver.recv().unwrap();
+                    let received_message = message_from_bus;
 
                     println!(
                         "Station {} first message received: {:#?}",
@@ -325,6 +338,7 @@ pub fn create_station_thread(
                     );
 
                     // If I change this to be a new reciever, the other stages will not need to filter out this option
+
                     if let StationEventMessages::InitPassengerList(mut list) = received_message {
                         assert_eq!(time_tick.number, 0);
                         println!("Station {station_index} Thread ID: {current_thread_id:?} Station: {station_index} Message: {list:#?}");
@@ -355,15 +369,15 @@ pub fn create_station_thread(
                                 station_index,
                             ))
                             .unwrap();
+                        bus_passengers_initialized = true;
                     } else {
-                        let time_tick = station_time_tick;
+                        // let time_tick = station_time_tick;
 
-                        panic!(
-                            "Invalid Message:{:?} for present timetick: {:?}. Expected InitPassengerList ",
-                            received_message, time_tick
-                        )
+                        // panic!(
+                        //     "Invalid Message:{:?} for present timetick: {:?}. Expected InitPassengerList ",
+                        //     received_message, time_tick
+                        // )
                     }
-                    bus_passengers_initialized = true;
                 }
 
                 TimeTickStage::BusUnloadingPassengers => {
@@ -374,24 +388,18 @@ pub fn create_station_thread(
 
                     // Implimentation
                     // The previous loading stage should be finished, so bus_loading_first_iteration should be set to none
-                    assert!(current_station.bus_loading_first_iteration.is_none());
+                    // assert!(current_station.bus_loading_first_iteration.is_none());
 
                     // There is an indeterminate number of buses stopping at this stage. The received message should probably use try_recv to only take bus messages as they come and not wait for a message that is not coming
-                    let received_message = bus_message_receiver.try_recv();
-                    let received_message = match received_message {
-                        Ok(message) => {
-                            println!(
-                                "Station {} received message {:?} on BusUnloadingPassengers stage received on time tick {:?}", current_location.index , message, time_tick
-                            );
-                            message
-                        }
-                        Err(TryRecvError::Empty) => {
-                            continue 'main;
-                        }
-                        Err(TryRecvError::Disconnected) => {
-                            panic!("{}", TryRecvError::Disconnected);
-                        }
-                    };
+                    // let received_message = bus_message_receiver.try_recv();
+                    let received_message = message_from_bus;
+                    // let received_message = match received_message {
+                    //     Ok(message) => {
+                    //         message
+                    //     }
+
+                    // };
+                    println!("Station {} received message {:?} on BusUnloadingPassengers stage received on time tick {:?}", current_location.index , received_message, time_tick);
 
                     println!(
                         "station {} received message received on BusUnloadingPassengers stage",
@@ -449,10 +457,10 @@ pub fn create_station_thread(
                             station_index, bus_index
                         );
                     } else {
-                        panic!(
-                            "Invalid Message:{:?} for present timetick: {:?}. Expected BusArrived ",
-                            received_message, time_tick
-                        )
+                        // panic!(
+                        //     "Invalid Message:{:?} for present timetick: {:?}. Expected BusArrived ",
+                        //     received_message, time_tick
+                        // )
                     }
                 }
                 TimeTickStage::BusLoadingPassengers { .. } => {
@@ -460,20 +468,60 @@ pub fn create_station_thread(
                         "BusLoadingPassengers timetick beginning. Timetick: {}",
                         time_tick.number
                     );
+                    // Receive messages about buses
+
+                    let received_message = message_from_bus.clone();
+
+                    if let StationEventMessages::BusArrived {
+                        passengers_onboarding,
+                        bus_info,
+                    } = received_message
+                    {
+                        panic!(
+                            "Bus {} arrived at station {} at a bad time tick",
+                            bus_info.bus_index, station_index
+                        );
+                    }
+
+                    // For some reason the same bus is often deleted twice
+                    if let StationEventMessages::BusDeparted { bus_index } = received_message {
+                        // Why is there a bus that should be removed which is not on the list of docked buses?
+                        // Confirm that the station contains the bus that should be removed
+                        println!(
+                            "Bus departure message received at station {} for bus {}",
+                            current_station.location.index, bus_index
+                        );
+                        assert!(
+                            current_station
+                                .docked_buses
+                                .iter()
+                                .any(|bus| bus.bus_index == bus_index),
+                            "Bus index to remove: {bus_index:?}. Station: {:?}. Docked buses: {:?}",
+                            current_station.location.index,
+                            current_station.docked_buses
+                        );
+
+                        current_station
+                            .docked_buses
+                            .retain(|bus| bus.bus_index != bus_index);
+
+                        // How is the bus departure received before going through this?
+                        println!(
+                            "Bus {} removed from station {}",
+                            bus_index, current_location.index
+                        );
+                        send_to_bus_channels[bus_index]
+                            .send(StationToBusMessages::StationRemovedBus)
+                            .unwrap();
+                    }
                     // New pasted material
-                    println!(
-                        "Is first iteration: {:?}. Station: {}. Time tick: {:?}",
-                        current_station.bus_loading_first_iteration,
-                        current_location.index,
-                        time_tick
-                    );
 
                     // FLOW: checks if this is this is the first iteration
-                    if current_station.bus_loading_first_iteration.is_none() {
-                        current_station.bus_loading_first_iteration = Some(true)
-                    };
+                    // if current_station.bus_loading_first_iteration.is_none() {
+                    //     current_station.bus_loading_first_iteration = Some(true)
+                    // };
                     // This should only happen within the first iteration. Afterwords, it should be caught in the loop
-                    assert!(current_station.bus_loading_first_iteration.unwrap());
+                    // assert!(current_station.bus_loading_first_iteration.unwrap());
 
                     // This time tick was dropped and reinitialized so that the time tick is only mutable when neccessary
 
@@ -482,6 +530,13 @@ pub fn create_station_thread(
                     // An iterator containing tuples containing the bus_index of each docked bus and a list of passengers that will get on that bus
                     // the corresponding vector looks like this:
                     // [(`bus_index_1`, []), (`bus_index_2`, []), ...]
+                    if station_unload_first_call_for_timetick == false {
+                        if (received_message == StationEventMessages::NoMessage) {
+                            sleep(Duration::from_millis(100))
+                        }
+                        continue;
+                    }
+                    station_unload_first_call_for_timetick = false;
                     let docked_bus_passenger_pairs_iter = current_station
                         .docked_buses
                         .iter()
@@ -573,11 +628,11 @@ pub fn create_station_thread(
 
                                 next_location.is_some()
                             });
-                    // ensure this is actually arrived passengers have actually arrived at the correct destination
                     println!(
                         "Time_tick: {}, Station {} Arrived Passengers: {:#?}",
                         time_tick.number, station_index, arrived_passengers
                     );
+                    // ensure this is actually arrived passengers have actually arrived at the correct destination
                     assert!(arrived_passengers
                         .iter()
                         .all(|passenger| passenger.destination_location == current_location));
@@ -758,7 +813,7 @@ pub fn create_station_thread(
                             "Station received AdvanceTimeStep message at time tick {:?}",
                             time_tick
                         );
-                        current_station.bus_loading_first_iteration = None;
+                        // current_station.bus_loading_first_iteration = None;
                         println!("Break Bus Loading");
                         // break 'bus_loading;
                     } else if let Ok(SyncToStationMessages::ProgramFinished(_)) =
@@ -776,54 +831,9 @@ pub fn create_station_thread(
 
                     // let time_tick = station_time_tick;
 
-                    // Receive messages about buses
-                    let received_message = message_from_bus.clone();
-
-                    if let StationEventMessages::BusArrived {
-                        passengers_onboarding,
-                        bus_info,
-                    } = received_message
-                    {
-                        panic!(
-                            "Bus {} arrived at station {} at a bad time tick",
-                            bus_info.bus_index, station_index
-                        );
-                    }
-
-                    // For some reason the same bus is often deleted twice
-                    if let StationEventMessages::BusDeparted { bus_index } = received_message {
-                        // Why is there a bus that should be removed which is not on the list of docked buses?
-                        // Confirm that the station contains the bus that should be removed
-                        println!(
-                            "Bus departure message received at station {} for bus {}",
-                            current_station.location.index, bus_index
-                        );
-                        assert!(
-                            current_station
-                                .docked_buses
-                                .iter()
-                                .any(|bus| bus.bus_index == bus_index),
-                            "Bus index to remove: {bus_index:?}. Station: {:?}. Docked buses: {:?}",
-                            current_station.location.index,
-                            current_station.docked_buses
-                        );
-
-                        current_station
-                            .docked_buses
-                            .retain(|bus| bus.bus_index != bus_index);
-
-                        // How is the bus departure received before going through this?
-                        println!(
-                            "Bus {} removed from station {}",
-                            bus_index, current_location.index
-                        );
-                        send_to_bus_channels[bus_index]
-                            .send(StationToBusMessages::StationRemovedBus)
-                            .unwrap();
-                    }
                     // }
                     // bus_loading_first_iteration was set to None before breaking, so it should remain None
-                    assert!(current_station.bus_loading_first_iteration.is_none());
+                    // assert!(current_station.bus_loading_first_iteration.is_none());
                     println!(
                         "Bus Loading Loop finished in station {}",
                         current_station.location.index

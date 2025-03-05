@@ -101,7 +101,7 @@ pub fn run_simulation(
         bus_status_vector: &mut [BusThreadStatus],
     ) {
         let call_location = std::panic::Location::caller();
-        println!("---------- All buses are finished at their stops -----------");
+        println!("---------- All buses finished current time step -----------");
         println!("Time step incremented from {}", call_location);
         // At this point sending the message here is not neccesary.
         // Because the time step mutiex is held for both time step increments,

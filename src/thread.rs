@@ -1,6 +1,6 @@
 use crate::bus::SendableBus;
 use crate::passenger::Passenger;
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Default)]
 // Messages to the station
 pub enum StationEventMessages {
     InitPassengerList(Vec<Passenger>),
@@ -11,6 +11,8 @@ pub enum StationEventMessages {
     BusDeparted {
         bus_index: usize,
     },
+    #[default]
+    NoMessage,
 }
 
 #[derive(Debug, PartialEq, Eq)]
