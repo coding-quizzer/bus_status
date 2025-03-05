@@ -1,5 +1,6 @@
 use bus_system::initialize_location_list;
 use bus_system::{generate_bus_route_locations_with_distances, generate_random_passenger_list};
+use core::num;
 use std::path::Path;
 
 use bus_system::bus::BusLocation;
@@ -58,7 +59,7 @@ fn main() {
     };
 
     let mut bus_route_vec: Vec<Vec<BusLocation>> = Vec::new();
-    bus_route_vec.resize(DEFAULT_NUM_OF_BUSES, Vec::new());
+    bus_route_vec.resize(num_of_buses, Vec::new());
     if READ_JSON {
         bus_route_vec = bus_routes;
     } else {

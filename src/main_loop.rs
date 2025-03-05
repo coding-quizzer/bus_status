@@ -25,6 +25,7 @@ pub struct FinalPassengerLists {
     pub remaining_passengers: Vec<Passenger>,
 }
 
+#[derive(Clone, Copy)]
 pub struct ConfigStruct {
     pub num_of_buses: usize,
     pub num_of_passengers: usize,

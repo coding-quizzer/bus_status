@@ -1,5 +1,4 @@
 use crate::bus::{BusLocation, SendableBus};
-use crate::consts::DEFAULT_NUM_OF_BUSES;
 use crate::location::{Location, PassengerBusLocation};
 use crate::main_loop::{ConfigStruct, FinalPassengerLists};
 use crate::passenger::Passenger;
@@ -221,7 +220,7 @@ pub fn get_station_threads(
             to_passengers_sender_clone,
             sync_to_stations_reciever,
             final_passenger_list_clone,
-            config,
+            config.num_of_buses,
         );
         handle_list.push(station_handle);
     }
@@ -240,7 +239,7 @@ pub fn create_station_thread(
     to_passengers_sender_clone: Sender<StationToPassengersMessages>,
     sync_to_stations_receiver: Receiver<SyncToStationMessages>,
     final_passenger_list_clone: Arc<Mutex<FinalPassengerLists>>,
-    config: &ConfigStruct,
+    num_of_buses: usize,
 ) -> JoinHandle<()> {
     let station_time_tick = TimeTick::default();
     let station_handle = thread::spawn(move || {
@@ -543,8 +542,8 @@ pub fn create_station_thread(
                         .map(|bus| (bus.bus_index, Vec::<Passenger>::new()));
 
                     // Contains the next bus each waiting passenger will get on next
-                    let mut next_passengers_for_buses_array: [Option<Vec<Passenger>>;
-                        DEFAULT_NUM_OF_BUSES] = std::array::from_fn(|_| None);
+                    let mut next_passengers_for_buses_array = Vec::new();
+                    next_passengers_for_buses_array.resize(num_of_buses, None);
 
                     println!(
                         "Array with locations for station {:?}: {:?}",
