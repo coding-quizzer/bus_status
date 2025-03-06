@@ -42,7 +42,7 @@ pub fn run_simulation(
     total_passenger_list: Vec<Passenger>,
     all_bus_routes: Vec<Vec<BusLocation>>,
     config: ConfigStruct,
-) {
+) -> FinalPassengerLists {
     let passenger_bus_route_list: Vec<Vec<PassengerBusLocation>> = all_bus_routes
         .clone()
         .into_iter()
@@ -794,5 +794,6 @@ pub fn run_simulation(
         rejected_passengers.len()
     );
 
-    println!("Rejected Passengers: {:#?}", rejected_passengers)
+    println!("Rejected Passengers: {:#?}", rejected_passengers);
+    return final_passengers_arc.lock().unwrap().clone();
 }
