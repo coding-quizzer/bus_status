@@ -25,16 +25,21 @@ fn rejected_passengers_and_arrived_passengers_are_accounted_for() {
         },
     ];
 
-    let all_bus_routes = vec![first_bus_route, vec![], vec![]];
+    let all_bus_routes = vec![first_bus_route];
 
-    let config_struct = ConfigStruct{
-      num_of_buses: 3,
-      num_of_passengers: TEST_PASSENGER_COUNT,
-      num_of_locations: 2,
-      bus_capacity: 10,
-    }
+    let config_struct = ConfigStruct {
+        num_of_buses: 1,
+        num_of_passengers: TEST_PASSENGER_COUNT,
+        num_of_locations: 2,
+        bus_capacity: 10,
+    };
 
-    let final_passengers_list = run_simulation(location_vector, passenger_list, all_bus_routes, config_struct);
+    let final_passengers_list = run_simulation(
+        location_vector,
+        passenger_list,
+        all_bus_routes,
+        config_struct,
+    );
 
     // TODO: return the passenger lists so that this part of the test is meaningful
     let passenger_count_at_station = final_passengers_list
