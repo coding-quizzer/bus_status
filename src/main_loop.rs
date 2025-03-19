@@ -37,6 +37,8 @@ pub struct ConfigStruct {
 // The main bus system loop. This should probably output something eventually to give something to test against
 // The return value might be a object containing lists of passengers from every location and the list of passengers that have not
 // gotten on any bus
+//
+// Tne distance of the locations must be a multiple of 2 because there are 2 time tick stages
 pub fn run_simulation(
     location_vector: Vec<Location>,
     total_passenger_list: Vec<Passenger>,

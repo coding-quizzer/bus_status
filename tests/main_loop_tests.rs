@@ -14,14 +14,15 @@ fn rejected_passengers_and_arrived_passengers_are_accounted_for() {
         passenger_list.push(passenger);
     }
 
+    // distance_to_location must be a multiple of 2
     let first_bus_route = vec![
         BusLocation {
             location: location_vector[0],
-            distance_to_location: 1,
+            distance_to_location: 2,
         },
         BusLocation {
             location: location_vector[1],
-            distance_to_location: 1,
+            distance_to_location: 2,
         },
     ];
 

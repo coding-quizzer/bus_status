@@ -84,7 +84,7 @@ fn main() {
 
     for bus_route in &mut bus_route_vec {
         for location in bus_route {
-            location.distance_to_location *= 2;
+            location.distance_to_location *= 2; // This is here because run_simulation runs this in terms of steps that it takes, not ticks (2 steps per tick)
         }
     }
     run_simulation(
