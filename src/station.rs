@@ -635,6 +635,12 @@ pub fn create_station_thread(
                     assert!(arrived_passengers
                         .iter()
                         .all(|passenger| passenger.destination_location == current_location));
+                    // use std::ops::DerefMut;
+                    // Put arrived passengers into current_station.arrived_passengers
+                    current_station.arrived_passengers = arrived_passengers
+                        .into_iter()
+                        .map(|passenger| passenger.clone())
+                        .collect();
 
                     // println!("Passengers for next destination: {:?}", &passengers_for_next_destination);;
 
@@ -732,7 +738,13 @@ pub fn create_station_thread(
                                     &mut station_thread_passenger_bus_route_list.lock().unwrap(),
                                     unavailable_buses,
                                 )
-                                .unwrap();
+                                .unwrap_or_else(|passenger| {
+                                    final_passenger_list_clone
+                                        .lock()
+                                        .unwrap()
+                                        .remaining_passengers
+                                        .push(passenger)
+                                });
                         }
 
                         // drop(time_tick);
@@ -822,6 +834,7 @@ pub fn create_station_thread(
                             "All buses finished message received in station {}",
                             station_index
                         );
+                        // DEBUG: This should contain the arrived passengers. Why does it not?
                         let mut final_passenger_list = final_passenger_list_clone.lock().unwrap();
                         final_passenger_list.location_lists[station_index] =
                             current_station.arrived_passengers.clone();
