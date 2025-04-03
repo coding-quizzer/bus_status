@@ -87,11 +87,19 @@ fn main() {
             location.distance_to_location *= 2; // This is here because run_simulation runs this in terms of steps that it takes, not ticks (2 steps per tick)
         }
     }
-    run_simulation(
+    let remaining_passengers = run_simulation(
         location_vector,
         total_passenger_list,
         bus_route_vec,
         config_struct,
     );
+    for (index, passenger_location_list) in
+        remaining_passengers.location_lists.into_iter().enumerate()
+    {
+        println!(
+            "{:?} passengers arrived at Location {}",
+            passenger_location_list, index,
+        );
+    }
     println!("Simulation over");
 }

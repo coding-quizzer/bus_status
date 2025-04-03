@@ -797,5 +797,18 @@ pub fn run_simulation(
     );
 
     println!("Rejected Passengers: {:#?}", rejected_passengers);
-    return final_passengers_arc.lock().unwrap().clone();
+    let final_passengers = final_passengers_arc.lock().unwrap().clone();
+    for (index, passenger_location_list) in final_passengers
+        .clone()
+        .location_lists
+        .into_iter()
+        .enumerate()
+    {
+        println!(
+            "{:?} passengers arrived at Location {}",
+            passenger_location_list, index,
+        );
+    }
+    println!("Simulation over");
+    final_passengers
 }

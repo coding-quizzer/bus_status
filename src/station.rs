@@ -427,10 +427,15 @@ pub fn create_station_thread(
                             passenger.archived_stop_list.push(passenger_location);
                         }
                         println!(
-                            "Passengers Onboarding from bus {:?}: {:?}",
+                            "Passengers exiting bus {:?}: {:?}",
                             bus_info.bus_index, passengers_onboarding
                         );
+                        println!("{} passengers exited the bus", passengers_onboarding.len());
                         current_station.passengers.extend(passengers_onboarding);
+                        println!(
+                            "{} passengers are now in the station",
+                            current_station.passengers.len()
+                        );
                         let bus_index = bus_info.bus_index;
                         println!("Bus {bus_index} arrived at station {station_index}. Received from station");
 
@@ -472,7 +477,7 @@ pub fn create_station_thread(
                     let received_message = message_from_bus.clone();
 
                     if let StationEventMessages::BusArrived {
-                        passengers_onboarding,
+                        passengers_onboarding: _,
                         bus_info,
                     } = received_message
                     {
@@ -648,7 +653,6 @@ pub fn create_station_thread(
                     // overflowed passengers have their own list so that they can be recalculated
                     let mut passengers_overflowed: Vec<Passenger> = Vec::new();
                     // println!("Arrived Passengers: {:?}", &arrived_passengers);
-                    // FIXME: Some passengers are showing up at the station when they should be on the bus. How does this work?
                     println!(
                         "Station {} Passengers for next destination: {:#?}",
                         station_index, passengers_for_next_destination
