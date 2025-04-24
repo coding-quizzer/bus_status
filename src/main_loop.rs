@@ -65,7 +65,12 @@ pub fn run_simulation(
 
     // let passenger_extra_stops_waited_pointer: Arc<Mutex<Vec<u32>>> =
     //     Arc::new(Mutex::new(Vec::<u32>::new()));
-    let final_passengers_arc = Arc::new(Mutex::new(FinalPassengerLists::default()));
+
+    let mut final_passenger_init = FinalPassengerLists::default();
+    final_passenger_init
+        .location_lists
+        .resize(config.num_of_locations, Vec::new());
+    let final_passengers_arc = Arc::new(Mutex::new(final_passenger_init));
 
     // // Split time ticks into two - time ticks are accurate
     // let current_time_tick: Arc<Mutex<TimeTick>> = Arc::new(Mutex::new(TimeTick::default()));
@@ -798,6 +803,7 @@ pub fn run_simulation(
 
     println!("Rejected Passengers: {:#?}", rejected_passengers);
     let final_passengers = final_passengers_arc.lock().unwrap().clone();
+    println!("Final passengers: {:?}", final_passengers);
     for (index, passenger_location_list) in final_passengers
         .clone()
         .location_lists

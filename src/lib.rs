@@ -9,7 +9,7 @@ pub mod thread;
 
 use passenger::{Passenger, PassengerOnboardingBusSchedule};
 use station::PassengerScheduleWithDistance;
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 
 use bus::BusLocation;
 use location::{Location, PassengerBusLocation};
@@ -210,29 +210,65 @@ pub fn calculate_passenger_schedule_for_bus_check_available_buses(
     bus_route_list: &mut [Vec<PassengerBusLocation>],
     buses_unavailable: Vec<usize>,
 ) -> Result<Vec<PassengerOnboardingBusSchedule>, Passenger> {
+    // Identify the routes that need to change and delete from the routes the bus stops that need to change
+
+    // I think what I was hoping to do with this program was to find the lists that needed to be changed within new_bus_route_list and create a filtered iterator, changing the list inside new_bus_route_list.
+    // However, this method does not work
+
     // TODO: Add tests to prove that this method of removing those indeces actually work
-    let mut new_bus_route_list = bus_route_list;
+    let mut new_bus_route_list = Vec::new();
+    bus_route_list.clone_into(&mut new_bus_route_list);
 
     // mutable iterator containing the routes that will need to remove the
-    let special_routes_iter =
+
+    // Contains the list of routes that may need changing
+    let routes_to_consider_iter =
         new_bus_route_list
-            .iter_mut()
+            .clone()
+            .into_iter()
             .enumerate()
             .filter(|(bus_index, bus_route)| {
                 buses_unavailable.iter().any(|bus: &usize| bus == bus_index)
             });
 
-    for (_, route) in special_routes_iter {
-        let mut index_to_delete: Option<usize> = None;
-        for (index_in_route, location) in route.iter().enumerate() {
-            if current_time_tick == location.location_time_tick {
-                index_to_delete = Some(index_in_route);
-                break;
-            }
-        }
+    // for (_, route) in routes_to_consider_iter {
+    //     let mut index_to_delete: Option<usize> = None;
+    //     for (index_in_route, location) in route.iter_mut().enumerate() {
+    //         if current_time_tick == location.location_time_tick {
+    //             index_to_delete = Some(index_in_route);
+    //             break;
+    //         }
+    //     }
 
-        if let Some(index) = index_to_delete {
-            route.remove(index);
+    //     if let Some(index) = index_to_delete {
+    //         route.remove(index);
+    //     }
+    // }
+
+    let routes_to_consider: HashMap<_, _> = routes_to_consider_iter
+        .map(|(route_index, mut route)| {
+            let mut index_to_delete: Option<usize> = None;
+            for (index_in_route, location) in route.iter_mut().enumerate() {
+                if current_time_tick == location.location_time_tick {
+                    index_to_delete = Some(index_in_route);
+                    break;
+                }
+            }
+
+            if let Some(index) = index_to_delete {
+                route.remove(index);
+            }
+
+            return (route_index, route);
+        })
+        .collect();
+
+    for (route_index, route) in new_bus_route_list.iter_mut().enumerate() {
+        if routes_to_consider.contains_key(&route_index) {
+            *route = routes_to_consider
+                .get(&route_index)
+                .expect("Key was confirmed to exist")
+                .to_vec();
         }
     }
 
@@ -240,7 +276,11 @@ pub fn calculate_passenger_schedule_for_bus_check_available_buses(
 
     // Take bus routes with the same time tick in unavailable buses out
 
-    calculate_passenger_schedule_for_bus(new_passenger, current_time_tick, new_bus_route_list)
+    calculate_passenger_schedule_for_bus(
+        new_passenger,
+        current_time_tick,
+        new_bus_route_list.as_slice(),
+    )
 }
 
 pub fn calculate_passenger_schedule_for_bus(
