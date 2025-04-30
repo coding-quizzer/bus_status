@@ -811,10 +811,15 @@ pub fn run_simulation(
         .enumerate()
     {
         println!(
-            "{:?} passengers arrived at Location {}",
-            passenger_location_list, index,
+            "{} passengers arrived at Location {}",
+            passenger_location_list.len(),
+            index,
         );
     }
+    println!(
+        "Number of Locations: {}",
+        final_passengers.location_lists.len()
+    );
     println!("Simulation over");
     final_passengers
 }

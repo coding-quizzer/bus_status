@@ -98,7 +98,8 @@ fn main() {
     {
         println!(
             "{:?} passengers arrived at Location {}",
-            passenger_location_list, index,
+            passenger_location_list.len(),
+            index,
         );
     }
     println!("Simulation over");

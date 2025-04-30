@@ -649,10 +649,18 @@ pub fn create_station_thread(
                         .all(|passenger| passenger.destination_location == current_location));
                     // use std::ops::DerefMut;
                     // Put arrived passengers into current_station.arrived_passengers
-                    current_station.arrived_passengers = arrived_passengers
+                    let mut newly_arrived_passengers: Vec<_> = arrived_passengers
                         .into_iter()
                         .map(|passenger| passenger.clone())
                         .collect();
+                    current_station
+                        .arrived_passengers
+                        .append(&mut newly_arrived_passengers);
+
+                    println!(
+                        "Arrived Passengers in station {}: {:#?}",
+                        station_index, current_station.arrived_passengers
+                    );
 
                     // println!("Passengers for next destination: {:?}", &passengers_for_next_destination);;
 
