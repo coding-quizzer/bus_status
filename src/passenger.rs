@@ -20,6 +20,7 @@ pub struct Passenger {
     pub destination_location: Location,
     pub current_location: Option<Location>,
     pub passed_stops: u32,
+    pub beginning_time_step: u32,
     pub bus_schedule: Vec<PassengerOnboardingBusSchedule>,
     // Add a peekable iterator for the current location
     pub archived_stop_list: Vec<PassengerOnboardingBusSchedule>,
@@ -55,7 +56,11 @@ impl PartialEq for Passenger {
 impl Eq for Passenger {}
 
 impl Passenger {
-    pub fn new(current_location: Location, destination_location: Location) -> Self {
+    pub fn new(
+        current_location: Location,
+        destination_location: Location,
+        beginning_time_step: u32,
+    ) -> Self {
         let bus_schedule: Vec<PassengerOnboardingBusSchedule> = Vec::new();
         // Since bus_schedule is cloned for bus_schedul_iter, the values do not actually correlate with each other
         let bus_schedule_iter: Peekable<std::vec::IntoIter<PassengerOnboardingBusSchedule>> =
@@ -65,6 +70,7 @@ impl Passenger {
             current_location: Some(current_location),
             destination_location,
             passed_stops: 0,
+            beginning_time_step,
             bus_schedule,
             next_bus_num: None,
             archived_stop_list: Vec::new(),

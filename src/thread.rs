@@ -65,6 +65,11 @@ pub enum SyncToBusMessages {
     AdvanceTimeStep(crate::TimeTick),
 }
 
+#[derive(Debug)]
+pub enum SyncToPassengerMessages {
+    AdvanceTimeStep(crate::TimeTick),
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum BusThreadStatus {
     Uninitialized,

@@ -25,7 +25,7 @@ fn get_passenger_bus_routes_from_input_data(
 fn can_find_basic_route() {
     let (passenger_facing_bus_routes, location_list) =
         get_passenger_bus_routes_from_input_data(Path::new("simple_data.json"));
-    let test_passenger: Passenger = Passenger::new(location_list[3], location_list[2]);
+    let test_passenger: Passenger = Passenger::new(location_list[3], location_list[2], 0);
     let calculated_passenger_bus_route =
         calculate_passenger_schedule_for_bus(&test_passenger, 0, &passenger_facing_bus_routes);
     let expected_passenger_bus_route = vec![
@@ -50,7 +50,7 @@ fn can_find_basic_route() {
 fn can_find_bus_route_with_transfer() {
     let (passenger_facing_bus_routes, location_list) =
         get_passenger_bus_routes_from_input_data(Path::new("simple_data.json"));
-    let test_passenger = Passenger::new(location_list[0], location_list[2]);
+    let test_passenger = Passenger::new(location_list[0], location_list[2], 0);
     let calculated_passenger_bus_route =
         calculate_passenger_schedule_for_bus(&test_passenger, 0, &passenger_facing_bus_routes);
 
@@ -79,7 +79,7 @@ fn can_find_bus_route_with_transfer() {
 fn finds_shortest_route() {
     let (passenger_facing_bus_routes, location_list) =
         get_passenger_bus_routes_from_input_data(Path::new("data_with_distances.json"));
-    let test_passenger = Passenger::new(location_list[1], location_list[2]);
+    let test_passenger = Passenger::new(location_list[1], location_list[2], 0);
     let calculated_passenger_bus_route =
         calculate_passenger_schedule_for_bus(&test_passenger, 0, &passenger_facing_bus_routes);
 
@@ -110,7 +110,7 @@ fn finds_shortest_route() {
 fn special_route_removing_some_bus_locations() {
     let (mut passenger_facing_bus_routes, location_list) =
         get_passenger_bus_routes_from_input_data(Path::new("simple_data.json"));
-    let test_passenger = Passenger::new(location_list[3], location_list[2]);
+    let test_passenger = Passenger::new(location_list[3], location_list[2], 0);
     let calculated_passenger_bus_route = calculate_passenger_schedule_for_bus_check_available_buses(
         &test_passenger,
         4,

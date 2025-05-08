@@ -101,7 +101,8 @@ fn generate_passenger(location_list: &Vec<Location>) -> Result<Passenger, String
         panic!("Returned Vector was invalid")
     };
 
-    Ok(Passenger::new(old_location, new_location))
+    // TODO: update this to read from the file or randomly generate the new timestep
+    Ok(Passenger::new(old_location, new_location, 0))
 }
 
 pub fn generate_random_passenger_list(

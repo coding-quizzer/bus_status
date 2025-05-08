@@ -112,6 +112,8 @@ impl From<SerializedPassenger> for Passenger {
             archived_stop_list: Vec::new(),
             next_bus_num: None,
             bus_schedule_iterator,
+            // TODO: read beginning_time)step from serializedPassenger
+            beginning_time_step: 0,
         }
     }
 }
@@ -126,6 +128,8 @@ impl From<Passenger> for SerializedPassenger {
             bus_schedule: _bus_schedule,
             archived_stop_list: _,
             bus_schedule_iterator: _,
+            // TODO: transfer value from serialized passenger
+            beginning_time_step: _,
             next_bus_num: _,
         } = passenger;
 

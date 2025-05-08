@@ -1,9 +1,9 @@
 Fix Problems
 ✅ Make sure buses are empty when they are finished.
-Make sure overflow passengers are dealt with
+✅ Make sure overflow passengers are dealt with
 ✅ Fix duplicate passenger issue
 ✅ Get Program to run to the end
-Deal with passengers that have nowhere to go
+✅ Deal with passengers that have nowhere to go
 Add visited locations to visited locations list
 Somehow make the number of buses setable
 Make sure the program always ends when the location distances are variable
@@ -40,3 +40,7 @@ Tests
     - when a passenger transfers between buses, the passenger is removed from the bus and the station and is on the desired bus
     - overflowed passengers recalculate their schedule (their is currently a unit test for the schedule maker that accounts for overflowed buses)
     - after a bus is full, passengers still at the station do not have a schedule that requires taking that bus on that time tick
+
+May 1, 2025
+
+- Change Passengers to allow them to be inserted mid-route (So far the first step of the program is bringing passengers to the station in the first place. Now I want to add passengers into the system on different time steps)

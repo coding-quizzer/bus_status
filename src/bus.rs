@@ -2,6 +2,7 @@ use crate::passenger::Passenger;
 use crate::passenger::PassengerOnboardingBusSchedule;
 use crate::station::Station;
 use crate::thread::SyncToBusMessages;
+use crate::thread::SyncToPassengerMessages;
 use crate::thread::{BusMessages, StationEventMessages, StationToBusMessages};
 use crate::TimeTick;
 use crate::TimeTickStage;
