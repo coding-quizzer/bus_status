@@ -102,7 +102,8 @@
       "current_location": {
         "index": 0,
         "id": "21eaac51-b4e9-4338-99f0-869fe2e31d55"
-      }
+      },
+      "beginning_time_step": 0
     },
     {
       "id": "17001e20-45c2-4682-a278-e36472c20181",
@@ -113,7 +114,8 @@
       "current_location": {
         "index": 0,
         "id": "21eaac51-b4e9-4338-99f0-869fe2e31d55"
-      }
+      },
+      "beginning_time_step": 0
     },
     {
       "id": "eccf26b9-c3b4-40cc-9122-d8067d9090c9",
@@ -124,7 +126,8 @@
       "current_location": {
         "index": 4,
         "id": "350abfe3-49e0-4019-8507-a376cb602ff7"
-      }
+      },
+      "beginning_time_step": 0
     },
     {
       "id": "320f54e9-6790-4ee0-a0e3-ce59f4f9d72f",
@@ -135,7 +138,8 @@
       "current_location": {
         "index": 4,
         "id": "350abfe3-49e0-4019-8507-a376cb602ff7"
-      }
+      },
+      "beginning_time_step": 0
     },
     {
       "id": "4d6742aa-f1d8-414b-be46-b5d713f77420",
@@ -146,7 +150,8 @@
       "current_location": {
         "index": 3,
         "id": "135f70d1-0f07-4a0f-a996-3412019ea584"
-      }
+      },
+      "beginning_time_step": 0
     },
     {
       "id": "8bacdc36-ed7e-47a2-9a23-d5b61a186079",
@@ -157,7 +162,8 @@
       "current_location": {
         "index": 3,
         "id": "135f70d1-0f07-4a0f-a996-3412019ea584"
-      }
+      },
+      "beginning_time_step": 0
     },
     {
       "id": "108bdeee-818d-4f0b-b98e-47699e1d33f1",
@@ -168,7 +174,8 @@
       "current_location": {
         "index": 4,
         "id": "350abfe3-49e0-4019-8507-a376cb602ff7"
-      }
+      },
+      "beginning_time_step": 0
     },
     {
       "id": "aadb64ae-7a51-406f-a3f8-f46cdcbd220c",
@@ -179,7 +186,8 @@
       "current_location": {
         "index": 3,
         "id": "135f70d1-0f07-4a0f-a996-3412019ea584"
-      }
+      },
+      "beginning_time_step": 0
     },
     {
       "id": "afc7c2f8-b5e1-4401-996e-ca22b26069d3",
@@ -190,7 +198,8 @@
       "current_location": {
         "index": 4,
         "id": "350abfe3-49e0-4019-8507-a376cb602ff7"
-      }
+      },
+      "beginning_time_step": 0
     },
     {
       "id": "cbd53e6a-c064-4f27-a79d-3ac798303a8a",
@@ -201,7 +210,8 @@
       "current_location": {
         "index": 4,
         "id": "350abfe3-49e0-4019-8507-a376cb602ff7"
-      }
+      },
+      "beginning_time_step": 0
     }
   ],
   "location_vector": [

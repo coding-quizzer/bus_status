@@ -334,7 +334,7 @@ pub fn run_simulation(
     let passenger_thread_program_end_clone = program_end.clone();
     let mut rejected_passengers: Vec<Passenger> = Vec::new();
 
-    let passenger_thread_time_tick = TimeTick::default();
+    let mut passenger_thread_time_tick = TimeTick::default();
 
     // NOTE: how does this work? Why does passenger use the sender that officially should be sent from the bus threads?
     // How can I make the funciton clearer
@@ -345,6 +345,7 @@ pub fn run_simulation(
     // time tick will be the first time tick
     let passengers_thread_handle = std::thread::spawn(move || {
         let stations_receiver = rx_stations_to_passengers;
+        let sync_receiver = rx_sync_to_passengers;
 
         // Replace with message sent from main/sync thread
         /*
@@ -365,15 +366,29 @@ pub fn run_simulation(
 
         // Loop for the duration of the program, since
         loop {
+            let sync_message = sync_receiver.recv().unwrap();
+            let SyncToPassengerMessages::AdvanceTimeStep(new_time_tick) = sync_message;
+            passenger_thread_time_tick = new_time_tick;
+            if passenger_thread_time_tick.stage == TimeTickStage::BusLoadingPassengers {
+                continue;
+            }
+
             let mut passenger_location_list: Vec<Vec<Passenger>> = Vec::new();
             for _ in 0..(config.num_of_locations) {
                 passenger_location_list.push(Vec::new());
             }
             let mut location_vec_deque = VecDeque::from(passenger_list.clone());
+            // Only unload passengers that are on the bus at the current time tick
+            let mut filtered_location_vec_deque: VecDeque<_> = location_vec_deque
+                .iter()
+                .filter(|passenger| {
+                    passenger.beginning_time_step == passenger_thread_time_tick.number
+                })
+                .collect();
 
-            while let Some(passenger) = location_vec_deque.pop_back() {
+            while let Some(passenger) = filtered_location_vec_deque.pop_back() {
                 let current_location_index = passenger.current_location.unwrap().index;
-                passenger_location_list[current_location_index].push(passenger);
+                passenger_location_list[current_location_index].push(passenger.clone());
             }
 
             for (index, passengers_in_locations) in passenger_location_list.into_iter().enumerate()

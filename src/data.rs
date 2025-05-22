@@ -90,6 +90,7 @@ pub struct SerializedPassenger {
     id: Uuid,
     destination_location: Location,
     current_location: Option<Location>,
+    beginning_time_step: u32,
 }
 
 impl From<SerializedPassenger> for Passenger {
@@ -98,6 +99,7 @@ impl From<SerializedPassenger> for Passenger {
             id,
             destination_location,
             current_location,
+            beginning_time_step,
         } = serialized_passenger_input;
 
         let bus_schedule = Vec::new();
@@ -111,9 +113,8 @@ impl From<SerializedPassenger> for Passenger {
             bus_schedule,
             archived_stop_list: Vec::new(),
             next_bus_num: None,
+            beginning_time_step,
             bus_schedule_iterator,
-            // TODO: read beginning_time)step from serializedPassenger
-            beginning_time_step: 0,
         }
     }
 }
@@ -129,7 +130,7 @@ impl From<Passenger> for SerializedPassenger {
             archived_stop_list: _,
             bus_schedule_iterator: _,
             // TODO: transfer value from serialized passenger
-            beginning_time_step: _,
+            beginning_time_step,
             next_bus_num: _,
         } = passenger;
 
@@ -137,6 +138,7 @@ impl From<Passenger> for SerializedPassenger {
             id,
             destination_location,
             current_location,
+            beginning_time_step,
         }
     }
 }

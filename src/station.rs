@@ -344,7 +344,7 @@ pub fn create_station_thread(
                     // If I change this to be a new reciever, the other stages will not need to filter out this option
 
                     if let StationEventMessages::InitPassengerList(mut list) = received_message {
-                        assert_eq!(time_tick.number, 0);
+                        // assert_eq!(time_tick.number, 0);
                         println!("Station {station_index} Thread ID: {current_thread_id:?} Station: {station_index} Message: {list:#?}");
                         println!(
                             "Station {station_index} Thread ID: {current_thread_id:?}List: {:?}",
