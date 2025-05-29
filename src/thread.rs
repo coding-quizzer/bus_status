@@ -48,7 +48,7 @@ pub enum ProgramEndType {
 }
 
 #[derive(Debug)]
-pub enum SyncToStationMessages {
+pub enum SyncToStationAndPassengerMessages {
     AdvanceTimeStep(crate::TimeTick),
     ProgramFinished(ProgramEndType),
 }
@@ -62,11 +62,6 @@ pub enum StationToSyncMessages {
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum SyncToBusMessages {
-    AdvanceTimeStep(crate::TimeTick),
-}
-
-#[derive(Debug)]
-pub enum SyncToPassengerMessages {
     AdvanceTimeStep(crate::TimeTick),
 }
 

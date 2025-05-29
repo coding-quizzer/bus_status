@@ -7,7 +7,7 @@ use crate::location::{BusLocation, PassengerBusLocation};
 use crate::station;
 use crate::thread::{
     BusMessages, BusThreadStatus, StationEventMessages, StationToPassengersMessages,
-    StationToSyncMessages, SyncToBusMessages, SyncToPassengerMessages, SyncToStationMessages,
+    StationToSyncMessages, SyncToBusMessages, SyncToStationAndPassengerMessages,
 };
 use crate::{Location, Passenger};
 use crate::{TimeTick, TimeTickStage};
@@ -88,7 +88,8 @@ pub fn run_simulation(
     let (tx_stations_to_passengers, rx_stations_to_passengers) =
         mpsc::channel::<StationToPassengersMessages>();
 
-    let (tx_sync_to_passengers, rx_sync_to_passengers) = mpsc::channel::<SyncToPassengerMessages>();
+    let (tx_sync_to_passengers, rx_sync_to_passengers) =
+        mpsc::channel::<SyncToStationAndPassengerMessages>();
     let (send_to_station_channels, receive_in_station_channels) =
         crate::initialize_channel_list::<StationEventMessages>(config.num_of_locations);
     let receive_in_station_channels: Vec<Option<_>> =
@@ -106,9 +107,9 @@ pub fn run_simulation(
         is_first_run: bool,
         all_buses_are_moving: bool,
         time_tick: &mut TimeTick,
-        station_senders: &Vec<mpsc::Sender<SyncToStationMessages>>,
+        station_senders: &Vec<mpsc::Sender<SyncToStationAndPassengerMessages>>,
         bus_senders: &Vec<mpsc::Sender<SyncToBusMessages>>,
-        passenger_sender: &mpsc::Sender<SyncToPassengerMessages>,
+        passenger_sender: &mpsc::Sender<SyncToStationAndPassengerMessages>,
         bus_status_vector: &mut [BusThreadStatus],
     ) {
         let call_location = std::panic::Location::caller();
@@ -138,7 +139,9 @@ pub fn run_simulation(
         }
         for station_sender in station_senders {
             station_sender
-                .send(SyncToStationMessages::AdvanceTimeStep(*time_tick))
+                .send(SyncToStationAndPassengerMessages::AdvanceTimeStep(
+                    *time_tick,
+                ))
                 .unwrap();
         }
 
@@ -147,7 +150,9 @@ pub fn run_simulation(
                 .send(SyncToBusMessages::AdvanceTimeStep(*time_tick))
                 .unwrap_or(());
         }
-        passenger_sender.send(SyncToPassengerMessages::AdvanceTimeStep(*time_tick));
+        passenger_sender.send(SyncToStationAndPassengerMessages::AdvanceTimeStep(
+            *time_tick,
+        ));
     }
 
     // fn manage_time_tick_increase_for_finished_loading_tick(
@@ -165,7 +170,7 @@ pub fn run_simulation(
     // }
 
     let (sender_sync_to_stations_list, receiver_sync_to_stations_list) =
-        initialize_channel_list::<SyncToStationMessages>(config.num_of_locations);
+        initialize_channel_list::<SyncToStationAndPassengerMessages>(config.num_of_locations);
     println!("channel count: {}", config.num_of_locations);
     println!(
         "Sync to stations list: {:?}",
@@ -367,71 +372,77 @@ pub fn run_simulation(
         // Loop for the duration of the program, since
         loop {
             let sync_message = sync_receiver.recv().unwrap();
-            let SyncToPassengerMessages::AdvanceTimeStep(new_time_tick) = sync_message;
-            passenger_thread_time_tick = new_time_tick;
-            if passenger_thread_time_tick.stage == TimeTickStage::BusLoadingPassengers {
-                continue;
-            }
 
-            let mut passenger_location_list: Vec<Vec<Passenger>> = Vec::new();
-            for _ in 0..(config.num_of_locations) {
-                passenger_location_list.push(Vec::new());
-            }
-            let mut location_vec_deque = VecDeque::from(passenger_list.clone());
-            // Only unload passengers that are on the bus at the current time tick
-            let mut filtered_location_vec_deque: VecDeque<_> = location_vec_deque
-                .iter()
-                .filter(|passenger| {
-                    passenger.beginning_time_step == passenger_thread_time_tick.number
-                })
-                .collect();
-
-            while let Some(passenger) = filtered_location_vec_deque.pop_back() {
-                let current_location_index = passenger.current_location.unwrap().index;
-                passenger_location_list[current_location_index].push(passenger.clone());
-            }
-
-            for (index, passengers_in_locations) in passenger_location_list.into_iter().enumerate()
+            if let SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick) = sync_message
             {
-                station_sender_list.as_ref()[index]
-                    .send(StationEventMessages::InitPassengerList(
-                        passengers_in_locations,
-                    ))
-                    .unwrap();
-                println!("Init Passenger Info Message. Location Index: {index}");
-            }
-
-            for _ in 0..config.num_of_locations {
-                let sync_message = stations_receiver.recv().unwrap();
-                if let StationToPassengersMessages::ConfirmInitPassengerList(station_number) =
-                    sync_message
-                {
-                    println!("Passenger Init Confirmed from Station {station_number}");
+                passenger_thread_time_tick = new_time_tick;
+                if passenger_thread_time_tick.stage == TimeTickStage::BusLoadingPassengers {
+                    continue;
                 }
+
+                let mut passenger_location_list: Vec<Vec<Passenger>> = Vec::new();
+                for _ in 0..(config.num_of_locations) {
+                    passenger_location_list.push(Vec::new());
+                }
+                let mut location_vec_deque = VecDeque::from(passenger_list.clone());
+                // Only unload passengers that are on the bus at the current time tick
+                let mut filtered_location_vec_deque: VecDeque<_> = location_vec_deque
+                    .iter()
+                    .filter(|passenger| {
+                        passenger.beginning_time_step == passenger_thread_time_tick.number
+                    })
+                    .collect();
+
+                while let Some(passenger) = filtered_location_vec_deque.pop_back() {
+                    let current_location_index = passenger.current_location.unwrap().index;
+                    passenger_location_list[current_location_index].push(passenger.clone());
+                }
+
+                for (index, passengers_in_locations) in
+                    passenger_location_list.into_iter().enumerate()
+                {
+                    station_sender_list.as_ref()[index]
+                        .send(StationEventMessages::InitPassengerList(
+                            passengers_in_locations,
+                        ))
+                        .unwrap();
+                    println!("Init Passenger Info Message. Location Index: {index}");
+                }
+
+                for _ in 0..config.num_of_locations {
+                    let sync_message = stations_receiver.recv().unwrap();
+                    if let StationToPassengersMessages::ConfirmInitPassengerList(station_number) =
+                        sync_message
+                    {
+                        println!("Passenger Init Confirmed from Station {station_number}");
+                    }
+                }
+
+                println!("End of Tick one passenger calculations");
+
+                // Remove passengers who cannot get onto a bus, since if they cannot get on any bus
+                // now, they will not be able to later, because the schedules will not change. I
+                // might as well continue keeping track of them.
+
+                /* for passenger_index in rejected_passengers_indeces.into_iter().rev() {
+                    let rejected_passenger = passenger_list.remove(passenger_index);
+                    println!("Rejected passenger removed");
+                    rejected_passengers.push(rejected_passenger);
+                } */
+
+                passenger_thread_sender
+                    .send(BusMessages::InitPassengers)
+                    .unwrap();
+
+                println!("Passengers init message sent");
+                // TODO: Replace with something comperable to the panic message
+                assert_eq!(
+                    passenger_list.len() + rejected_passengers.len(),
+                    config.num_of_passengers
+                );
+            } else if let SyncToStationAndPassengerMessages::ProgramFinished(_) = sync_message {
+                break;
             }
-
-            println!("End of Tick one passenger calculations");
-
-            // Remove passengers who cannot get onto a bus, since if they cannot get on any bus
-            // now, they will not be able to later, because the schedules will not change. I
-            // might as well continue keeping track of them.
-
-            /* for passenger_index in rejected_passengers_indeces.into_iter().rev() {
-                let rejected_passenger = passenger_list.remove(passenger_index);
-                println!("Rejected passenger removed");
-                rejected_passengers.push(rejected_passenger);
-            } */
-
-            passenger_thread_sender
-                .send(BusMessages::InitPassengers)
-                .unwrap();
-
-            println!("Passengers init message sent");
-            // TODO: Replace with something comperable to the panic message
-            assert_eq!(
-                passenger_list.len() + rejected_passengers.len(),
-                config.num_of_passengers
-            );
         }
     });
 
@@ -537,7 +548,7 @@ pub fn run_simulation(
             {
                 for station_sender in send_to_stations.iter() {
                     station_sender
-                        .send(SyncToStationMessages::ProgramFinished(
+                        .send(SyncToStationAndPassengerMessages::ProgramFinished(
                             crate::thread::ProgramEndType::ProgramCrashed {
                                 message: message.into(),
                             },
@@ -583,7 +594,7 @@ pub fn run_simulation(
             } => {
                 for station_sender in &send_to_stations {
                     station_sender
-                        .send(SyncToStationMessages::ProgramFinished(
+                        .send(SyncToStationAndPassengerMessages::ProgramFinished(
                             crate::thread::ProgramEndType::ProgramCrashed {
                                 message: message.to_string(),
                             },
@@ -713,7 +724,7 @@ pub fn run_simulation(
             *program_end = true;
             for sender in send_to_stations {
                 sender
-                    .send(SyncToStationMessages::ProgramFinished(
+                    .send(SyncToStationAndPassengerMessages::ProgramFinished(
                         crate::thread::ProgramEndType::ProgramFinished,
                     ))
                     .unwrap();
