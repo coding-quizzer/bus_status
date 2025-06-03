@@ -242,6 +242,10 @@ fn receive_fresh_passengers(
     //     "Station {station_index} Thread ID: {current_thread_id:?}List: {:?}",
     //     list
     // );
+    /* if !*bus_passengers_initialized {
+        return;
+    } */
+    println!("receive_fresh_passengers start");
     let station_index = current_station.location.index;
     for passenger in list.iter() {
         // let passenger_bus_route_list =
@@ -269,6 +273,7 @@ fn receive_fresh_passengers(
             station_index,
         ))
         .unwrap();
+    println!("Station sent confirmation to Passenger thread");
     *bus_passengers_initialized = true;
 }
 
@@ -393,6 +398,7 @@ pub fn create_station_thread(
                     // If I change this to be a new reciever, the other stages will not need to filter out this option
 
                     if let StationEventMessages::InitPassengerList(mut list) = received_message {
+                        println!("InitPassengerList message received in station");
                         /* // assert_eq!(time_tick.number, 0);
                         println!("Station {station_index} Thread ID: {current_thread_id:?} Station: {station_index} Message: {list:#?}");
                         println!(

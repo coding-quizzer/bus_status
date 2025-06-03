@@ -369,12 +369,73 @@ pub fn run_simulation(
         let passenger_list = passenger_thead_passenger_list_clone.lock().unwrap();
         println!("Beginning of tick one passenger calculations");
 
+        /*Execute Code before loop*/
+
+        println!("Passenger thread time tick started");
+        let mut passenger_location_list: Vec<Vec<Passenger>> = Vec::new();
+        for _ in 0..(config.num_of_locations) {
+            passenger_location_list.push(Vec::new());
+        }
+        let location_vec_deque = VecDeque::from(passenger_list.clone());
+        // Only unload passengers that are on the bus at the current time tick
+        let mut filtered_location_vec_deque: VecDeque<_> = location_vec_deque
+            .iter()
+            .filter(|passenger| passenger.beginning_time_step == passenger_thread_time_tick.number)
+            .collect();
+
+        while let Some(passenger) = filtered_location_vec_deque.pop_back() {
+            let current_location_index = passenger.current_location.unwrap().index;
+            passenger_location_list[current_location_index].push(passenger.clone());
+        }
+        for (index, passengers_in_locations) in passenger_location_list.into_iter().enumerate() {
+            station_sender_list.as_ref()[index]
+                .send(StationEventMessages::InitPassengerList(
+                    passengers_in_locations,
+                ))
+                .unwrap();
+            println!("Init Passenger Info Message. Location Index: {index}");
+        }
+
+        for _ in 0..config.num_of_locations {
+            let sync_message = stations_receiver.recv().unwrap();
+            if let StationToPassengersMessages::ConfirmInitPassengerList(station_number) =
+                sync_message
+            {
+                println!("Passenger Init Confirmed from Station {station_number}");
+            }
+        }
+
+        println!("End of Tick one passenger calculations");
+
+        // Remove passengers who cannot get onto a bus, since if they cannot get on any bus
+        // now, they will not be able to later, because the schedules will not change. I
+        // might as well continue keeping track of them.
+
+        /* for passenger_index in rejected_passengers_indeces.into_iter().rev() {
+            let rejected_passenger = passenger_list.remove(passenger_index);
+            println!("Rejected passenger removed");
+            rejected_passengers.push(rejected_passenger);
+        } */
+
+        passenger_thread_sender
+            .send(BusMessages::InitPassengers)
+            .unwrap();
+
+        println!("Passengers init message sent");
+        // TODO: Replace with something comperable to the panic message
+        assert_eq!(
+            passenger_list.len() + rejected_passengers.len(),
+            config.num_of_passengers
+        );
+
         // Loop for the duration of the program, since
-        loop {
+        'passenger_loop: loop {
+            // This does not work for the initial first time tick, because the message is never sent
             let sync_message = sync_receiver.recv().unwrap();
 
             if let SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick) = sync_message
             {
+                println!("Passenger thread time tick started");
                 passenger_thread_time_tick = new_time_tick;
                 if passenger_thread_time_tick.stage == TimeTickStage::BusLoadingPassengers {
                     continue;
@@ -397,7 +458,6 @@ pub fn run_simulation(
                     let current_location_index = passenger.current_location.unwrap().index;
                     passenger_location_list[current_location_index].push(passenger.clone());
                 }
-
                 for (index, passengers_in_locations) in
                     passenger_location_list.into_iter().enumerate()
                 {
@@ -408,17 +468,24 @@ pub fn run_simulation(
                         .unwrap();
                     println!("Init Passenger Info Message. Location Index: {index}");
                 }
-
+                let stations_are_active: bool = true;
                 for _ in 0..config.num_of_locations {
-                    let sync_message = stations_receiver.recv().unwrap();
-                    if let StationToPassengersMessages::ConfirmInitPassengerList(station_number) =
-                        sync_message
-                    {
-                        println!("Passenger Init Confirmed from Station {station_number}");
+                    if stations_are_active {
+                        let sync_message = stations_receiver.recv();
+                        if sync_message.is_err() {
+                            break 'passenger_loop;
+                        }
+
+                        if let StationToPassengersMessages::ConfirmInitPassengerList(
+                            station_number,
+                        ) = sync_message.unwrap()
+                        {
+                            println!("Passenger Init Confirmed from Station {station_number}");
+                        }
                     }
                 }
 
-                println!("End of Tick one passenger calculations");
+                println!("End of normal tickpassenger calculations");
 
                 // Remove passengers who cannot get onto a bus, since if they cannot get on any bus
                 // now, they will not be able to later, because the schedules will not change. I
@@ -441,6 +508,7 @@ pub fn run_simulation(
                     config.num_of_passengers
                 );
             } else if let SyncToStationAndPassengerMessages::ProgramFinished(_) = sync_message {
+                println!("passenger thread closed for finished program.");
                 break;
             }
         }
@@ -729,6 +797,11 @@ pub fn run_simulation(
                     ))
                     .unwrap();
             }
+            send_to_passengers.send(SyncToStationAndPassengerMessages::ProgramFinished(
+                crate::thread::ProgramEndType::ProgramFinished,
+            ));
+
+            println!("Sent ProgramFinished message to stations and passengers.");
 
             // This is the place for code after the loop
 
