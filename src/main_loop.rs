@@ -428,6 +428,8 @@ pub fn run_simulation(
             config.num_of_passengers
         );
 
+        let init_time_step: bool = true;
+
         // Loop for the duration of the program, since
         'passenger_loop: loop {
             // This does not work for the initial first time tick, because the message is never sent
@@ -468,21 +470,27 @@ pub fn run_simulation(
                         .unwrap();
                     println!("Init Passenger Info Message. Location Index: {index}");
                 }
-                let stations_are_active: bool = true;
+                let mut stations_passenger_init = Vec::new();
+                stations_passenger_init.resize(config.num_of_locations, false);
                 for _ in 0..config.num_of_locations {
-                    if stations_are_active {
-                        let sync_message = stations_receiver.recv();
-                        if sync_message.is_err() {
-                            break 'passenger_loop;
-                        }
-
-                        if let StationToPassengersMessages::ConfirmInitPassengerList(
-                            station_number,
-                        ) = sync_message.unwrap()
-                        {
-                            println!("Passenger Init Confirmed from Station {station_number}");
-                        }
+                    let sync_message = stations_receiver.recv();
+                    if sync_message.is_err() {
+                        break 'passenger_loop;
                     }
+
+                    if let StationToPassengersMessages::ConfirmInitPassengerList(station_number) =
+                        sync_message.unwrap()
+                    {
+                        stations_passenger_init[station_number] = true;
+                        println!("Passenger Init Confirmed from Station {station_number}");
+                    }
+                }
+                let all_stations_init = stations_passenger_init.iter().any(|value| *value == false);
+                if all_stations_init {
+                    panic!(
+                        "One of the stations sent two confirm messages. Message confirm list: {:?}",
+                        stations_passenger_init
+                    );
                 }
 
                 println!("End of normal tickpassenger calculations");
