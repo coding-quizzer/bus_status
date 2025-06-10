@@ -5,11 +5,16 @@ use std::path::Path;
 
 use bus_system::bus::BusLocation;
 use bus_system::consts::*;
-use bus_system::data::{self, InputDataStructure};
+use bus_system::data::{self, InputDataStructure, SerializedIndexedPassenger};
 use bus_system::location::Location;
 use bus_system::main_loop::{run_simulation, ConfigStruct};
 
 fn main() {
+    simple_logger::SimpleLogger::new()
+        .without_timestamps()
+        .with_level(log::LevelFilter::Debug)
+        .init()
+        .unwrap();
     let initial_data: InputDataStructure = if READ_JSON {
         println!("Reading data from file");
         data::read_data_from_file(Path::new("bus_route_data.json")).unwrap()
@@ -31,6 +36,14 @@ fn main() {
         location_vector,
     } = initial_data;
 
+    let indexed_passengers = passengers
+        .into_iter()
+        .enumerate()
+        .map(|(index, passenger)| SerializedIndexedPassenger {
+            index: index.try_into().unwrap(),
+            passenger,
+        });
+
     let num_of_buses = bus_routes.len();
     let num_of_locations = if READ_JSON {
         location_vector.len()
@@ -38,7 +51,7 @@ fn main() {
         DEFAULT_GLOBAL_LOCATION_COUNT
     };
     let num_of_passengers = if READ_JSON {
-        passengers.len()
+        indexed_passengers.len()
     } else {
         GLOBAL_PASSENGER_COUNT
     };
@@ -50,7 +63,7 @@ fn main() {
     };
 
     let total_passenger_list = if READ_JSON {
-        passengers
+        indexed_passengers
             .into_iter()
             .map(|passenger| passenger.into())
             .collect()

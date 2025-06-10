@@ -94,7 +94,7 @@ fn generate_list_of_random_elements_from_list<T: Copy>(
     Ok(output_list)
 }
 
-fn generate_passenger(location_list: &Vec<Location>) -> Result<Passenger, String> {
+fn generate_passenger(location_list: &Vec<Location>, index: usize) -> Result<Passenger, String> {
     let location_vector = generate_list_of_random_elements_from_list(location_list, 2)?;
 
     let [old_location, new_location] = location_vector[..] else {
@@ -102,7 +102,7 @@ fn generate_passenger(location_list: &Vec<Location>) -> Result<Passenger, String
     };
 
     // TODO: update this to read from the file or randomly generate the new timestep
-    Ok(Passenger::new(old_location, new_location, 0))
+    Ok(Passenger::new(old_location, new_location, 0, index))
 }
 
 pub fn generate_random_passenger_list(
@@ -110,8 +110,8 @@ pub fn generate_random_passenger_list(
     location_list: &Vec<Location>,
 ) -> Result<Vec<Passenger>, String> {
     let mut passenger_list = vec![];
-    for _num in 0..count {
-        passenger_list.push(generate_passenger(location_list)?)
+    for num in 0..count {
+        passenger_list.push(generate_passenger(location_list, num)?)
     }
 
     Ok(passenger_list)

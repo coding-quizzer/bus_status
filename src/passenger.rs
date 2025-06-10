@@ -17,6 +17,7 @@ use uuid::Uuid;
 #[derive(Clone)]
 pub struct Passenger {
     pub id: Uuid,
+    pub index: usize,
     pub destination_location: Location,
     pub current_location: Option<Location>,
     pub passed_stops: u32,
@@ -42,6 +43,12 @@ impl std::fmt::Debug for Passenger {
     }
 }
 
+impl std::fmt::Display for Passenger {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "Passenger {}", self.index)
+    }
+}
+
 impl PartialEq for Passenger {
     fn eq(&self, other: &Passenger) -> bool {
         self.id == other.id
@@ -60,6 +67,7 @@ impl Passenger {
         current_location: Location,
         destination_location: Location,
         beginning_time_step: u32,
+        index: usize,
     ) -> Self {
         let bus_schedule: Vec<PassengerOnboardingBusSchedule> = Vec::new();
         // Since bus_schedule is cloned for bus_schedul_iter, the values do not actually correlate with each other
@@ -67,6 +75,7 @@ impl Passenger {
             bus_schedule.clone().into_iter().peekable();
         Self {
             id: Uuid::new_v4(),
+            index,
             current_location: Some(current_location),
             destination_location,
             passed_stops: 0,

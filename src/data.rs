@@ -93,20 +93,26 @@ pub struct SerializedPassenger {
     beginning_time_step: u32,
 }
 
-impl From<SerializedPassenger> for Passenger {
-    fn from(serialized_passenger_input: SerializedPassenger) -> Passenger {
+pub struct SerializedIndexedPassenger {
+    pub passenger: SerializedPassenger,
+    pub index: usize,
+}
+
+impl From<SerializedIndexedPassenger> for Passenger {
+    fn from(serialized_passenger_input: SerializedIndexedPassenger) -> Passenger {
         let SerializedPassenger {
             id,
             destination_location,
             current_location,
             beginning_time_step,
-        } = serialized_passenger_input;
+        } = serialized_passenger_input.passenger;
 
         let bus_schedule = Vec::new();
         let bus_schedule_iterator = bus_schedule.clone().into_iter().peekable();
 
         Passenger {
             id,
+            index: serialized_passenger_input.index,
             destination_location,
             current_location,
             passed_stops: 0,
@@ -123,6 +129,7 @@ impl From<Passenger> for SerializedPassenger {
     fn from(passenger: Passenger) -> SerializedPassenger {
         let Passenger {
             id,
+            index: _,
             destination_location,
             current_location,
             passed_stops: _passed_stops,

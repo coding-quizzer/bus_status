@@ -9,8 +9,8 @@ fn rejected_passengers_and_arrived_passengers_are_accounted_for() {
 
     let location_vector = vec![Location::new(0), Location::new(1)];
     let mut passenger_list = vec![];
-    for _ in 0..TEST_PASSENGER_COUNT {
-        let passenger = Passenger::new(location_vector[0], location_vector[1], 0);
+    for index in 0..TEST_PASSENGER_COUNT {
+        let passenger = Passenger::new(location_vector[0], location_vector[1], 0, index);
         passenger_list.push(passenger);
     }
 
@@ -68,7 +68,7 @@ fn passengers_from_all_timeticks_are_accounted_for() {
         } else {
             location_vector[2]
         };
-        let passenger = Passenger::new(location_vector[0], destination_location, 0);
+        let passenger = Passenger::new(location_vector[0], destination_location, 0, current_index);
         passenger_list.push(passenger);
     }
 

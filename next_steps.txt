@@ -7,6 +7,7 @@ Fix Problems
 Add visited locations to visited locations list
 Somehow make the number of buses setable
 Make sure the program always ends when the location distances are variable
+Debug variable start times - some passengers should be getting through but are not
 
 Add features/Experiment
   Customizable bus size (should be =)

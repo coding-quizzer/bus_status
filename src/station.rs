@@ -14,6 +14,7 @@ use crate::{
 use crate::{station, TimeTick};
 use crate::{ReceiverWithIndex, TimeTickStage};
 use core::time;
+use log::{debug, error, info, trace};
 use std::sync::mpsc::TryRecvError;
 use std::sync::{
     mpsc::{Receiver, Sender},
@@ -78,7 +79,7 @@ impl Station {
         time_tick: &TimeTick,
         bus_route_list: &Vec<Vec<PassengerBusLocation>>,
     ) -> Result<(), Passenger> {
-        println!(
+        info!(
             "Calculating Route from {} to {}.",
             new_passenger.current_location.unwrap(),
             new_passenger.destination_location
@@ -86,7 +87,7 @@ impl Station {
 
         let new_bus_schedule =
             calculate_passenger_schedule_for_bus(&new_passenger, time_tick.number, bus_route_list)?;
-        println!(
+        debug!(
             "function: add_passenger Thread ID: {:?}New Bus Schedule: {:#?}",
             thread::current().id(),
             new_bus_schedule,
@@ -111,7 +112,7 @@ impl Station {
         bus_route_list: &mut [Vec<PassengerBusLocation>],
         buses_unavailable: Vec<usize>,
     ) -> Result<(), Passenger> {
-        println!(
+        info!(
             "Calculating Route from {} to {}.",
             new_passenger.current_location.unwrap(),
             new_passenger.destination_location
@@ -123,15 +124,15 @@ impl Station {
             bus_route_list,
             buses_unavailable.clone(),
         )?;
-        println!(
+        debug!(
             "Thread ID: {:?}New Bus Schedule: {:#?}",
             thread::current().id(),
             new_bus_schedule,
         );
-        println!("Thread ID: {:?}Passengers added.", thread::current().id());
-        println!("Buses unavailable: {buses_unavailable:?}");
+        debug!("Thread ID: {:?}Passengers added.", thread::current().id());
+        debug!("Buses unavailable: {buses_unavailable:?}");
         if new_passenger.bus_schedule == new_bus_schedule {
-            println!("New passenger route must be different from the original.");
+            error!("New passenger route must be different from the original.");
         }
         new_passenger.bus_schedule_iterator = new_bus_schedule.clone().into_iter().peekable();
         new_passenger.bus_schedule = new_bus_schedule;
@@ -245,7 +246,7 @@ fn receive_fresh_passengers(
     /* if !*bus_passengers_initialized {
         return;
     } */
-    println!("receive_fresh_passengers start");
+    info!("receive_fresh_passengers start");
     let station_index = current_station.location.index;
     for passenger in list.iter() {
         // let passenger_bus_route_list =
@@ -259,7 +260,7 @@ fn receive_fresh_passengers(
                                 )
                                 .unwrap_or_else(|passenger| {
                                     (*rejected_passenger_clone.lock().unwrap()).push(passenger.clone());
-                                    println!("Station {station_index} Thread ID: {current_thread_id:?}Passenger {:?} had no valid routes", passenger);
+                                    info!("Station {station_index} Thread ID: {current_thread_id:?}Passenger {:?} had no valid routes", passenger);
                                 });
     }
 
@@ -273,7 +274,7 @@ fn receive_fresh_passengers(
             station_index,
         ))
         .unwrap();
-    println!("Station sent confirmation to Passenger thread");
+    debug!("Station sent confirmation to Passenger thread");
     *bus_passengers_initialized = true;
 }
 
@@ -298,7 +299,7 @@ pub fn create_station_thread(
             &station_thread_passenger_bus_route_list.lock().unwrap(),
         );
         let station_index = station_channel_receiver.index;
-        println!(
+        debug!(
             "Thread ID: {:?}Station index: {station_index}",
             thread::current().id()
         );
@@ -323,7 +324,7 @@ pub fn create_station_thread(
                 let message_from_sync_result = sync_to_stations_receiver.try_recv();
                 match message_from_sync_result {
                     Ok(SyncToStationAndPassengerMessages::ProgramFinished(_)) => {
-                        println!(
+                        info!(
                             "All buses finished message received in station {}",
                             station_index
                         );
@@ -335,12 +336,12 @@ pub fn create_station_thread(
                         break 'main;
                     }
                     Ok(SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_step)) => {
-                        println!(
+                        info!(
                             "Station {station_index} Thread ID: {:?} New Time Step: {:?}",
                             thread::current().id(),
                             new_time_step
                         );
-                        println!(
+                        info!(
                             "Thread ID: {:?}Old Time Step: {:?}",
                             thread::current().id(),
                             time_tick
@@ -381,16 +382,16 @@ pub fn create_station_thread(
             match time_tick.stage {
                 TimeTickStage::PassengerInit => {
                     if bus_passengers_initialized {
-                        println!("Bus passengers already initialized");
+                        error!("Bus passengers already initialized");
                         thread::sleep(Duration::from_millis(10));
                         continue;
                     }
 
-                    println!("Station {} first timetick", station_index);
+                    info!("Station {} first timetick", station_index);
                     // let received_message = bus_message_receiver.recv().unwrap();
                     let received_message = message_from_bus;
 
-                    println!(
+                    info!(
                         "Station {} first message received: {:#?}",
                         station_index, received_message
                     );
@@ -398,7 +399,7 @@ pub fn create_station_thread(
                     // If I change this to be a new reciever, the other stages will not need to filter out this option
 
                     if let StationEventMessages::InitPassengerList(mut list) = received_message {
-                        println!("InitPassengerList message received in station");
+                        info!("InitPassengerList message received in station");
                         /* // assert_eq!(time_tick.number, 0);
                         println!("Station {station_index} Thread ID: {current_thread_id:?} Station: {station_index} Message: {list:#?}");
                         println!(
@@ -470,7 +471,7 @@ pub fn create_station_thread(
 
                     // };
                     if received_bus_message != StationEventMessages::NoMessage {
-                        println!("Station {} received message {:?} on BusUnloadingPassengers stage received on time tick {:?}", station_index , received_bus_message, time_tick);
+                        debug!("Station {} received message {:?} on BusUnloadingPassengers stage received on time tick {:?}", station_index , received_bus_message, time_tick);
                     }
 
                     // println!(
@@ -487,7 +488,7 @@ pub fn create_station_thread(
                         bus_info,
                     } = received_bus_message
                     {
-                        println!(
+                        info!(
                             "Bus Arrived Message received in station {} from bus {}",
                             station_index, bus_info.bus_index
                         );
@@ -499,18 +500,18 @@ pub fn create_station_thread(
                             passenger.next_bus_num = passenger_location.bus_num;
                             passenger.archived_stop_list.push(passenger_location);
                         }
-                        println!(
+                        debug!(
                             "Passengers exiting bus {:?}: {:?}",
                             bus_info.bus_index, passengers_onboarding
                         );
-                        println!("{} passengers exited the bus", passengers_onboarding.len());
+                        info!("{} passengers exited the bus", passengers_onboarding.len());
                         current_station.passengers.extend(passengers_onboarding);
-                        println!(
+                        info!(
                             "{} passengers are now in the station",
                             current_station.passengers.len()
                         );
                         let bus_index = bus_info.bus_index;
-                        println!("Bus {bus_index} arrived at station {station_index}. Received from station.");
+                        info!("Bus {bus_index} arrived at station {station_index}. Received from station.");
 
                         assert!(!current_station
                             .docked_buses
@@ -529,7 +530,7 @@ pub fn create_station_thread(
                         send_to_bus_channels[bus_index]
                             .send(StationToBusMessages::FinishedUnloading)
                             .unwrap();
-                        println!(
+                        info!(
                             "Station {} finished unloading bus {} and sent message",
                             station_index, bus_index
                         );
@@ -553,7 +554,7 @@ pub fn create_station_thread(
                     }
                 }
                 TimeTickStage::BusLoadingPassengers { .. } => {
-                    println!(
+                    info!(
                         "BusLoadingPassengers timetick beginning. Timetick: {}",
                         time_tick.number
                     );
@@ -576,7 +577,7 @@ pub fn create_station_thread(
                     if let StationEventMessages::BusDeparted { bus_index } = received_message {
                         // Why is there a bus that should be removed which is not on the list of docked buses?
                         // Confirm that the station contains the bus that should be removed
-                        println!(
+                        info!(
                             "Bus departure message received at station {} for bus {}",
                             current_station.location.index, bus_index
                         );
@@ -595,7 +596,7 @@ pub fn create_station_thread(
                             .retain(|bus| bus.bus_index != bus_index);
 
                         // How is the bus departure received before going through this?
-                        println!(
+                        info!(
                             "Bus {} removed from station {}",
                             bus_index, current_location.index
                         );
@@ -635,7 +636,7 @@ pub fn create_station_thread(
                     let mut next_passengers_for_buses_array = Vec::new();
                     next_passengers_for_buses_array.resize(num_of_buses, None);
 
-                    println!(
+                    debug!(
                         "Array with locations for station {:?}: {:?}",
                         &current_station.location.index, &docked_bus_passenger_pairs_iter
                     );
@@ -654,7 +655,7 @@ pub fn create_station_thread(
                         docked_bus_passenger_pairs_vec.into_iter();
 
                     let mut next_vec = docked_bus_passenger_pairs_iter.next();
-                    println!("Station {} next vec: {:?}", station_index, next_vec);
+                    debug!("Station {} next vec: {:?}", station_index, next_vec);
 
                     // Add empty arrays at the indeces of buses docked at the station
                     next_passengers_for_buses_array = next_passengers_for_buses_array
@@ -677,7 +678,7 @@ pub fn create_station_thread(
                         .try_into()
                         .unwrap();
 
-                    println!(
+                    debug!(
                         "station {} next passengers for buses array: {:?}",
                         station_index, next_passengers_for_buses_array
                     );
@@ -689,7 +690,7 @@ pub fn create_station_thread(
                     // from station 3 at time tick 2, but are still in station 3 at time tick 4)
 
                     // I don't think dropped off passengers are removed from the station - that's an obvious problem
-                    println!(
+                    debug!(
                         "Station {} Passengers: {:#?}",
                         current_station.location.index, current_station.passengers
                     );
@@ -709,17 +710,19 @@ pub fn create_station_thread(
                                 // The next location will be the next station, which should be None if this is the last one
                                 // This will be some, given the next location represents the current station
                                 let next_location = passenger_iterator_clone.next();
-                                println!("Station {station_index} Thread ID: {current_thread_id:?}Passenger schedule: {:#?}", passenger.bus_schedule);
-                                println!("Station {station_index} Thread ID: {current_thread_id:?}Passenger, {:#?}", passenger);
-                                println!("Station {station_index} Thread ID: {current_thread_id:?}Current location number: {}", station_index);
-                                println!("Station {station_index} Thread ID: {current_thread_id:?}Next location {:#?}", next_location);
-                                println!("Station {station_index} Thread ID: {current_thread_id:?}Time tick: {:?}", time_tick);
+                                trace!("Station {station_index} Thread ID: {current_thread_id:?}Passenger schedule: {:#?}", passenger.bus_schedule);
+                                trace!("Station {station_index} Thread ID: {current_thread_id:?}Passenger, {:#?}", passenger);
+                                trace!("Station {station_index} Thread ID: {current_thread_id:?}Current location number: {}", station_index);
+                                trace!("Station {station_index} Thread ID: {current_thread_id:?}Next location {:#?}", next_location);
+                                trace!("Station {station_index} Thread ID: {current_thread_id:?}Time tick: {:?}", time_tick);
 
                                 next_location.is_some()
                             });
-                    println!(
+                    trace!(
                         "Time_tick: {}, Station {} Arrived Passengers: {:#?}",
-                        time_tick.number, station_index, arrived_passengers
+                        time_tick.number,
+                        station_index,
+                        arrived_passengers
                     );
                     // ensure this is actually arrived passengers have actually arrived at the correct destination
                     assert!(arrived_passengers
@@ -735,9 +738,10 @@ pub fn create_station_thread(
                         .arrived_passengers
                         .append(&mut newly_arrived_passengers);
 
-                    println!(
+                    trace!(
                         "Arrived Passengers in station {}: {:#?}",
-                        station_index, current_station.arrived_passengers
+                        station_index,
+                        current_station.arrived_passengers
                     );
 
                     // println!("Passengers for next destination: {:?}", &passengers_for_next_destination);;
@@ -751,7 +755,7 @@ pub fn create_station_thread(
                     //     station_index, passengers_for_next_destination
                     // );
                     for passenger in passengers_for_next_destination {
-                        println!("passenger_loop");
+                        info!("passenger_loop");
                         // Does this work, or will this be the next next location?
                         let next_bus_index = passenger.next_bus_num.expect(
                           "Since there is a location after this, the next bus index should not be None",
@@ -775,16 +779,16 @@ pub fn create_station_thread(
 
                     for bus in docked_buses {
                         // println!("Station loop beginning.");
-                        println!("Station Bus Time tick: {:?}", time_tick);
-                        println!("Station: {}", current_station.location.index);
-                        println!("Bus: {}", bus.bus_index);
+                        debug!("Station Bus Time tick: {:?}", time_tick);
+                        debug!("Station: {}", current_station.location.index);
+                        debug!("Bus: {}", bus.bus_index);
                         let mut passengers_to_send = Vec::new();
                         let bus_index = bus.bus_index;
                         let remaining_capacity = bus.capacity_remaining;
                         // The index does not exist in the array - even though the index should be of a docked bus
                         // let passengers_overflowed: Vec<_> = todo!();
 
-                        println!(
+                        debug!(
                             "Next passengers for buses, {:?}. Bus index: {}",
                             next_passengers_for_buses_array, bus_index,
                         );
@@ -807,8 +811,7 @@ pub fn create_station_thread(
                         } else {
                             passengers_to_send.append(&mut new_passenger_list);
                         }
-                        // FIXME: Some of these passengers are sent to the same bus both from the beginning station and from the end station
-                        println!(
+                        debug!(
                             "Passengers to send from station {}: {:#?}",
                             station_index, passengers_to_send,
                         );
@@ -823,12 +826,12 @@ pub fn create_station_thread(
                         // bus_route_vec[0][0].
 
                         drop(current_bus_route_list);
-                        println!("Current bus route list dropped");
+                        debug!("Current bus route list dropped");
 
                         // TODO: Deal with passengers without an available route
                         for passenger in passengers_overflowed.clone() {
                             let unavailable_buses = current_station.buses_unavailable.clone();
-                            println!("Unavailable buses: {:?}", unavailable_buses);
+                            info!("Unavailable buses: {:?}", unavailable_buses);
                             current_station
                                 .add_passenger_check_available_buses(
                                     passenger,
@@ -837,7 +840,7 @@ pub fn create_station_thread(
                                     unavailable_buses,
                                 )
                                 .unwrap_or_else(|passenger| {
-                                    println!("Passenger failed to find route.");
+                                    error!("Passenger failed to find route.");
                                     final_passenger_list_clone
                                         .lock()
                                         .unwrap()
@@ -848,14 +851,14 @@ pub fn create_station_thread(
 
                         // drop(time_tick);
 
-                        println!("Pre-bus departure");
+                        info!("Pre-bus departure");
                     }
 
-                    println!("Time tick when buses are dismissed: {:?}", &time_tick);
+                    debug!("Time tick when buses are dismissed: {:?}", &time_tick);
                     // One station is doing this twice. why?
                     let current_thread = thread::current();
                     for bus in current_station.docked_buses.iter() {
-                        println!(
+                        debug!(
                             "Request departure from station {} for bus {} on timetick {:?} on thread {:?}",
                             current_station.location.index,
                             bus.bus_index,
@@ -867,7 +870,7 @@ pub fn create_station_thread(
                             .unwrap();
                     }
 
-                    println!("Departure message sent");
+                    info!("Departure message sent");
 
                     current_station.bus_loading_first_iteration = Some(false);
 
@@ -889,17 +892,17 @@ pub fn create_station_thread(
                     if let Ok(SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick)) =
                         message_from_sync_result
                     {
-                        println!(
+                        info!(
                             "Advance Time tick message received in station {}",
                             station_index
                         );
-                        println!("Time tick: {:?}", station_time_tick);
+                        debug!("Time tick: {:?}", station_time_tick);
                         // At this point if all the buses have finished their tick, they should be gone from the station
 
                         time_tick = new_time_tick;
 
                         if !(current_station.docked_buses.is_empty()) {
-                            println!("Station {station_index} Thread ID: {current_thread_id:?}Station {} time tick: {:?}", current_location.index, time_tick);
+                            debug!("Station {station_index} Thread ID: {current_thread_id:?}Station {} time tick: {:?}", current_location.index, time_tick);
                             // println!("Station {station_index} Thread ID: {current_thread_id:?}Time tick before incrementing: {:?}", new_time_tick);
                             // break from the loop so that the time tick has an opportunity to update
 
@@ -918,17 +921,17 @@ pub fn create_station_thread(
 
                         // Clear buses unavailable list
                         current_station.buses_unavailable = Vec::new();
-                        println!(
+                        info!(
                             "Station received AdvanceTimeStep message at time tick {:?}",
                             time_tick
                         );
                         // current_station.bus_loading_first_iteration = None;
-                        println!("Break Bus Loading");
+                        info!("Break Bus Loading");
                         // break 'bus_loading;
                     } else if let Ok(SyncToStationAndPassengerMessages::ProgramFinished(_)) =
                         message_from_sync_result
                     {
-                        println!(
+                        info!(
                             "All buses finished message received in station {}",
                             station_index
                         );
@@ -944,7 +947,7 @@ pub fn create_station_thread(
                     // }
                     // bus_loading_first_iteration was set to None before breaking, so it should remain None
                     // assert!(current_station.bus_loading_first_iteration.is_none());
-                    println!(
+                    info!(
                         "Bus Loading Loop finished in station {}",
                         current_station.location.index
                     );
