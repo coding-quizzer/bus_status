@@ -88,6 +88,9 @@ pub fn run_simulation(
     let (tx_stations_to_passengers, rx_stations_to_passengers) =
         mpsc::channel::<StationToPassengersMessages>();
 
+    let (tx_sync_to_display, rx_sync_to_display) =
+        mpsc::channel::<SyncToStationAndPassengerMessages>();
+
     let (tx_sync_to_passengers, rx_sync_to_passengers) =
         mpsc::channel::<SyncToStationAndPassengerMessages>();
     let (send_to_station_channels, receive_in_station_channels) =
@@ -100,6 +103,9 @@ pub fn run_simulation(
     let (send_to_bus_channels, receive_from_bus_channels) =
         initialize_channel_list::<crate::thread::StationToBusMessages>(config.num_of_buses);
 
+    let (tx_stations_to_display, rx_stations_to_display) =
+        mpsc::channel::<crate::display::TerminalMessage>();
+
     // let current_time_tick_clone = current_time_tick.clone();
 
     #[track_caller]
@@ -110,6 +116,7 @@ pub fn run_simulation(
         station_senders: &Vec<mpsc::Sender<SyncToStationAndPassengerMessages>>,
         bus_senders: &Vec<mpsc::Sender<SyncToBusMessages>>,
         passenger_sender: &mpsc::Sender<SyncToStationAndPassengerMessages>,
+        display_sender: &mpsc::Sender<SyncToStationAndPassengerMessages>,
         bus_status_vector: &mut [BusThreadStatus],
     ) {
         let call_location = std::panic::Location::caller();
@@ -150,9 +157,16 @@ pub fn run_simulation(
                 .send(SyncToBusMessages::AdvanceTimeStep(*time_tick))
                 .unwrap_or(());
         }
+        // Check if these unwraps are problematic
         passenger_sender.send(SyncToStationAndPassengerMessages::AdvanceTimeStep(
             *time_tick,
         ));
+        //.unwrap();
+        display_sender
+            .send(SyncToStationAndPassengerMessages::AdvanceTimeStep(
+                *time_tick,
+            ))
+            .unwrap();
     }
 
     // fn manage_time_tick_increase_for_finished_loading_tick(
@@ -524,6 +538,16 @@ pub fn run_simulation(
 
     handle_list.push(passengers_thread_handle);
 
+    // Threads
+    // station thread (passenger data)
+    let display_loop = std::thread::spawn(move || {
+        let stations_reader = rx_stations_to_display;
+        let output_file = std::fs::File::create("display.txt").unwrap();
+        let writer = std::io::BufWriter::new(output_file);
+
+        // need to somehow navigate around passengers who cannot reach the destination or who have already reached their destination
+    });
+
     /* Beginning of Main/sync thread loop */
     // spawn other threads
 
@@ -531,6 +555,7 @@ pub fn run_simulation(
     let send_to_buses = sender_sync_to_bus_list.clone();
     let receiver_from_buses = rx_from_threads;
     let send_to_passengers = tx_sync_to_passengers;
+    let send_to_display = tx_sync_to_display;
 
     // Main thread: Keeps track of the remaining threads as a whole. Sends messages
 
@@ -775,6 +800,7 @@ pub fn run_simulation(
                     &send_to_stations,
                     &send_to_buses,
                     &send_to_passengers,
+                    &send_to_display,
                     &mut bus_status_vector,
                 );
             }
@@ -806,6 +832,9 @@ pub fn run_simulation(
                     .unwrap();
             }
             send_to_passengers.send(SyncToStationAndPassengerMessages::ProgramFinished(
+                crate::thread::ProgramEndType::ProgramFinished,
+            ));
+            send_to_display.send(SyncToStationAndPassengerMessages::ProgramFinished(
                 crate::thread::ProgramEndType::ProgramFinished,
             ));
 
@@ -869,6 +898,7 @@ pub fn run_simulation(
                 &send_to_stations,
                 &send_to_buses,
                 &send_to_passengers,
+                &send_to_display,
                 &mut bus_status_vector,
             );
         } else if let TimeTickStage::BusLoadingPassengers { .. } = current_time_tick.stage {
@@ -889,6 +919,7 @@ pub fn run_simulation(
                     &send_to_stations,
                     &send_to_buses,
                     &send_to_passengers,
+                    &send_to_display,
                     &mut bus_status_vector,
                 );
             }
