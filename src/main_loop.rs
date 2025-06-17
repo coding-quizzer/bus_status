@@ -16,6 +16,7 @@ use std::collections::VecDeque;
 use std::ops::ControlFlow;
 use std::sync::mpsc::TryRecvError;
 use std::sync::{mpsc, Arc, Mutex};
+use std::thread::current;
 
 #[derive(Debug, Default, Clone)]
 pub struct FinalPassengerLists {
@@ -540,13 +541,37 @@ pub fn run_simulation(
 
     // Threads
     // station thread (passenger data)
-    let display_loop = std::thread::spawn(move || {
+
+    let display_loop_handle = std::thread::spawn(move || {
+        use std::io::Write;
         let stations_reader = rx_stations_to_display;
+        let sync_reader = rx_sync_to_display;
         let output_file = std::fs::File::create("display.txt").unwrap();
-        let writer = std::io::BufWriter::new(output_file);
+        let mut writer = std::io::BufWriter::new(output_file);
+        let mut current_time_tick = TimeTick::default();
+
+        loop {
+            let new_time_tick_message = sync_reader.recv().unwrap();
+            if let SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick) =
+                new_time_tick_message
+            {
+                current_time_tick = new_time_tick;
+            } else {
+                break;
+            }
+            writeln!(writer, "Current Time Tick: {:?}", current_time_tick).unwrap();
+
+            // FIXME: I want to impliment this with a vector and write the messages in numerical order
+            for _ in 0..config.num_of_passengers {
+                let passenger_message = stations_reader.recv().unwrap();
+                writeln!(writer, "{passenger_message}").unwrap();
+            }
+        }
 
         // need to somehow navigate around passengers who cannot reach the destination or who have already reached their destination
     });
+
+    handle_list.push(display_loop_handle);
 
     /* Beginning of Main/sync thread loop */
     // spawn other threads
