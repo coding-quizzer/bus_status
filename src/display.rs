@@ -16,9 +16,26 @@ impl std::fmt::Display for TerminalMessage {
 }
 
 pub struct ArrivedPassengerInfo {
-    index: u32,
+    index: usize,
     station_location: crate::Location,
     final_location: bool,
+}
+
+impl ArrivedPassengerInfo {
+    pub fn new_layover(index: usize, station_location: crate::Location) -> ArrivedPassengerInfo {
+        ArrivedPassengerInfo {
+            index,
+            station_location,
+            final_location: false,
+        }
+    }
+    pub fn new_arrived(index: usize, station_location: crate::Location) -> ArrivedPassengerInfo {
+        ArrivedPassengerInfo {
+            index,
+            station_location,
+            final_location: true,
+        }
+    }
 }
 
 pub struct BoardedPassengerInfo {

@@ -1,4 +1,5 @@
 use crate::bus::{BusLocation, SendableBus};
+use crate::display::{self, TerminalMessage};
 use crate::location::{Location, PassengerBusLocation};
 use crate::main_loop::{ConfigStruct, FinalPassengerLists};
 use crate::passenger::Passenger;
@@ -178,6 +179,7 @@ pub fn get_station_threads(
     rejected_passengers_pointer: &Arc<Mutex<Vec<Passenger>>>,
 
     tx_stations_to_passengers: Sender<StationToPassengersMessages>,
+    display_sender: Sender<TerminalMessage>,
     rx_sync_to_stations_list: Arc<
         Mutex<Vec<Option<ReceiverWithIndex<SyncToStationAndPassengerMessages>>>>,
     >,
@@ -210,6 +212,8 @@ pub fn get_station_threads(
         let final_passenger_list_clone = final_passenger_list_arc.clone();
 
         let to_passengers_sender_clone = tx_stations_to_passengers.clone();
+        let to_display_sender_clone = display_sender.clone();
+
         let station_handle = create_station_thread(
             current_location,
             // *current_time_tick,
@@ -219,6 +223,7 @@ pub fn get_station_threads(
             station_thread_passenger_bus_route_list,
             rejected_passenger_clone,
             to_passengers_sender_clone,
+            to_display_sender_clone,
             sync_to_stations_reciever,
             final_passenger_list_clone,
             config.num_of_buses,
@@ -288,6 +293,7 @@ pub fn create_station_thread(
     station_thread_passenger_bus_route_list: Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>,
     rejected_passenger_clone: Arc<Mutex<Vec<Passenger>>>,
     to_passengers_sender_clone: Sender<StationToPassengersMessages>,
+    to_display_sender_clone: Sender<TerminalMessage>,
     sync_to_stations_receiver: Receiver<SyncToStationAndPassengerMessages>,
     final_passenger_list_clone: Arc<Mutex<FinalPassengerLists>>,
     num_of_buses: usize,
@@ -484,15 +490,16 @@ pub fn create_station_thread(
                     // The bus keeps leaving and then returning again. The the passengers are not duplicated in the bus and the bus is not duplicated in the station.
 
                     if let StationEventMessages::BusArrived {
-                        mut passengers_onboarding,
+                        mut passengers_offboarding,
                         bus_info,
                     } = received_bus_message
                     {
+                        // Bus arrives and drops off passengers
                         info!(
                             "Bus Arrived Message received in station {} from bus {}",
                             station_index, bus_info.bus_index
                         );
-                        for passenger in passengers_onboarding.iter_mut() {
+                        for passenger in passengers_offboarding.iter_mut() {
                             // TODO: These opperations might be redundant, or should be done with Station::add_passenger. Explore this further
                             let passenger_location =
                                 passenger.bus_schedule_iterator.next().unwrap();
@@ -500,12 +507,13 @@ pub fn create_station_thread(
                             passenger.next_bus_num = passenger_location.bus_num;
                             passenger.archived_stop_list.push(passenger_location);
                         }
+                        // Display the passengers
                         debug!(
                             "Passengers exiting bus {:?}: {:?}",
-                            bus_info.bus_index, passengers_onboarding
+                            bus_info.bus_index, passengers_offboarding
                         );
-                        info!("{} passengers exited the bus", passengers_onboarding.len());
-                        current_station.passengers.extend(passengers_onboarding);
+                        info!("{} passengers exited the bus", passengers_offboarding.len());
+                        current_station.passengers.extend(passengers_offboarding);
                         info!(
                             "{} passengers are now in the station",
                             current_station.passengers.len()
@@ -563,7 +571,7 @@ pub fn create_station_thread(
                     let received_message = message_from_bus.clone();
 
                     if let StationEventMessages::BusArrived {
-                        passengers_onboarding: _,
+                        passengers_offboarding: _,
                         bus_info,
                     } = received_message
                     {
@@ -718,6 +726,27 @@ pub fn create_station_thread(
 
                                 next_location.is_some()
                             });
+                    for passenger in passengers_for_next_destination.iter() {
+                        to_display_sender_clone
+                            .send(TerminalMessage::ArrivedPassenger(
+                                display::ArrivedPassengerInfo::new_layover(
+                                    passenger.index,
+                                    current_location,
+                                ),
+                            ))
+                            .unwrap();
+                    }
+
+                    for passenger in arrived_passengers.iter() {
+                        to_display_sender_clone
+                            .send(TerminalMessage::ArrivedPassenger(
+                                display::ArrivedPassengerInfo::new_arrived(
+                                    passenger.index,
+                                    current_location,
+                                ),
+                            ))
+                            .unwrap();
+                    }
                     trace!(
                         "Time_tick: {}, Station {} Arrived Passengers: {:#?}",
                         time_tick.number,

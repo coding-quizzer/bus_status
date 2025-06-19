@@ -5,7 +5,7 @@ use crate::passenger::Passenger;
 pub enum StationEventMessages {
     InitPassengerList(Vec<Passenger>),
     BusArrived {
-        passengers_onboarding: Vec<Passenger>,
+        passengers_offboarding: Vec<Passenger>,
         bus_info: SendableBus,
     },
     BusDeparted {

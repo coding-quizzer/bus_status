@@ -211,6 +211,7 @@ pub fn run_simulation(
     let send_to_bus_channels_arc = Arc::new(send_to_bus_channels);
     let receive_in_station_channels_arc = Arc::new(Mutex::new(receive_in_station_channels));
 
+    // station thread (passenger data)
     // TODO: Change the station_handle_list function to deal with the time tick
     let station_location_list = location_vector_arc.clone();
 
@@ -225,6 +226,7 @@ pub fn run_simulation(
         &passenger_bus_route_arc,
         &rejected_passengers_pointer,
         tx_stations_to_passengers,
+        tx_stations_to_display,
         sync_to_stations_receiver,
         &final_passengers_arc,
         &config,
@@ -540,7 +542,6 @@ pub fn run_simulation(
     handle_list.push(passengers_thread_handle);
 
     // Threads
-    // station thread (passenger data)
 
     let display_loop_handle = std::thread::spawn(move || {
         use std::io::Write;

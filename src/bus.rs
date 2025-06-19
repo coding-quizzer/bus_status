@@ -350,7 +350,7 @@ impl Bus {
 
             next_station_sender
                 .send(StationEventMessages::BusArrived {
-                    passengers_onboarding: outgoing_passengers,
+                    passengers_offboarding: outgoing_passengers,
                     bus_info: bus_info_for_station,
                 })
                 .unwrap();
