@@ -548,10 +548,12 @@ pub fn run_simulation(
         let stations_reader = rx_stations_to_display;
         let sync_reader = rx_sync_to_display;
         let output_file = std::fs::File::create("display.txt").unwrap();
-        let mut writer = std::io::BufWriter::new(output_file);
+        // let mut writer = std::io::BufWriter::new(output_file);
+        let mut writer = std::io::LineWriter::new(output_file);
         let mut current_time_tick = TimeTick::default();
 
         loop {
+            log::debug!("Display loop beginning");
             let new_time_tick_message = sync_reader.recv().unwrap();
             if let SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick) =
                 new_time_tick_message
@@ -560,6 +562,7 @@ pub fn run_simulation(
             } else {
                 break;
             }
+            println!("Display loop received new Time tick");
             writeln!(writer, "Current Time Tick: {:?}", current_time_tick).unwrap();
 
             // FIXME: I want to impliment this with a vector and write the messages in numerical order

@@ -1,5 +1,7 @@
 use std::fmt::{Display, Formatter};
 pub enum TerminalMessage {
+    InitiatedPassenger(InitiatedPassengerInfo),
+    WaitingPassenger(WaitingPassengerInfo),
     ArrivedPassenger(ArrivedPassengerInfo),
     BoardedPassenger(BoardedPassengerInfo),
     StrandedPassenger(StrandedPassengerInfo),
@@ -8,9 +10,11 @@ pub enum TerminalMessage {
 impl std::fmt::Display for TerminalMessage {
     fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
         match self {
+            TerminalMessage::InitiatedPassenger(info) => write!(f, "{info}"),
             TerminalMessage::ArrivedPassenger(info) => write!(f, "{info}"),
             TerminalMessage::BoardedPassenger(info) => write!(f, "{info}"),
             TerminalMessage::StrandedPassenger(info) => write!(f, "{info}"),
+            TerminalMessage::WaitingPassenger(info) => write!(f, "{info}"),
         }
     }
 }
@@ -29,7 +33,7 @@ impl ArrivedPassengerInfo {
             final_location: false,
         }
     }
-    pub fn new_arrived(index: usize, station_location: crate::Location) -> ArrivedPassengerInfo {
+    pub fn new_final(index: usize, station_location: crate::Location) -> ArrivedPassengerInfo {
         ArrivedPassengerInfo {
             index,
             station_location,
@@ -48,16 +52,26 @@ pub struct StrandedPassengerInfo {
     location_index: u32,
 }
 
+pub struct WaitingPassengerInfo {
+    index: usize,
+    location_index: usize,
+}
+
+pub struct InitiatedPassengerInfo {
+    index: usize,
+    location_index: usize,
+}
+
 impl std::fmt::Display for ArrivedPassengerInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         if self.final_location {
-            write!(
+            writeln!(
                 f,
                 "Passenger {} arrived at destination location: Location {}",
                 self.index, self.station_location
             )
         } else {
-            write!(
+            writeln!(
                 f,
                 "Passenger {} arrived at intermediate location: Location {}",
                 self.index, self.station_location
@@ -68,7 +82,7 @@ impl std::fmt::Display for ArrivedPassengerInfo {
 
 impl Display for BoardedPassengerInfo {
     fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
-        write!(
+        writeln!(
             f,
             "Passenger {} boarded bus {}",
             self.index, self.bus_number
@@ -78,10 +92,30 @@ impl Display for BoardedPassengerInfo {
 
 impl Display for StrandedPassengerInfo {
     fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
-        write!(
+        writeln!(
             f,
             "Passenger {} failed to find valid route to destination {}",
             self.index, self.location_index
+        )
+    }
+}
+
+impl Display for WaitingPassengerInfo {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
+        writeln!(
+            f,
+            "Passenger {} waiting in station {}",
+            self.index, self.location_index,
+        )
+    }
+}
+
+impl Display for InitiatedPassengerInfo {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
+        writeln!(
+            f,
+            "Passenger {} initiated in station {}",
+            self.index, self.location_index,
         )
     }
 }

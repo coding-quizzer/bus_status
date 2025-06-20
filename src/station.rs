@@ -499,21 +499,44 @@ pub fn create_station_thread(
                             "Bus Arrived Message received in station {} from bus {}",
                             station_index, bus_info.bus_index
                         );
-                        for passenger in passengers_offboarding.iter_mut() {
+                        for mut passenger in passengers_offboarding.into_iter() {
                             // TODO: These opperations might be redundant, or should be done with Station::add_passenger. Explore this further
                             let passenger_location =
                                 passenger.bus_schedule_iterator.next().unwrap();
+
                             passenger.current_location = passenger_location.stop_location.into();
                             passenger.next_bus_num = passenger_location.bus_num;
                             passenger.archived_stop_list.push(passenger_location);
+
+                            let is_last_location =
+                                passenger.bus_schedule_iterator.clone().next().is_none();
+                            let display_id = passenger.id_for_display;
+                            if is_last_location {
+                                // add to the arrived passengers
+                                current_station.arrived_passengers.push(passenger);
+                                // send to display stream
+                                to_display_sender_clone
+                                    .send(TerminalMessage::ArrivedPassenger(
+                                        crate::display::ArrivedPassengerInfo::new_layover(
+                                            display_id,
+                                            current_location,
+                                        ),
+                                    ))
+                                    .unwrap();
+                            } else {
+                                // add to the current station's passengers
+                                current_station.passengers.push(passenger);
+                                // send to display stream
+                                to_display_sender_clone
+                                    .send(TerminalMessage::ArrivedPassenger(
+                                        crate::display::ArrivedPassengerInfo::new_final(
+                                            display_id,
+                                            current_location,
+                                        ),
+                                    ))
+                                    .unwrap();
+                            }
                         }
-                        // Display the passengers
-                        debug!(
-                            "Passengers exiting bus {:?}: {:?}",
-                            bus_info.bus_index, passengers_offboarding
-                        );
-                        info!("{} passengers exited the bus", passengers_offboarding.len());
-                        current_station.passengers.extend(passengers_offboarding);
                         info!(
                             "{} passengers are now in the station",
                             current_station.passengers.len()
@@ -726,11 +749,12 @@ pub fn create_station_thread(
 
                                 next_location.is_some()
                             });
+                    //FIXME: this is the wrong place for these messages - there is no distinction made with passengers from bus vs from thread vs passively waiting
                     for passenger in passengers_for_next_destination.iter() {
                         to_display_sender_clone
                             .send(TerminalMessage::ArrivedPassenger(
                                 display::ArrivedPassengerInfo::new_layover(
-                                    passenger.index,
+                                    passenger.id_for_display,
                                     current_location,
                                 ),
                             ))
@@ -740,8 +764,8 @@ pub fn create_station_thread(
                     for passenger in arrived_passengers.iter() {
                         to_display_sender_clone
                             .send(TerminalMessage::ArrivedPassenger(
-                                display::ArrivedPassengerInfo::new_arrived(
-                                    passenger.index,
+                                display::ArrivedPassengerInfo::new_final(
+                                    passenger.id_for_display,
                                     current_location,
                                 ),
                             ))

@@ -39,8 +39,8 @@ fn main() {
     let indexed_passengers = passengers
         .into_iter()
         .enumerate()
-        .map(|(index, passenger)| SerializedIndexedPassenger {
-            index: index.try_into().unwrap(),
+        .map(|(master_index, passenger)| SerializedIndexedPassenger {
+            master_index,
             passenger,
         });
 

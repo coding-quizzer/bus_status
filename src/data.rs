@@ -95,7 +95,7 @@ pub struct SerializedPassenger {
 
 pub struct SerializedIndexedPassenger {
     pub passenger: SerializedPassenger,
-    pub index: usize,
+    pub master_index: usize,
 }
 
 impl From<SerializedIndexedPassenger> for Passenger {
@@ -112,7 +112,7 @@ impl From<SerializedIndexedPassenger> for Passenger {
 
         Passenger {
             id,
-            index: serialized_passenger_input.index,
+            id_for_display: serialized_passenger_input.master_index,
             destination_location,
             current_location,
             passed_stops: 0,
@@ -129,7 +129,7 @@ impl From<Passenger> for SerializedPassenger {
     fn from(passenger: Passenger) -> SerializedPassenger {
         let Passenger {
             id,
-            index: _,
+            id_for_display: _,
             destination_location,
             current_location,
             passed_stops: _passed_stops,
