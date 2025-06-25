@@ -1,7 +1,6 @@
 use std::fmt::{Display, Formatter};
 pub enum TerminalMessage {
     InitiatedPassenger(InitiatedPassengerInfo),
-    FailedInitiatePassenger(FailedInitiatePassenger),
     WaitingPassenger(WaitingPassengerInfo),
     ArrivedPassenger(ArrivedPassengerInfo),
     BoardedPassenger(BoardedPassengerInfo),
@@ -12,7 +11,6 @@ impl std::fmt::Display for TerminalMessage {
     fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
         match self {
             TerminalMessage::InitiatedPassenger(info) => write!(f, "{info}"),
-            TerminalMessage::FailedInitiatePassenger(info) => write!(f, "{info}"),
             TerminalMessage::ArrivedPassenger(info) => write!(f, "{info}"),
             TerminalMessage::BoardedPassenger(info) => write!(f, "{info}"),
             TerminalMessage::StrandedPassenger(info) => write!(f, "{info}"),
@@ -93,30 +91,6 @@ impl Display for BoardedPassengerInfo {
             f,
             "Passenger {} boarded bus {}",
             self.index, self.bus_number
-        )
-    }
-}
-
-impl StrandedPassengerInfo {
-    pub fn new(
-        index: usize,
-        current_station_index: usize,
-        destination_location_index: usize,
-    ) -> StrandedPassengerInfo {
-        StrandedPassengerInfo {
-            index,
-            current_station_index,
-            destination_location_index,
-        }
-    }
-}
-
-impl Display for StrandedPassengerInfo {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
-        writeln!(
-            f,
-            "Passenger {} stuck at station {}. Failed to find valid route to destination {}",
-            self.index, self.current_station_index, self.destination_location_index
         )
     }
 }
