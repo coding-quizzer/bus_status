@@ -563,7 +563,7 @@ pub fn run_simulation(
                 break;
             }
             println!("Display loop received new Time tick");
-            writeln!(writer, "Current Time Tick: {:?}\n", current_time_tick).unwrap();
+            writeln!(writer, "\nCurrent Time Tick: {:?}\n", current_time_tick).unwrap();
 
             // FIXME: I want to impliment this with a vector and write the messages in numerical order
             for _ in 0..config.num_of_passengers {

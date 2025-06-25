@@ -46,10 +46,6 @@ pub struct InitiatedPassengerInfo {
     location_index: usize,
 }
 
-pub struct FailedInitiatePassenger {
-    index: usize,
-}
-
 impl ArrivedPassengerInfo {
     pub fn new_layover(index: usize, station_location: crate::Location) -> ArrivedPassengerInfo {
         ArrivedPassengerInfo {
@@ -95,6 +91,30 @@ impl Display for BoardedPassengerInfo {
     }
 }
 
+impl StrandedPassengerInfo {
+    pub fn new(
+        index: usize,
+        current_station_index: usize,
+        destination_location_index: usize,
+    ) -> StrandedPassengerInfo {
+        StrandedPassengerInfo {
+            index,
+            current_station_index,
+            destination_location_index,
+        }
+    }
+}
+
+impl Display for StrandedPassengerInfo {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
+        writeln!(
+            f,
+            "Passenger {} stuck at station {}. Failed to find valid route to destination {}",
+            self.index, self.current_station_index, self.destination_location_index
+        )
+    }
+}
+
 impl Display for WaitingPassengerInfo {
     fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
         writeln!(
@@ -120,16 +140,6 @@ impl Display for InitiatedPassengerInfo {
             f,
             "Passenger {} initiated in station {}",
             self.index, self.location_index,
-        )
-    }
-}
-
-impl Display for FailedInitiatePassenger {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
-        writeln!(
-            f,
-            "Passenger {} failed to initiate due to no valid routes",
-            self.index
         )
     }
 }
