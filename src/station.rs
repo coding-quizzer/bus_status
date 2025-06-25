@@ -1,5 +1,5 @@
 use crate::bus::{BusLocation, SendableBus};
-use crate::display::{self, TerminalMessage};
+use crate::display::{self, InitiatedPassengerInfo, StrandedPassengerInfo, TerminalMessage};
 use crate::location::{Location, PassengerBusLocation};
 use crate::main_loop::{ConfigStruct, FinalPassengerLists};
 use crate::passenger::Passenger;
@@ -241,6 +241,7 @@ fn receive_fresh_passengers(
     bus_passengers_initialized: &mut bool,
     rejected_passenger_clone: &Arc<Mutex<Vec<Passenger>>>,
     to_passengers_sender_clone: &Sender<StationToPassengersMessages>,
+    to_display_sender_clone: &Sender<TerminalMessage>,
     current_thread_id: &ThreadId,
 ) {
     // println!("Station {station_index} Thread ID: {current_thread_id:?} Station: {station_index} Message: {list:#?}");
@@ -257,16 +258,32 @@ fn receive_fresh_passengers(
         // let passenger_bus_route_list =
         //     station_thread_passenger_bus_route_list.lock().unwrap();
         // println!("Station {station_index} Thread ID: {current_thread_id:?} Passengers attempting to  be added to station {}", station_index);
-        current_station
-                                .add_passenger(
-                                    passenger.clone().into(),
-                                    &time_tick,
-                                    &station_thread_passenger_bus_route_list.lock().unwrap(),
-                                )
-                                .unwrap_or_else(|passenger| {
-                                    (*rejected_passenger_clone.lock().unwrap()).push(passenger.clone());
-                                    info!("Station {station_index} Thread ID: {current_thread_id:?}Passenger {:?} had no valid routes", passenger);
-                                });
+        let add_passenger_result = current_station.add_passenger(
+            passenger.clone().into(),
+            &time_tick,
+            &station_thread_passenger_bus_route_list.lock().unwrap(),
+        );
+        match add_passenger_result {
+            Ok(()) => to_display_sender_clone
+                .send(TerminalMessage::InitiatedPassenger(
+                    InitiatedPassengerInfo::new(passenger.id_for_display, station_index),
+                ))
+                .unwrap(),
+
+            Err(passenger) => {
+                to_display_sender_clone
+                    .send(TerminalMessage::StrandedPassenger(
+                        StrandedPassengerInfo::new(
+                            passenger.id_for_display,
+                            station_index,
+                            passenger.destination_location.index,
+                        ),
+                    ))
+                    .unwrap();
+                (*rejected_passenger_clone.lock().unwrap()).push(passenger.clone());
+                info!("Station {station_index} Thread ID: {current_thread_id:?}Passenger {:?} had no valid routes", passenger);
+            }
+        }
     }
 
     // drop(time_tick);
@@ -444,6 +461,7 @@ pub fn create_station_thread(
                             &mut bus_passengers_initialized,
                             &rejected_passenger_clone,
                             &to_passengers_sender_clone,
+                            &to_display_sender_clone,
                             &current_thread_id,
                         );
                     } else {
@@ -576,6 +594,7 @@ pub fn create_station_thread(
                             &mut bus_passengers_initialized,
                             &rejected_passenger_clone,
                             &to_passengers_sender_clone,
+                            &to_display_sender_clone,
                             &current_thread_id,
                         );
                         // panic!(
