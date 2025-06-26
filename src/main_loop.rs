@@ -552,6 +552,16 @@ pub fn run_simulation(
         let mut writer = std::io::LineWriter::new(output_file);
         let mut current_time_tick = TimeTick::default();
 
+        writeln!(writer, "First time tick: {:?}\n", current_time_tick).unwrap();
+
+        // TODO: Remove when setup timetick is not set up anymore
+        // Setup time tick
+
+        for _ in 0..config.num_of_passengers {
+            let passenger_message = stations_reader.recv().unwrap();
+            write!(writer, "{passenger_message}").unwrap();
+        }
+
         loop {
             log::debug!("Display loop beginning");
             let new_time_tick_message = sync_reader.recv().unwrap();
