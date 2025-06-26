@@ -4,6 +4,7 @@ pub enum TerminalMessage {
     WaitingPassenger(WaitingPassengerInfo),
     ArrivedPassenger(ArrivedPassengerInfo),
     BoardedPassenger(BoardedPassengerInfo),
+    RejectedPassenger(RejectedPassengerInfo),
     StrandedPassenger(StrandedPassengerInfo),
 }
 
@@ -13,6 +14,7 @@ impl std::fmt::Display for TerminalMessage {
             TerminalMessage::InitiatedPassenger(info) => write!(f, "{info}"),
             TerminalMessage::ArrivedPassenger(info) => write!(f, "{info}"),
             TerminalMessage::BoardedPassenger(info) => write!(f, "{info}"),
+            TerminalMessage::RejectedPassenger(info) => write!(f, "{info}"),
             TerminalMessage::StrandedPassenger(info) => write!(f, "{info}"),
             TerminalMessage::WaitingPassenger(info) => write!(f, "{info}"),
         }
@@ -26,8 +28,13 @@ pub struct ArrivedPassengerInfo {
 }
 
 pub struct BoardedPassengerInfo {
-    index: u32,
-    bus_number: u32,
+    index: usize,
+    bus_number: usize,
+}
+
+pub struct RejectedPassengerInfo {
+    index: usize,
+    bus_number: usize,
 }
 
 pub struct StrandedPassengerInfo {
@@ -81,11 +88,39 @@ impl std::fmt::Display for ArrivedPassengerInfo {
     }
 }
 
+impl BoardedPassengerInfo {
+    pub fn new(passenger_index: usize, bus_number: usize) -> BoardedPassengerInfo {
+        BoardedPassengerInfo {
+            index: passenger_index,
+            bus_number,
+        }
+    }
+}
+
 impl Display for BoardedPassengerInfo {
     fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
         writeln!(
             f,
             "Passenger {} boarded bus {}",
+            self.index, self.bus_number
+        )
+    }
+}
+
+impl RejectedPassengerInfo {
+    pub fn new(passenger_index: usize, bus_number: usize) -> RejectedPassengerInfo {
+        RejectedPassengerInfo {
+            index: passenger_index,
+            bus_number,
+        }
+    }
+}
+
+impl Display for RejectedPassengerInfo {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
+        writeln!(
+            f,
+            "Passenger {} rejected from Bus {} because it was already at capacity",
             self.index, self.bus_number
         )
     }
@@ -114,7 +149,14 @@ impl Display for StrandedPassengerInfo {
         )
     }
 }
-
+impl WaitingPassengerInfo {
+    pub fn new(passenger_index: usize, location_index: usize) -> WaitingPassengerInfo {
+        WaitingPassengerInfo {
+            index: passenger_index,
+            location_index,
+        }
+    }
+}
 impl Display for WaitingPassengerInfo {
     fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
         writeln!(

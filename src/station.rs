@@ -750,6 +750,8 @@ pub fn create_station_thread(
                     // TODO: Use a more efficient method than partition. Also, remove the clone, so peek actully gives an advantage.
                     // I feel like there may not be enough cases taken in consideration
                     // Some passengers that are arrived and have this as the final destination are still listed under passengers_for_next_destination, This filter is not working correctly
+
+                    // NOTE: remove this I've done this already now, so this is redundant
                     let (passengers_for_next_destination, arrived_passengers): (Vec<_>, Vec<_>) =
                         current_station
                             .passengers
@@ -880,8 +882,38 @@ pub fn create_station_thread(
                             passengers_overflowed.append(rejected_passengers.to_vec().as_mut());
                             passengers_to_send.append(passengers_to_add.to_vec().as_mut());
                             current_station.buses_unavailable.push(bus.bus_index);
+                            for boarding_passenger in new_passenger_list.iter() {
+                                to_display_sender_clone
+                                    .send(TerminalMessage::BoardedPassenger(
+                                        display::BoardedPassengerInfo::new(
+                                            boarding_passenger.id_for_display,
+                                            bus.bus_index,
+                                        ),
+                                    ))
+                                    .unwrap();
+                            }
+                            for rejected_passenger in passengers_overflowed.iter() {
+                                to_display_sender_clone
+                                    .send(TerminalMessage::RejectedPassenger(
+                                        display::RejectedPassengerInfo::new(
+                                            rejected_passenger.id_for_display,
+                                            bus.bus_index,
+                                        ),
+                                    ))
+                                    .unwrap()
+                            }
                         } else {
                             passengers_to_send.append(&mut new_passenger_list);
+                            for boarding_passenger in new_passenger_list.iter() {
+                                to_display_sender_clone
+                                    .send(TerminalMessage::BoardedPassenger(
+                                        display::BoardedPassengerInfo::new(
+                                            boarding_passenger.id_for_display,
+                                            bus.bus_index,
+                                        ),
+                                    ))
+                                    .unwrap();
+                            }
                         }
                         debug!(
                             "Passengers to send from station {}: {:#?}",
@@ -924,6 +956,17 @@ pub fn create_station_thread(
                         // drop(time_tick);
 
                         info!("Pre-bus departure");
+                    }
+                    // TODO: check that this actually selects the passengers I want
+                    for passenger in current_station.passengers.iter() {
+                        to_display_sender_clone
+                            .send(display::TerminalMessage::WaitingPassenger(
+                                display::WaitingPassengerInfo::new(
+                                    passenger.id_for_display,
+                                    current_station.location.index,
+                                ),
+                            ))
+                            .unwrap();
                     }
 
                     debug!("Time tick when buses are dismissed: {:?}", &time_tick);
