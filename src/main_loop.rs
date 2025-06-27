@@ -6,8 +6,9 @@ use crate::initialize_channel_list;
 use crate::location::{BusLocation, PassengerBusLocation};
 use crate::station;
 use crate::thread::{
-    BusMessages, BusThreadStatus, StationEventMessages, StationToPassengersMessages,
-    StationToSyncMessages, SyncToBusMessages, SyncToStationAndPassengerMessages,
+    BusMessages, BusThreadStatus, StationEventMessages, StationToDisplayMessages,
+    StationToPassengersMessages, StationToSyncMessages, SyncToBusMessages,
+    SyncToStationAndPassengerMessages,
 };
 use crate::{Location, Passenger};
 use crate::{TimeTick, TimeTickStage};
@@ -105,7 +106,7 @@ pub fn run_simulation(
         initialize_channel_list::<crate::thread::StationToBusMessages>(config.num_of_buses);
 
     let (tx_stations_to_display, rx_stations_to_display) =
-        mpsc::channel::<crate::display::TerminalMessage>();
+        mpsc::channel::<crate::thread::StationToDisplayMessages>();
 
     // let current_time_tick_clone = current_time_tick.clone();
 
@@ -550,35 +551,34 @@ pub fn run_simulation(
         let output_file = std::fs::File::create("display.txt").unwrap();
         // let mut writer = std::io::BufWriter::new(output_file);
         let mut writer = std::io::LineWriter::new(output_file);
-        let mut current_time_tick = TimeTick::default();
+        // let mut current_time_tick = TimeTick::default();
 
-        writeln!(writer, "First time tick: {:?}\n", current_time_tick).unwrap();
+        writeln!(writer, "First time tick: {:?}\n", TimeTick::default()).unwrap();
 
         // TODO: Remove when setup timetick is not set up anymore
         // Setup time tick
 
-        for _ in 0..config.num_of_passengers {
-            let passenger_message = stations_reader.recv().unwrap();
-            write!(writer, "{passenger_message}").unwrap();
-        }
-
         loop {
             log::debug!("Display loop beginning");
-            let new_time_tick_message = sync_reader.recv().unwrap();
+            /* let new_time_tick_message = sync_reader.recv().unwrap();
             if let SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick) =
                 new_time_tick_message
             {
                 current_time_tick = new_time_tick;
             } else {
                 break;
-            }
+            } */
             println!("Display loop received new Time tick");
-            writeln!(writer, "\nCurrent Time Tick: {:?}\n", current_time_tick).unwrap();
 
             // FIXME: I want to impliment this with a vector and write the messages in numerical order
-            for _ in 0..config.num_of_passengers {
-                let passenger_message = stations_reader.recv().unwrap();
-                write!(writer, "{passenger_message}").unwrap();
+            let passenger_message = stations_reader.recv().unwrap();
+            match passenger_message {
+                StationToDisplayMessages::AdvanceTimeStep(new_time_step) => {
+                    writeln!(writer, "\nCurrent Time Tick: {:?}", new_time_step).unwrap()
+                }
+                StationToDisplayMessages::TerminalMessage(terminal_message) => {
+                    write!(writer, "{terminal_message}").unwrap()
+                }
             }
         }
 

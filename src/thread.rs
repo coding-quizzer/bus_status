@@ -1,4 +1,5 @@
 use crate::bus::SendableBus;
+use crate::display::TerminalMessage;
 use crate::passenger::Passenger;
 #[derive(PartialEq, Debug, Clone, Default)]
 // Messages to the station
@@ -73,4 +74,9 @@ pub enum BusThreadStatus {
     FinishedUnloadingPassengers,
     FinishedLoadingPassengers,
     WaitingForTimeStep,
+}
+
+pub enum StationToDisplayMessages {
+    TerminalMessage(TerminalMessage),
+    AdvanceTimeStep(crate::TimeTick),
 }

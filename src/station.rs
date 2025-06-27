@@ -5,8 +5,8 @@ use crate::main_loop::{ConfigStruct, FinalPassengerLists};
 use crate::passenger::Passenger;
 use crate::passenger::PassengerOnboardingBusSchedule;
 use crate::thread::{
-    StationEventMessages, StationToBusMessages, StationToPassengersMessages,
-    SyncToStationAndPassengerMessages,
+    StationEventMessages, StationToBusMessages, StationToDisplayMessages,
+    StationToPassengersMessages, SyncToStationAndPassengerMessages,
 };
 use crate::{
     calculate_passenger_schedule_for_bus,
@@ -179,7 +179,7 @@ pub fn get_station_threads(
     rejected_passengers_pointer: &Arc<Mutex<Vec<Passenger>>>,
 
     tx_stations_to_passengers: Sender<StationToPassengersMessages>,
-    display_sender: Sender<TerminalMessage>,
+    display_sender: Sender<StationToDisplayMessages>,
     rx_sync_to_stations_list: Arc<
         Mutex<Vec<Option<ReceiverWithIndex<SyncToStationAndPassengerMessages>>>>,
     >,
@@ -241,7 +241,7 @@ fn receive_fresh_passengers(
     bus_passengers_initialized: &mut bool,
     rejected_passenger_clone: &Arc<Mutex<Vec<Passenger>>>,
     to_passengers_sender_clone: &Sender<StationToPassengersMessages>,
-    to_display_sender_clone: &Sender<TerminalMessage>,
+    to_display_sender_clone: &Sender<StationToDisplayMessages>,
     current_thread_id: &ThreadId,
 ) {
     // println!("Station {station_index} Thread ID: {current_thread_id:?} Station: {station_index} Message: {list:#?}");
@@ -265,19 +265,22 @@ fn receive_fresh_passengers(
         );
         match add_passenger_result {
             Ok(()) => to_display_sender_clone
-                .send(TerminalMessage::InitiatedPassenger(
-                    InitiatedPassengerInfo::new(passenger.id_for_display, station_index),
+                .send(StationToDisplayMessages::TerminalMessage(
+                    TerminalMessage::InitiatedPassenger(InitiatedPassengerInfo::new(
+                        passenger.id_for_display,
+                        station_index,
+                    )),
                 ))
                 .unwrap(),
 
             Err(passenger) => {
                 to_display_sender_clone
-                    .send(TerminalMessage::StrandedPassenger(
-                        StrandedPassengerInfo::new(
+                    .send(StationToDisplayMessages::TerminalMessage(
+                        TerminalMessage::StrandedPassenger(StrandedPassengerInfo::new(
                             passenger.id_for_display,
                             station_index,
                             passenger.destination_location.index,
-                        ),
+                        )),
                     ))
                     .unwrap();
                 (*rejected_passenger_clone.lock().unwrap()).push(passenger.clone());
@@ -310,7 +313,7 @@ pub fn create_station_thread(
     station_thread_passenger_bus_route_list: Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>,
     rejected_passenger_clone: Arc<Mutex<Vec<Passenger>>>,
     to_passengers_sender_clone: Sender<StationToPassengersMessages>,
-    to_display_sender_clone: Sender<TerminalMessage>,
+    to_display_sender_clone: Sender<StationToDisplayMessages>,
     sync_to_stations_receiver: Receiver<SyncToStationAndPassengerMessages>,
     final_passenger_list_clone: Arc<Mutex<FinalPassengerLists>>,
     num_of_buses: usize,
@@ -373,6 +376,12 @@ pub fn create_station_thread(
                         if (new_time_step.number - time_tick.number > 1) {
                             panic!("Station time tick difference is more than one. new_time_step: {new_time_step:?}. Current Time Tick: {time_tick:?}");
                         }
+                        if (new_time_step.number < time_tick.number) {
+                            panic!("Station time tick difference less than 0. An earlier time step must have been sent another time. new_time_step: {new_time_step:?}. Current Time Tick: {time_tick:?}");
+                        }
+                        to_display_sender_clone
+                            .send(StationToDisplayMessages::AdvanceTimeStep(new_time_step))
+                            .unwrap();
                         time_tick = new_time_step;
                         station_unload_first_call_for_timetick = true;
                     }
@@ -534,10 +543,12 @@ pub fn create_station_thread(
                                 current_station.arrived_passengers.push(passenger);
                                 // send to display stream
                                 to_display_sender_clone
-                                    .send(TerminalMessage::ArrivedPassenger(
-                                        crate::display::ArrivedPassengerInfo::new_layover(
-                                            display_id,
-                                            current_location,
+                                    .send(StationToDisplayMessages::TerminalMessage(
+                                        TerminalMessage::ArrivedPassenger(
+                                            crate::display::ArrivedPassengerInfo::new_layover(
+                                                display_id,
+                                                current_location,
+                                            ),
                                         ),
                                     ))
                                     .unwrap();
@@ -546,10 +557,12 @@ pub fn create_station_thread(
                                 current_station.passengers.push(passenger);
                                 // send to display stream
                                 to_display_sender_clone
-                                    .send(TerminalMessage::ArrivedPassenger(
-                                        crate::display::ArrivedPassengerInfo::new_final(
-                                            display_id,
-                                            current_location,
+                                    .send(StationToDisplayMessages::TerminalMessage(
+                                        TerminalMessage::ArrivedPassenger(
+                                            crate::display::ArrivedPassengerInfo::new_final(
+                                                display_id,
+                                                current_location,
+                                            ),
                                         ),
                                     ))
                                     .unwrap();
@@ -773,10 +786,12 @@ pub fn create_station_thread(
                     //FIXME: this is the wrong place for these messages - there is no distinction made with passengers from bus vs from thread vs passively waiting
                     for passenger in passengers_for_next_destination.iter() {
                         to_display_sender_clone
-                            .send(TerminalMessage::ArrivedPassenger(
-                                display::ArrivedPassengerInfo::new_layover(
-                                    passenger.id_for_display,
-                                    current_location,
+                            .send(StationToDisplayMessages::TerminalMessage(
+                                TerminalMessage::ArrivedPassenger(
+                                    display::ArrivedPassengerInfo::new_layover(
+                                        passenger.id_for_display,
+                                        current_location,
+                                    ),
                                 ),
                             ))
                             .unwrap();
@@ -784,10 +799,12 @@ pub fn create_station_thread(
 
                     for passenger in arrived_passengers.iter() {
                         to_display_sender_clone
-                            .send(TerminalMessage::ArrivedPassenger(
-                                display::ArrivedPassengerInfo::new_final(
-                                    passenger.id_for_display,
-                                    current_location,
+                            .send(StationToDisplayMessages::TerminalMessage(
+                                TerminalMessage::ArrivedPassenger(
+                                    display::ArrivedPassengerInfo::new_final(
+                                        passenger.id_for_display,
+                                        current_location,
+                                    ),
                                 ),
                             ))
                             .unwrap();
@@ -884,20 +901,24 @@ pub fn create_station_thread(
                             current_station.buses_unavailable.push(bus.bus_index);
                             for boarding_passenger in new_passenger_list.iter() {
                                 to_display_sender_clone
-                                    .send(TerminalMessage::BoardedPassenger(
-                                        display::BoardedPassengerInfo::new(
-                                            boarding_passenger.id_for_display,
-                                            bus.bus_index,
+                                    .send(StationToDisplayMessages::TerminalMessage(
+                                        TerminalMessage::BoardedPassenger(
+                                            display::BoardedPassengerInfo::new(
+                                                boarding_passenger.id_for_display,
+                                                bus.bus_index,
+                                            ),
                                         ),
                                     ))
                                     .unwrap();
                             }
                             for rejected_passenger in passengers_overflowed.iter() {
                                 to_display_sender_clone
-                                    .send(TerminalMessage::RejectedPassenger(
-                                        display::RejectedPassengerInfo::new(
-                                            rejected_passenger.id_for_display,
-                                            bus.bus_index,
+                                    .send(StationToDisplayMessages::TerminalMessage(
+                                        TerminalMessage::RejectedPassenger(
+                                            display::RejectedPassengerInfo::new(
+                                                rejected_passenger.id_for_display,
+                                                bus.bus_index,
+                                            ),
                                         ),
                                     ))
                                     .unwrap()
@@ -906,10 +927,12 @@ pub fn create_station_thread(
                             passengers_to_send.append(&mut new_passenger_list);
                             for boarding_passenger in new_passenger_list.iter() {
                                 to_display_sender_clone
-                                    .send(TerminalMessage::BoardedPassenger(
-                                        display::BoardedPassengerInfo::new(
-                                            boarding_passenger.id_for_display,
-                                            bus.bus_index,
+                                    .send(StationToDisplayMessages::TerminalMessage(
+                                        TerminalMessage::BoardedPassenger(
+                                            display::BoardedPassengerInfo::new(
+                                                boarding_passenger.id_for_display,
+                                                bus.bus_index,
+                                            ),
                                         ),
                                     ))
                                     .unwrap();
@@ -960,10 +983,12 @@ pub fn create_station_thread(
                     // TODO: check that this actually selects the passengers I want
                     for passenger in current_station.passengers.iter() {
                         to_display_sender_clone
-                            .send(display::TerminalMessage::WaitingPassenger(
-                                display::WaitingPassengerInfo::new(
-                                    passenger.id_for_display,
-                                    current_station.location.index,
+                            .send(StationToDisplayMessages::TerminalMessage(
+                                TerminalMessage::WaitingPassenger(
+                                    display::WaitingPassengerInfo::new(
+                                        passenger.id_for_display,
+                                        current_station.location.index,
+                                    ),
                                 ),
                             ))
                             .unwrap();
