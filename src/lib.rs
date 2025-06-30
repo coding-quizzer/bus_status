@@ -62,6 +62,17 @@ impl TimeTick {
     }
 }
 
+impl std::fmt::Display for TimeTick {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        let message_remainder = match self.stage {
+            TimeTickStage::PassengerInit => "init",
+            TimeTickStage::BusUnloadingPassengers => "unloading",
+            TimeTickStage::BusLoadingPassengers => "loading",
+        };
+        write!(f, "Time Tick: {} ({})", self.number, message_remainder)
+    }
+}
+
 /// generates a random list from a set of elements such that
 /// no two consecutive elements are identical.
 fn generate_list_of_random_elements_from_list<T: Copy>(
