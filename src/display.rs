@@ -73,13 +73,13 @@ impl ArrivedPassengerInfo {
 impl std::fmt::Display for ArrivedPassengerInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         if self.final_location {
-            writeln!(
+            write!(
                 f,
                 "Passenger {} arrived at destination location: Location {}",
                 self.index, self.station_location
             )
         } else {
-            writeln!(
+            write!(
                 f,
                 "Passenger {} arrived at intermediate location: Location {}",
                 self.index, self.station_location
@@ -99,7 +99,7 @@ impl BoardedPassengerInfo {
 
 impl Display for BoardedPassengerInfo {
     fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
-        writeln!(
+        write!(
             f,
             "Passenger {} boarded bus {}",
             self.index, self.bus_number
@@ -118,7 +118,7 @@ impl RejectedPassengerInfo {
 
 impl Display for RejectedPassengerInfo {
     fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
-        writeln!(
+        write!(
             f,
             "Passenger {} rejected from Bus {} because it was already at capacity",
             self.index, self.bus_number
@@ -142,7 +142,7 @@ impl StrandedPassengerInfo {
 
 impl Display for StrandedPassengerInfo {
     fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
-        writeln!(
+        write!(
             f,
             "Passenger {} stuck at station {}. Failed to find valid route to destination {}",
             self.index, self.current_station_index, self.destination_location_index
@@ -159,7 +159,7 @@ impl WaitingPassengerInfo {
 }
 impl Display for WaitingPassengerInfo {
     fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
-        writeln!(
+        write!(
             f,
             "Passenger {} waiting in station {}",
             self.index, self.location_index,
@@ -178,7 +178,7 @@ impl InitiatedPassengerInfo {
 
 impl Display for InitiatedPassengerInfo {
     fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
-        writeln!(
+        write!(
             f,
             "Passenger {} initiated in station {}",
             self.index, self.location_index,

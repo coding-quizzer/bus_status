@@ -551,7 +551,7 @@ pub fn run_simulation(
         let output_file = std::fs::File::create("display.txt").unwrap();
         // let mut writer = std::io::BufWriter::new(output_file);
         let mut writer = std::io::LineWriter::new(output_file);
-        // let mut current_time_tick = TimeTick::default();
+        let mut current_time_tick = TimeTick::default();
 
         writeln!(writer, "First time tick: {:?}\n", TimeTick::default()).unwrap();
 
@@ -574,11 +574,15 @@ pub fn run_simulation(
             let passenger_message = stations_reader.recv().unwrap();
             match passenger_message {
                 StationToDisplayMessages::AdvanceTimeStep(new_time_step) => {
-                    writeln!(writer, "\nCurrent Time Tick: {:?}", new_time_step).unwrap()
+                    writeln!(writer, "\nCurrent Time Tick: {:?}", new_time_step).unwrap();
+                    current_time_tick = new_time_step;
                 }
-                StationToDisplayMessages::TerminalMessage(terminal_message) => {
-                    write!(writer, "{terminal_message}").unwrap()
-                }
+                StationToDisplayMessages::TerminalMessage(terminal_message) => write!(
+                    writer,
+                    "{terminal_message} - TimeTick: {:?}",
+                    current_time_tick
+                )
+                .unwrap(),
             }
         }
 
