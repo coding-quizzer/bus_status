@@ -544,7 +544,7 @@ pub fn run_simulation(
 
     // Threads
 
-    let display_loop_handle = std::thread::spawn(move || {
+    let display_thread_handle = std::thread::spawn(move || {
         use std::io::Write;
         let stations_reader = rx_stations_to_display;
         let sync_reader = rx_sync_to_display;
@@ -581,7 +581,7 @@ pub fn run_simulation(
         // need to somehow navigate around passengers who cannot reach the destination or who have already reached their destination
     });
 
-    handle_list.push(display_loop_handle);
+    handle_list.push(display_thread_handle);
 
     /* Beginning of Main/sync thread loop */
     // spawn other threads
