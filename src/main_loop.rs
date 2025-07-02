@@ -106,7 +106,7 @@ pub fn run_simulation(
         initialize_channel_list::<crate::thread::StationToBusMessages>(config.num_of_buses);
 
     let (tx_stations_to_display, rx_stations_to_display) =
-        mpsc::channel::<crate::thread::StationToDisplayMessages>();
+        mpsc::channel::<crate::display::TerminalMessage>();
 
     // let current_time_tick_clone = current_time_tick.clone();
 
@@ -560,29 +560,21 @@ pub fn run_simulation(
 
         loop {
             log::debug!("Display loop beginning");
-            /* let new_time_tick_message = sync_reader.recv().unwrap();
+            let new_time_tick_message = sync_reader.recv().unwrap();
             if let SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick) =
                 new_time_tick_message
             {
                 current_time_tick = new_time_tick;
+                writeln!(writer, "\nCurrent Time Tick: {:?}", new_time_tick).unwrap();
             } else {
                 break;
-            } */
+            }
             println!("Display loop received new Time tick");
 
-            // FIXME: I want to impliment this with a vector and write the messages in numerical order
-            let passenger_message = stations_reader.recv().unwrap();
-            match passenger_message {
-                StationToDisplayMessages::AdvanceTimeStep(new_time_step) => {
-                    writeln!(writer, "\nCurrent Time Tick: {:?}", new_time_step).unwrap();
-                    current_time_tick = new_time_step;
-                }
-                StationToDisplayMessages::TerminalMessage(terminal_message) => write!(
-                    writer,
-                    "{terminal_message} - TimeTick: {:?}",
-                    current_time_tick
-                )
-                .unwrap(),
+            for _ in 0..config.num_of_passengers {
+                // FIXME: I want to impliment this with a vector and write the messages in numerical order
+                let passenger_message = stations_reader.recv().unwrap();
+                writeln!(writer, "{passenger_message}").unwrap();
             }
         }
 

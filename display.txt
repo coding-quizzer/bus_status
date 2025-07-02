@@ -1,342 +1,70 @@
 First time tick: TimeTick { number: 0, stage: PassengerInit }
 
-Passenger 7 initiated in station 1
- - TimeTick: TimeTick { number: 0, stage: PassengerInit }Passenger 5 initiated in station 0
- - TimeTick: TimeTick { number: 0, stage: PassengerInit }Passenger 1 initiated in station 0
- - TimeTick: TimeTick { number: 0, stage: PassengerInit }Passenger 2 stuck at station 3. Failed to find valid route to destination 1
- - TimeTick: TimeTick { number: 0, stage: PassengerInit }Passenger 9 initiated in station 4
- - TimeTick: TimeTick { number: 0, stage: PassengerInit }Passenger 6 initiated in station 1
- - TimeTick: TimeTick { number: 0, stage: PassengerInit }Passenger 8 initiated in station 2
- - TimeTick: TimeTick { number: 0, stage: PassengerInit }Passenger 4 stuck at station 2. Failed to find valid route to destination 3
- - TimeTick: TimeTick { number: 0, stage: PassengerInit }Passenger 0 stuck at station 3. Failed to find valid route to destination 1
- - TimeTick: TimeTick { number: 0, stage: PassengerInit }Passenger 3 stuck at station 2. Failed to find valid route to destination 1
- - TimeTick: TimeTick { number: 0, stage: PassengerInit }
-Current Time Tick: TimeTick { number: 1, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 1, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 2, stage: BusUnloadingPassengers }
 
 Current Time Tick: TimeTick { number: 1, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 2, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 1, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 1, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 1, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 2, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 2, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 3, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 1, stage: BusUnloadingPassengers }
+Passenger 5 initiated in station 0 - Time Tick: 0 (init)
+Passenger 1 initiated in station 0 - Time Tick: 0 (init)
+Passenger 2 stuck at station 3. Failed to find valid route to destination 1 - Time Tick: 0 (init)
+Passenger 7 initiated in station 1 - Time Tick: 0 (init)
+Passenger 6 initiated in station 1 - Time Tick: 0 (init)
+Passenger 8 initiated in station 2 - Time Tick: 0 (init)
+Passenger 4 stuck at station 2. Failed to find valid route to destination 3 - Time Tick: 0 (init)
+Passenger 3 stuck at station 2. Failed to find valid route to destination 1 - Time Tick: 0 (init)
+Passenger 0 stuck at station 3. Failed to find valid route to destination 1 - Time Tick: 0 (init)
+Passenger 9 initiated in station 4 - Time Tick: 0 (init)
 
 Current Time Tick: TimeTick { number: 1, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 2, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 2, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 3, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 1, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 2, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 1, stage: BusLoadingPassengers }
+Passenger 5 arrived at intermediate location: Location Location 0 - Time Tick: 3 (loading)
+Passenger 1 arrived at intermediate location: Location Location 0 - Time Tick: 3 (loading)
+Passenger 9 arrived at intermediate location: Location Location 4 - Time Tick: 3 (loading)
+Passenger 5 waiting in station 0 - Time Tick: 3 (loading)
+Passenger 1 waiting in station 0 - Time Tick: 3 (loading)
+Passenger 8 arrived at intermediate location: Location Location 2 - Time Tick: 3 (loading)
+Passenger 7 arrived at intermediate location: Location Location 1 - Time Tick: 3 (loading)
+Passenger 6 arrived at intermediate location: Location Location 1 - Time Tick: 3 (loading)
+Passenger 8 waiting in station 2 - Time Tick: 3 (loading)
+Passenger 6 waiting in station 1 - Time Tick: 3 (loading)
 
 Current Time Tick: TimeTick { number: 2, stage: BusUnloadingPassengers }
+Passenger 6 arrived at intermediate location: Location Location 1 - Time Tick: 4 (loading)
+Passenger 5 arrived at intermediate location: Location Location 0 - Time Tick: 4 (loading)
+Passenger 1 arrived at intermediate location: Location Location 0 - Time Tick: 4 (loading)
+Passenger 8 arrived at intermediate location: Location Location 2 - Time Tick: 4 (loading)
+Passenger 5 waiting in station 0 - Time Tick: 4 (loading)
+Passenger 1 waiting in station 0 - Time Tick: 4 (loading)
+Passenger 8 waiting in station 2 - Time Tick: 4 (loading)
+Passenger 8 arrived at intermediate location: Location Location 2 - Time Tick: 5 (loading)
+Passenger 8 waiting in station 2 - Time Tick: 5 (loading)
+Passenger 5 arrived at intermediate location: Location Location 0 - Time Tick: 5 (loading)
 
 Current Time Tick: TimeTick { number: 2, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Passenger 1 arrived at intermediate location: Location Location 0 - Time Tick: 5 (loading)
+Passenger 5 waiting in station 0 - Time Tick: 5 (loading)
+Passenger 1 waiting in station 0 - Time Tick: 5 (loading)
+Passenger 8 arrived at intermediate location: Location Location 2 - Time Tick: 6 (loading)
+Passenger 5 arrived at intermediate location: Location Location 0 - Time Tick: 6 (loading)
+Passenger 1 arrived at intermediate location: Location Location 0 - Time Tick: 6 (loading)
+Passenger 8 waiting in station 2 - Time Tick: 6 (loading)
+Passenger 7 arrived at destination location: Location Location 3 - Time Tick: 7 (unloading)
+Passenger 8 arrived at intermediate location: Location Location 2 - Time Tick: 7 (loading)
+Passenger 8 waiting in station 2 - Time Tick: 7 (loading)
 
 Current Time Tick: TimeTick { number: 3, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 3, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 3, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 3, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 3, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 3, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 3, stage: BusLoadingPassengers }
+Passenger 7 arrived at intermediate location: Location Location 3 - Time Tick: 7 (loading)
+Passenger 7 waiting in station 3 - Time Tick: 7 (loading)
+Passenger 9 arrived at intermediate location: Location Location 3 - Time Tick: 8 (unloading)
+Passenger 1 arrived at intermediate location: Location Location 3 - Time Tick: 8 (unloading)
+Passenger 8 arrived at intermediate location: Location Location 2 - Time Tick: 8 (loading)
+Passenger 7 arrived at intermediate location: Location Location 3 - Time Tick: 8 (loading)
+Passenger 8 waiting in station 2 - Time Tick: 8 (loading)
+Passenger 8 arrived at intermediate location: Location Location 2 - Time Tick: 9 (loading)
+Passenger 8 waiting in station 2 - Time Tick: 9 (loading)
+Passenger 5 arrived at intermediate location: Location Location 2 - Time Tick: 11 (unloading)
 
 Current Time Tick: TimeTick { number: 3, stage: BusLoadingPassengers }
-Passenger 5 arrived at intermediate location: Location Location 0
- - TimeTick: TimeTick { number: 3, stage: BusLoadingPassengers }Passenger 1 arrived at intermediate location: Location Location 0
- - TimeTick: TimeTick { number: 3, stage: BusLoadingPassengers }Passenger 7 arrived at intermediate location: Location Location 1
- - TimeTick: TimeTick { number: 3, stage: BusLoadingPassengers }Passenger 6 arrived at intermediate location: Location Location 1
- - TimeTick: TimeTick { number: 3, stage: BusLoadingPassengers }Passenger 5 waiting in station 0
- - TimeTick: TimeTick { number: 3, stage: BusLoadingPassengers }Passenger 1 waiting in station 0
- - TimeTick: TimeTick { number: 3, stage: BusLoadingPassengers }Passenger 8 arrived at intermediate location: Location Location 2
- - TimeTick: TimeTick { number: 3, stage: BusLoadingPassengers }Passenger 8 waiting in station 2
- - TimeTick: TimeTick { number: 3, stage: BusLoadingPassengers }Passenger 9 arrived at intermediate location: Location Location 4
- - TimeTick: TimeTick { number: 3, stage: BusLoadingPassengers }Passenger 6 waiting in station 1
- - TimeTick: TimeTick { number: 3, stage: BusLoadingPassengers }
-Current Time Tick: TimeTick { number: 4, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 4, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 4, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 4, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 4, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 4, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 4, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 4, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 4, stage: BusLoadingPassengers }
-Passenger 6 arrived at intermediate location: Location Location 1
- - TimeTick: TimeTick { number: 4, stage: BusLoadingPassengers }
-Current Time Tick: TimeTick { number: 4, stage: BusLoadingPassengers }
-Passenger 8 arrived at intermediate location: Location Location 2
- - TimeTick: TimeTick { number: 4, stage: BusLoadingPassengers }Passenger 8 waiting in station 2
- - TimeTick: TimeTick { number: 4, stage: BusLoadingPassengers }Passenger 5 arrived at intermediate location: Location Location 0
- - TimeTick: TimeTick { number: 4, stage: BusLoadingPassengers }Passenger 1 arrived at intermediate location: Location Location 0
- - TimeTick: TimeTick { number: 4, stage: BusLoadingPassengers }Passenger 5 waiting in station 0
- - TimeTick: TimeTick { number: 4, stage: BusLoadingPassengers }Passenger 1 waiting in station 0
- - TimeTick: TimeTick { number: 4, stage: BusLoadingPassengers }
-Current Time Tick: TimeTick { number: 5, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 5, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 6, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 5, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 5, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 5, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 5, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 5, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 6, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 6, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 5, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 5, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 6, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 5, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 6, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 6, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 6, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 6, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 6, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 6, stage: BusLoadingPassengers }
-Passenger 5 arrived at intermediate location: Location Location 0
- - TimeTick: TimeTick { number: 6, stage: BusLoadingPassengers }Passenger 1 arrived at intermediate location: Location Location 0
- - TimeTick: TimeTick { number: 6, stage: BusLoadingPassengers }Passenger 8 arrived at intermediate location: Location Location 2
- - TimeTick: TimeTick { number: 6, stage: BusLoadingPassengers }Passenger 8 waiting in station 2
- - TimeTick: TimeTick { number: 6, stage: BusLoadingPassengers }
-Current Time Tick: TimeTick { number: 7, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 7, stage: BusUnloadingPassengers }
-Passenger 7 arrived at destination location: Location Location 3
- - TimeTick: TimeTick { number: 7, stage: BusUnloadingPassengers }
-Current Time Tick: TimeTick { number: 7, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 7, stage: BusLoadingPassengers }
-Passenger 7 arrived at intermediate location: Location Location 3
- - TimeTick: TimeTick { number: 7, stage: BusLoadingPassengers }Passenger 7 waiting in station 3
- - TimeTick: TimeTick { number: 7, stage: BusLoadingPassengers }
-Current Time Tick: TimeTick { number: 7, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 7, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 7, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 7, stage: BusLoadingPassengers }
-Passenger 8 arrived at intermediate location: Location Location 2
- - TimeTick: TimeTick { number: 7, stage: BusLoadingPassengers }Passenger 8 waiting in station 2
- - TimeTick: TimeTick { number: 7, stage: BusLoadingPassengers }
-Current Time Tick: TimeTick { number: 7, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 7, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 8, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 8, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 8, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 8, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 8, stage: BusUnloadingPassengers }
-Passenger 9 arrived at intermediate location: Location Location 3
- - TimeTick: TimeTick { number: 8, stage: BusUnloadingPassengers }Passenger 1 arrived at intermediate location: Location Location 3
- - TimeTick: TimeTick { number: 8, stage: BusUnloadingPassengers }
-Current Time Tick: TimeTick { number: 8, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 8, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 8, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 8, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 8, stage: BusLoadingPassengers }
-Passenger 8 arrived at intermediate location: Location Location 2
- - TimeTick: TimeTick { number: 8, stage: BusLoadingPassengers }Passenger 8 waiting in station 2
- - TimeTick: TimeTick { number: 8, stage: BusLoadingPassengers }Passenger 7 arrived at intermediate location: Location Location 3
- - TimeTick: TimeTick { number: 8, stage: BusLoadingPassengers }
-Current Time Tick: TimeTick { number: 9, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 9, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 9, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 9, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 9, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 9, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 9, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 9, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 9, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 9, stage: BusLoadingPassengers }
-Passenger 8 arrived at intermediate location: Location Location 2
- - TimeTick: TimeTick { number: 9, stage: BusLoadingPassengers }Passenger 8 waiting in station 2
- - TimeTick: TimeTick { number: 9, stage: BusLoadingPassengers }
-Current Time Tick: TimeTick { number: 10, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 10, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 10, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 10, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 10, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 10, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 11, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 11, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 10, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 10, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 10, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 11, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 11, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 10, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 11, stage: BusUnloadingPassengers }
-Passenger 5 arrived at intermediate location: Location Location 2
- - TimeTick: TimeTick { number: 11, stage: BusUnloadingPassengers }Passenger 7 arrived at intermediate location: Location Location 2
- - TimeTick: TimeTick { number: 11, stage: BusUnloadingPassengers }
-Current Time Tick: TimeTick { number: 11, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 11, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 11, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 11, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 11, stage: BusLoadingPassengers }
-Passenger 8 arrived at intermediate location: Location Location 2
- - TimeTick: TimeTick { number: 11, stage: BusLoadingPassengers }Passenger 8 waiting in station 2
- - TimeTick: TimeTick { number: 11, stage: BusLoadingPassengers }
-Current Time Tick: TimeTick { number: 12, stage: BusUnloadingPassengers }
-Passenger 6 arrived at intermediate location: Location Location 0
- - TimeTick: TimeTick { number: 12, stage: BusUnloadingPassengers }
-Current Time Tick: TimeTick { number: 12, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 12, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 12, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 12, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 12, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 12, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 12, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 12, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 12, stage: BusLoadingPassengers }
-Passenger 8 arrived at intermediate location: Location Location 2
- - TimeTick: TimeTick { number: 12, stage: BusLoadingPassengers }
-Current Time Tick: TimeTick { number: 13, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 13, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 13, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 13, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 13, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 13, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 14, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 14, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 14, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 13, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 13, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 13, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 14, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 13, stage: BusLoadingPassengers }
-Passenger 8 arrived at intermediate location: Location Location 0
- - TimeTick: TimeTick { number: 13, stage: BusLoadingPassengers }
-Current Time Tick: TimeTick { number: 14, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 14, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 14, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 14, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 14, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 14, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 15, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 15, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 15, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 15, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 15, stage: BusUnloadingPassengers }
+Passenger 7 arrived at intermediate location: Location Location 2 - Time Tick: 11 (unloading)
+Passenger 8 arrived at intermediate location: Location Location 2 - Time Tick: 11 (loading)
+Passenger 8 waiting in station 2 - Time Tick: 11 (loading)
+Passenger 6 arrived at intermediate location: Location Location 0 - Time Tick: 12 (unloading)
+Passenger 8 arrived at intermediate location: Location Location 2 - Time Tick: 12 (loading)
+Passenger 8 arrived at intermediate location: Location Location 0 - Time Tick: 14 (unloading)

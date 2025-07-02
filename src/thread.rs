@@ -1,5 +1,5 @@
 use crate::bus::SendableBus;
-use crate::display::TerminalMessage;
+use crate::display::{TerminalMessage, TerminalType};
 use crate::passenger::Passenger;
 #[derive(PartialEq, Debug, Clone, Default)]
 // Messages to the station

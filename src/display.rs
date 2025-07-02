@@ -1,5 +1,18 @@
 use std::fmt::{Display, Formatter};
-pub enum TerminalMessage {
+
+use crate::TimeTick;
+
+pub struct TerminalMessage {
+    pub content: TerminalType,
+    pub time_tick: TimeTick,
+}
+
+impl Display for TerminalMessage {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
+        write!(f, "{} - {}", self.content, self.time_tick)
+    }
+}
+pub enum TerminalType {
     InitiatedPassenger(InitiatedPassengerInfo),
     WaitingPassenger(WaitingPassengerInfo),
     ArrivedPassenger(ArrivedPassengerInfo),
@@ -8,15 +21,15 @@ pub enum TerminalMessage {
     StrandedPassenger(StrandedPassengerInfo),
 }
 
-impl std::fmt::Display for TerminalMessage {
+impl Display for TerminalType {
     fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
         match self {
-            TerminalMessage::InitiatedPassenger(info) => write!(f, "{info}"),
-            TerminalMessage::ArrivedPassenger(info) => write!(f, "{info}"),
-            TerminalMessage::BoardedPassenger(info) => write!(f, "{info}"),
-            TerminalMessage::RejectedPassenger(info) => write!(f, "{info}"),
-            TerminalMessage::StrandedPassenger(info) => write!(f, "{info}"),
-            TerminalMessage::WaitingPassenger(info) => write!(f, "{info}"),
+            TerminalType::InitiatedPassenger(info) => write!(f, "{info}"),
+            TerminalType::ArrivedPassenger(info) => write!(f, "{info}"),
+            TerminalType::BoardedPassenger(info) => write!(f, "{info}"),
+            TerminalType::RejectedPassenger(info) => write!(f, "{info}"),
+            TerminalType::StrandedPassenger(info) => write!(f, "{info}"),
+            TerminalType::WaitingPassenger(info) => write!(f, "{info}"),
         }
     }
 }
