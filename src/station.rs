@@ -787,34 +787,6 @@ pub fn create_station_thread(
 
                                 next_location.is_some()
                             });
-                    //FIXME: this is the wrong place for these messages - there is no distinction made with passengers from bus vs from thread vs passively waiting
-                    for passenger in passengers_for_next_destination.iter() {
-                        to_display_sender_clone
-                            .send(TerminalMessage {
-                                content: TerminalType::ArrivedPassenger(
-                                    display::ArrivedPassengerInfo::new_layover(
-                                        passenger.id_for_display,
-                                        current_location,
-                                    ),
-                                ),
-                                time_tick,
-                            })
-                            .unwrap();
-                    }
-
-                    for passenger in arrived_passengers.iter() {
-                        to_display_sender_clone
-                            .send(TerminalMessage {
-                                content: TerminalType::ArrivedPassenger(
-                                    display::ArrivedPassengerInfo::new_final(
-                                        passenger.id_for_display,
-                                        current_location,
-                                    ),
-                                ),
-                                time_tick,
-                            })
-                            .unwrap();
-                    }
                     trace!(
                         "Time_tick: {}, Station {} Arrived Passengers: {:#?}",
                         time_tick.number,
