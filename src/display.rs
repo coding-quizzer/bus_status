@@ -35,34 +35,34 @@ impl Display for TerminalType {
 }
 
 pub struct ArrivedPassengerInfo {
-    index: usize,
+    pub index: usize,
     station_location: crate::Location,
-    final_location: bool,
+    pub final_location: bool,
 }
 
 pub struct BoardedPassengerInfo {
-    index: usize,
+    pub index: usize,
     bus_number: usize,
 }
 
 pub struct RejectedPassengerInfo {
-    index: usize,
+    pub index: usize,
     bus_number: usize,
 }
 
 pub struct StrandedPassengerInfo {
-    index: usize,
+    pub index: usize,
     current_station_index: usize,
     destination_location_index: usize,
 }
 
 pub struct WaitingPassengerInfo {
-    index: usize,
+    pub index: usize,
     location_index: usize,
 }
 
 pub struct InitiatedPassengerInfo {
-    index: usize,
+    pub index: usize,
     location_index: usize,
 }
 
@@ -197,4 +197,11 @@ impl Display for InitiatedPassengerInfo {
             self.index, self.location_index,
         )
     }
+}
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum PassengerState {
+    // Uninitialized,
+    Unprocessed,
+    Processed,
+    Finished,
 }

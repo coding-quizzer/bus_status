@@ -2,6 +2,10 @@ use crate::bus::Bus;
 use crate::consts::WRITE_JSON;
 use crate::data;
 use crate::data::InputDataStructure;
+use crate::display::{
+    ArrivedPassengerInfo, BoardedPassengerInfo, InitiatedPassengerInfo, PassengerState,
+    RejectedPassengerInfo, StrandedPassengerInfo, TerminalType, WaitingPassengerInfo,
+};
 use crate::initialize_channel_list;
 use crate::location::{BusLocation, PassengerBusLocation};
 use crate::station;
@@ -552,11 +556,39 @@ pub fn run_simulation(
         // let mut writer = std::io::BufWriter::new(output_file);
         let mut writer = std::io::LineWriter::new(output_file);
         let mut current_time_tick = TimeTick::default();
+        let mut passenger_states = Vec::new();
+        passenger_states.resize(config.num_of_passengers, PassengerState::Unprocessed);
 
         writeln!(writer, "First time tick: {:?}\n", TimeTick::default()).unwrap();
 
         // TODO: Remove when setup timetick is not set up anymore
         // Setup time tick
+        for _ in 0..config.num_of_passengers {
+            // FIXME: I want to impliment this with a vector and write the messages in numerical order
+            let passenger_message = stations_reader.recv().unwrap();
+            let (new_state, index) = match passenger_message.content {
+                TerminalType::InitiatedPassenger(InitiatedPassengerInfo { index, .. }) => {
+                    (PassengerState::Processed, index)
+                }
+                TerminalType::ArrivedPassenger(ArrivedPassengerInfo {
+                    index,
+                    final_location: false,
+                    ..
+                })
+                | TerminalType::BoardedPassenger(BoardedPassengerInfo { index, .. })
+                | TerminalType::RejectedPassenger(RejectedPassengerInfo { index, .. })
+                | TerminalType::WaitingPassenger(WaitingPassengerInfo { index, .. }) => {
+                    (PassengerState::Processed, index)
+                }
+                TerminalType::StrandedPassenger(StrandedPassengerInfo { index, .. })
+                | TerminalType::ArrivedPassenger(ArrivedPassengerInfo {
+                    index,
+                    final_location: true,
+                    ..
+                }) => (PassengerState::Finished, index),
+            };
+            writeln!(writer, "{passenger_message}").unwrap();
+        }
 
         loop {
             log::debug!("Display loop beginning");
@@ -571,10 +603,24 @@ pub fn run_simulation(
             }
             println!("Display loop received new Time tick");
 
-            for _ in 0..config.num_of_passengers {
+            // Reset the passenger States
+            while !passenger_states
+                .iter()
+                .any(|state| *state == PassengerState::Unprocessed)
+            {
                 // FIXME: I want to impliment this with a vector and write the messages in numerical order
                 let passenger_message = stations_reader.recv().unwrap();
                 writeln!(writer, "{passenger_message}").unwrap();
+            }
+        }
+
+        for state in passenger_states.iter_mut() {
+            *state = match state {
+                PassengerState::Finished => PassengerState::Finished,
+                PassengerState::Processed => PassengerState::Unprocessed,
+                PassengerState::Unprocessed => {
+                    unreachable!("Unprocessed is filtered out already")
+                }
             }
         }
 
