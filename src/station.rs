@@ -397,6 +397,13 @@ pub fn create_station_thread(
                     }
                     _ => {}
                 }
+
+                to_display_sender_clone.send(TerminalMessage {
+                    content: TerminalType::NoPassengerFromStation {
+                        index: current_location.index,
+                    },
+                    time_tick,
+                });
             }
             // println!(
             //     "Time tick up to date finished. Station {station_index} Thread ID: {:?}",
@@ -547,7 +554,7 @@ pub fn create_station_thread(
                                 to_display_sender_clone
                                     .send(TerminalMessage {
                                         content: TerminalType::ArrivedPassenger(
-                                            crate::display::ArrivedPassengerInfo::new_layover(
+                                            crate::display::ArrivedPassengerInfo::new_final(
                                                 display_id,
                                                 current_location,
                                             ),
@@ -562,7 +569,7 @@ pub fn create_station_thread(
                                 to_display_sender_clone
                                     .send(TerminalMessage {
                                         content: TerminalType::ArrivedPassenger(
-                                            crate::display::ArrivedPassengerInfo::new_final(
+                                            crate::display::ArrivedPassengerInfo::new_layover(
                                                 display_id,
                                                 current_location,
                                             ),
@@ -905,7 +912,7 @@ pub fn create_station_thread(
                             }
                         } else {
                             passengers_to_send.append(&mut new_passenger_list);
-                            for boarding_passenger in new_passenger_list.iter() {
+                            for boarding_passenger in passengers_to_send.iter() {
                                 to_display_sender_clone
                                     .send(TerminalMessage {
                                         content: TerminalType::BoardedPassenger(
@@ -917,7 +924,15 @@ pub fn create_station_thread(
                                         time_tick,
                                     })
                                     .unwrap();
+                                debug!(
+                                    "Passenger {} sent to display for bording",
+                                    boarding_passenger.id_for_display
+                                );
                             }
+                            debug!(
+                                "All  {} Passengers sent to display for boarding",
+                                passengers_to_send.len()
+                            );
                         }
                         debug!(
                             "Passengers to send from station {}: {:#?}",

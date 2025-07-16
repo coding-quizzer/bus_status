@@ -69,7 +69,7 @@ impl std::fmt::Display for TimeTick {
             TimeTickStage::BusUnloadingPassengers => "unloading",
             TimeTickStage::BusLoadingPassengers => "loading",
         };
-        write!(f, "Time Tick: {} ({})", self.number, message_remainder)
+        write!(f, "Time Tick: ({} - {})", self.number, message_remainder)
     }
 }
 
