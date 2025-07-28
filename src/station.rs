@@ -398,12 +398,14 @@ pub fn create_station_thread(
                     _ => {}
                 }
 
-                to_display_sender_clone.send(TerminalMessage {
-                    content: TerminalType::NoPassengerFromStation {
-                        index: current_location.index,
-                    },
-                    time_tick,
-                });
+                to_display_sender_clone
+                    .send(TerminalMessage {
+                        content: TerminalType::NoPassengerFromStation {
+                            index: current_location.index,
+                        },
+                        time_tick,
+                    })
+                    .unwrap();
             }
             // println!(
             //     "Time tick up to date finished. Station {station_index} Thread ID: {:?}",
