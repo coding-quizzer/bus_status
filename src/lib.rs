@@ -15,6 +15,9 @@ use std::collections::{HashMap, VecDeque};
 use bus::BusLocation;
 use location::{Location, PassengerBusLocation};
 use std::sync::mpsc::{self, Receiver, Sender};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+
+use crate::consts::MAX_CHANNEL_SIZE;
 
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub enum TimeTickStage {
@@ -199,6 +202,28 @@ pub fn initialize_location_list(count: usize) -> Vec<Location> {
 pub struct ReceiverWithIndex<T> {
     pub receiver: Receiver<T>,
     pub index: usize,
+}
+
+pub struct AsyncReceiverWithIndex<T> {
+    pub receiver: UnboundedReceiver<T>,
+    pub index: usize,
+}
+
+pub fn initialize_async_channel_list<T>(
+    channel_count: usize,
+) -> (Vec<UnboundedSender<T>>, Vec<AsyncReceiverWithIndex<T>>) {
+    let mut sender_vector = Vec::new();
+    let mut receiver_vector = Vec::new();
+    for index in 0..channel_count {
+        let (current_sender, current_receiver) = tokio::sync::mpsc::unbounded_channel();
+        sender_vector.push(current_sender);
+        receiver_vector.push(AsyncReceiverWithIndex {
+            receiver: current_receiver,
+            index,
+        });
+    }
+
+    (sender_vector, receiver_vector)
 }
 pub fn initialize_channel_list<T>(
     channel_count: usize,

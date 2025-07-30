@@ -12,7 +12,7 @@ use crate::thread::{
 };
 use crate::{
     calculate_passenger_schedule_for_bus,
-    calculate_passenger_schedule_for_bus_check_available_buses,
+    calculate_passenger_schedule_for_bus_check_available_buses, AsyncReceiverWithIndex,
 };
 use crate::{station, TimeTick};
 use crate::{ReceiverWithIndex, TimeTickStage};
@@ -24,6 +24,11 @@ use std::sync::{
     Arc, Mutex,
 };
 use std::thread::{self, sleep, JoinHandle, ThreadId};
+use tokio::runtime::{self, Runtime};
+use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::sync::mpsc::{Receiver as TokioReceiver, Sender as TokioSender};
+use tokio::task::JoinSet;
+// use tokio::sync::{recv, send};
 
 pub struct PassengerScheduleWithDistance {
     pub passenger_schedule: VecDeque<PassengerOnboardingBusSchedule>,
@@ -174,7 +179,7 @@ pub fn get_station_threads(
     current_time_tick: &TimeTick,
     send_to_bus_channels_arc: &Arc<Vec<Sender<StationToBusMessages>>>,
     receive_in_station_channels_arc: &Arc<
-        Mutex<Vec<Option<ReceiverWithIndex<StationEventMessages>>>>,
+        Mutex<Vec<Option<AsyncReceiverWithIndex<StationEventMessages>>>>,
     >,
     bus_route_vec_arc: &Arc<Mutex<Vec<Vec<BusLocation>>>>,
     passenger_bus_route_arc: &Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>,
@@ -183,7 +188,7 @@ pub fn get_station_threads(
     tx_stations_to_passengers: Sender<StationToPassengersMessages>,
     display_sender: Sender<display::TerminalMessage>,
     rx_sync_to_stations_list: Arc<
-        Mutex<Vec<Option<ReceiverWithIndex<SyncToStationAndPassengerMessages>>>>,
+        Mutex<Vec<Option<AsyncReceiverWithIndex<SyncToStationAndPassengerMessages>>>>,
     >,
     final_passenger_list_arc: &Arc<Mutex<FinalPassengerLists>>,
     config: &ConfigStruct,
@@ -312,13 +317,13 @@ pub fn create_station_thread(
     // TODO: I have shadowed this
     // station_time_tick: TimeTick,
     send_to_bus_channels: Arc<Vec<Sender<StationToBusMessages>>>,
-    station_channel_receiver: ReceiverWithIndex<StationEventMessages>,
+    station_channel_receiver: AsyncReceiverWithIndex<StationEventMessages>,
     bus_route_list: Arc<Mutex<Vec<Vec<BusLocation>>>>,
     station_thread_passenger_bus_route_list: Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>,
     rejected_passenger_clone: Arc<Mutex<Vec<Passenger>>>,
     to_passengers_sender_clone: Sender<StationToPassengersMessages>,
     to_display_sender_clone: Sender<display::TerminalMessage>,
-    sync_to_stations_receiver: Receiver<SyncToStationAndPassengerMessages>,
+    sync_to_stations_receiver: UnboundedReceiver<SyncToStationAndPassengerMessages>,
     final_passenger_list_clone: Arc<Mutex<FinalPassengerLists>>,
     num_of_buses: usize,
 ) -> JoinHandle<()> {
@@ -337,90 +342,47 @@ pub fn create_station_thread(
         // Once passengerInit stage is finished, bus_passengers_initialized is set to false, so the loop does not need to run again
         let mut bus_passengers_initialized = false;
 
-        let mut time_tick = station_time_tick;
         let mut previous_time_tick: Option<TimeTick> = None;
         let current_thread_id = thread::current().id();
         let mut station_unload_first_call_for_timetick = true;
+        let mut tasks = tokio::task::JoinSet::new();
+        let rt = runtime::Builder::new_current_thread().build().unwrap();
+
+        rt.block_on(async {
+
 
         'main: loop {
             // println!("Beginning of station main loop");
             // TODO: Update time tick for station
             // println!("Station {station_index} Thread ID: {current_thread_id}Station thread beginning. Station index: {}", station_index);
 
-            let message_from_bus = bus_message_receiver.try_recv().unwrap_or_default();
-
-            let mut time_tick_up_to_date = false;
-            while (!time_tick_up_to_date) {
-                let message_from_sync_result = sync_to_stations_receiver.try_recv();
-                match message_from_sync_result {
-                    Ok(SyncToStationAndPassengerMessages::ProgramFinished(_)) => {
-                        info!(
-                            "All buses finished message received in station {}",
-                            station_index
-                        );
-                        // DEBUG: This should contain the arrived passengers. Why does it not?
-                        let mut final_passenger_list = final_passenger_list_clone.lock().unwrap();
-                        final_passenger_list.location_lists[station_index] =
-                            current_station.arrived_passengers.clone();
-                        println!("Station {} finished", station_index);
-                        break 'main;
-                    }
-                    Ok(SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_step)) => {
-                        info!(
-                            "Station {station_index} Thread ID: {:?} New Time Step: {:?}",
-                            thread::current().id(),
-                            new_time_step
-                        );
-                        info!(
-                            "Thread ID: {:?}Old Time Step: {:?}",
-                            thread::current().id(),
-                            time_tick
-                        );
-                        // TODO:
-                        if (new_time_step.number - time_tick.number > 1) {
-                            panic!("Station time tick difference is more than one. new_time_step: {new_time_step:?}. Current Time Tick: {time_tick:?}");
-                        }
-                        if (new_time_step.number < time_tick.number) {
-                            panic!("Station time tick difference less than 0. An earlier time step must have been sent another time. new_time_step: {new_time_step:?}. Current Time Tick: {time_tick:?}");
-                        }
-
-                        time_tick = new_time_step;
-                        station_unload_first_call_for_timetick = true;
-                    }
-
-                    Err(TryRecvError::Empty) => {
-                        time_tick_up_to_date = true;
-                    }
-
-                    Err(TryRecvError::Disconnected) => {
-                        panic!("{}", TryRecvError::Disconnected);
-                    }
-                    _ => {}
-                }
-
-                to_display_sender_clone
-                    .send(TerminalMessage {
-                        content: TerminalType::NoPassengerFromStation {
-                            index: current_location.index,
-                        },
-                        time_tick,
-                    })
-                    .unwrap();
-            }
             // println!(
             //     "Time tick up to date finished. Station {station_index} Thread ID: {:?}",
             //     thread::current().id()
             // );
 
             /* println!(
-                "Station {} loop beginning. Time tick: {:?}",
-                station_index, time_tick
+            "Station {} loop beginning. Time tick: {:?}",
+            station_index, time_tick
             ); */
             // Note: It may be a good idea to make sure that stations without passengers are not blocked, but this might work
 
             // time tick is kept by deadlock
 
             // let received_message = current_receiver.recv().unwrap();
+
+            let mut time_tick = station_time_tick;
+
+            // Set up runtime
+
+
+            let bus_task_handle = tasks.spawn(async move {
+              let message_from_sync = sync_to_stations_receiver.recv().await.unwrap();
+            });
+
+            let sync_task_handle = tasks.spawn(async move {
+                let message_from_bus = bus_message_receiver.recv().await.unwrap();
+            });
 
             match time_tick.stage {
                 TimeTickStage::PassengerInit => {
@@ -1092,7 +1054,10 @@ pub fn create_station_thread(
                     );
                 }
             }
-        }
+
+          }
+          tasks.join_all();
+      });
     });
 
     station_handle

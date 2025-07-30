@@ -9,6 +9,7 @@ use bus_system::data::{self, InputDataStructure, SerializedIndexedPassenger};
 use bus_system::location::Location;
 use bus_system::main_loop::{run_simulation, ConfigStruct};
 
+#[tokio::main]
 fn main() {
     simple_logger::SimpleLogger::new()
         .without_timestamps()

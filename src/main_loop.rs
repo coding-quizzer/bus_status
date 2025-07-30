@@ -6,7 +6,6 @@ use crate::display::{
     ArrivedPassengerInfo, BoardedPassengerInfo, InitiatedPassengerInfo, PassengerState,
     RejectedPassengerInfo, StrandedPassengerInfo, TerminalType, WaitingPassengerInfo,
 };
-use crate::initialize_channel_list;
 use crate::location::{BusLocation, PassengerBusLocation};
 use crate::station;
 use crate::thread::{
@@ -14,6 +13,7 @@ use crate::thread::{
     StationToPassengersMessages, StationToSyncMessages, SyncToBusMessages,
     SyncToStationAndPassengerMessages,
 };
+use crate::{initialize_async_channel_list, initialize_channel_list};
 use crate::{Location, Passenger};
 use crate::{TimeTick, TimeTickStage};
 
@@ -102,7 +102,7 @@ pub fn run_simulation(
     let (tx_sync_to_passengers, rx_sync_to_passengers) =
         mpsc::channel::<SyncToStationAndPassengerMessages>();
     let (send_to_station_channels, receive_in_station_channels) =
-        crate::initialize_channel_list::<StationEventMessages>(config.num_of_locations);
+        crate::initialize_async_channel_list::<StationEventMessages>(config.num_of_locations);
     let receive_in_station_channels: Vec<Option<_>> =
         receive_in_station_channels.into_iter().map(Some).collect();
 
@@ -121,7 +121,9 @@ pub fn run_simulation(
         is_first_run: bool,
         all_buses_are_moving: bool,
         time_tick: &mut TimeTick,
-        station_senders: &Vec<mpsc::Sender<SyncToStationAndPassengerMessages>>,
+        station_senders: &Vec<
+            tokio::sync::mpsc::UnboundedSender<SyncToStationAndPassengerMessages>,
+        >,
         bus_senders: &Vec<mpsc::Sender<SyncToBusMessages>>,
         passenger_sender: &mpsc::Sender<SyncToStationAndPassengerMessages>,
         display_sender: &mpsc::Sender<SyncToStationAndPassengerMessages>,
@@ -192,13 +194,13 @@ pub fn run_simulation(
     // }
 
     let (sender_sync_to_stations_list, receiver_sync_to_stations_list) =
-        initialize_channel_list::<SyncToStationAndPassengerMessages>(config.num_of_locations);
+        initialize_async_channel_list::<SyncToStationAndPassengerMessages>(config.num_of_locations);
     println!("channel count: {}", config.num_of_locations);
-    println!(
-        "Sync to stations list: {:?}",
-        receiver_sync_to_stations_list
-    );
-
+    /* println!(
+           "Sync to stations list: {:?}",
+           receiver_sync_to_stations_list
+       );
+    */
     let (sender_sync_to_bus_list, receiver_sync_to_bus_list) =
         initialize_channel_list::<SyncToBusMessages>(config.num_of_buses);
     let receiver_sync_to_bus_channels = receiver_sync_to_bus_list

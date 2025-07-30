@@ -13,6 +13,7 @@ pub use crate::location::BusLocation;
 use serde::{Deserialize, Serialize};
 use std::ops::ControlFlow;
 use std::sync::mpsc::{Receiver, Sender};
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::location::Location;
 
@@ -229,7 +230,7 @@ impl Bus {
 
     pub fn update(
         &mut self,
-        station_senders: &[Sender<StationEventMessages>],
+        station_senders: &[UnboundedSender<StationEventMessages>],
         station_receiver: &Receiver<StationToBusMessages>,
         sync_sender: &Sender<BusMessages>,
         sync_receiver: &Receiver<SyncToBusMessages>,

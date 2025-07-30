@@ -2,6 +2,7 @@ use std::sync::Once;
 pub static INIT_VALUES: Once = Once::new();
 pub const DEFAULT_BUS_CAPACITY: usize = 10;
 pub const GLOBAL_PASSENGER_COUNT: usize = 10;
+pub const MAX_CHANNEL_SIZE: usize = 100;
 
 pub const DEFAULT_GLOBAL_LOCATION_COUNT: usize = 5;
 pub const DEFAULT_NUM_OF_BUSES: usize = 3;
