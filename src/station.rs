@@ -323,7 +323,7 @@ pub fn create_station_thread(
     rejected_passenger_clone: Arc<Mutex<Vec<Passenger>>>,
     to_passengers_sender_clone: Sender<StationToPassengersMessages>,
     to_display_sender_clone: Sender<display::TerminalMessage>,
-    sync_to_stations_receiver: UnboundedReceiver<SyncToStationAndPassengerMessages>,
+    mut sync_to_stations_receiver: UnboundedReceiver<SyncToStationAndPassengerMessages>,
     final_passenger_list_clone: Arc<Mutex<FinalPassengerLists>>,
     num_of_buses: usize,
 ) -> JoinHandle<()> {
@@ -338,14 +338,13 @@ pub fn create_station_thread(
             "Thread ID: {:?}Station index: {station_index}",
             thread::current().id()
         );
-        let bus_message_receiver = station_channel_receiver.receiver;
+        let mut bus_message_receiver = station_channel_receiver.receiver;
         // Once passengerInit stage is finished, bus_passengers_initialized is set to false, so the loop does not need to run again
         let mut bus_passengers_initialized = false;
 
         let mut previous_time_tick: Option<TimeTick> = None;
         let current_thread_id = thread::current().id();
         let mut station_unload_first_call_for_timetick = true;
-        let mut tasks = tokio::task::JoinSet::new();
         let rt = runtime::Builder::new_current_thread().build().unwrap();
 
         rt.block_on(async {
@@ -375,14 +374,26 @@ pub fn create_station_thread(
 
             // Set up runtime
 
+           
 
-            let bus_task_handle = tasks.spawn(async move {
-              let message_from_sync = sync_to_stations_receiver.recv().await.unwrap();
-            });
 
-            let sync_task_handle = tasks.spawn(async move {
-                let message_from_bus = bus_message_receiver.recv().await.unwrap();
-            });
+            // let bus_task_handle = tasks.spawn(async {
+            //   bus_task;
+            // });
+
+            // let sync_task_handle = tasks.spawn(async move {
+            //     message_task;
+            // });
+
+            
+
+            // Select star
+            // places listener for wakeup randomly poles for what is ready
+            // relying on operating system calls
+
+            //
+
+            let message_from_bus = StationEventMessages::NoMessage;
 
             match time_tick.stage {
                 TimeTickStage::PassengerInit => {
@@ -987,7 +998,9 @@ pub fn create_station_thread(
                     // sync_to_stations receiver moved before buses_receiver so that this check can run independantly of
                     // other messages.
 
-                    let message_from_sync_result = sync_to_stations_receiver.try_recv();
+                    // let message_from_sync_result = sync_to_stations_receiver.try_recv();
+
+                    let message_from_sync_result: Result<SyncToStationAndPassengerMessages, std::sync::mpsc::TryRecvError>  = Ok(SyncToStationAndPassengerMessages::AdvanceTimeStep(Default::default()));
 
                     // NOTE: This should not be neccesary because the buses are controlling the loop, not the
                     if let Ok(SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick)) =
@@ -1054,9 +1067,165 @@ pub fn create_station_thread(
                     );
                 }
             }
+            
+            // DEBUG: Does this introduce a race condition?
+            let mut time_tick_update = time_tick.clone();
 
+            let bus_task = async {
+              let message_from_sync = sync_to_stations_receiver.recv().await.unwrap();
+              match message_from_sync {
+                SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick) => time_tick_update = new_time_tick,
+                SyncToStationAndPassengerMessages::ProgramFinished(_) => unimplemented!()
+              }
+            };
+
+            let message_task = async {
+              let message_from_bus = bus_message_receiver.recv().await.unwrap();
+              match message_from_bus {
+                StationEventMessages::InitPassengerList(mut passengers) => {
+                  
+                  receive_fresh_passengers(
+                  &mut passengers,
+                  &mut current_station,
+                  &time_tick,
+                  &station_thread_passenger_bus_route_list,
+                  &mut bus_passengers_initialized,
+                  &rejected_passenger_clone,
+                  &to_passengers_sender_clone,
+                  &to_display_sender_clone,
+                  &current_thread_id,
+              )},
+
+              StationEventMessages::BusArrived { passengers_offboarding, bus_info } => {
+                // Bus arrives and drops off passengers
+                info!(
+                  "Bus Arrived Message received in station {} from bus {}",
+                  station_index, bus_info.bus_index
+              );
+              for mut passenger in passengers_offboarding.into_iter() {
+                  // TODO: These opperations might be redundant, or should be done with Station::add_passenger. Explore this further
+                  let passenger_location =
+                      passenger.bus_schedule_iterator.next().unwrap();
+
+                  passenger.current_location = passenger_location.stop_location.into();
+                  passenger.next_bus_num = passenger_location.bus_num;
+                  passenger.archived_stop_list.push(passenger_location);
+
+                  let is_last_location =
+                      passenger.bus_schedule_iterator.clone().next().is_none();
+                  let display_id = passenger.id_for_display;
+                  if is_last_location {
+                      // add to the arrived passengers
+                      current_station.arrived_passengers.push(passenger);
+                      // send to display stream
+                      to_display_sender_clone
+                          .send(TerminalMessage {
+                              content: TerminalType::ArrivedPassenger(
+                                  crate::display::ArrivedPassengerInfo::new_final(
+                                      display_id,
+                                      current_location,
+                                  ),
+                              ),
+                              time_tick,
+                          })
+                          .unwrap();
+                  } else {
+                      // add to the current station's passengers
+                      current_station.passengers.push(passenger);
+                      // send to display stream
+                      to_display_sender_clone
+                          .send(TerminalMessage {
+                              content: TerminalType::ArrivedPassenger(
+                                  crate::display::ArrivedPassengerInfo::new_layover(
+                                      display_id,
+                                      current_location,
+                                  ),
+                              ),
+                              time_tick,
+                          })
+                          .unwrap();
+                  }
+              }
+              info!(
+                  "{} passengers are now in the station",
+                  current_station.passengers.len()
+              );
+              let bus_index = bus_info.bus_index;
+              info!("Bus {bus_index} arrived at station {station_index}. Received from station.");
+
+              assert!(!current_station
+                  .docked_buses
+                  .iter()
+                  .any(|station_bus| station_bus == &bus_info));
+
+              current_station.docked_buses.push(bus_info);
+
+              //FIXME: Two consecutive sends to the same thread without any regulation of timing
+
+              // So far, acknowledge arrival doesn't acctually do anything
+              // send_to_bus_channels[bus_index]
+              //     .send(StationToBusMessages::AcknowledgeArrival())
+              //     .unwrap();
+
+              send_to_bus_channels[bus_index]
+                  .send(StationToBusMessages::FinishedUnloading)
+                  .unwrap();
+              info!(
+                  "Station {} finished unloading bus {} and sent message",
+                  station_index, bus_index
+              );
+                
+              },
+
+              StationEventMessages::BusDeparted { bus_index } => {
+                // Why is there a bus that should be removed which is not on the list of docked buses?
+                        // Confirm that the station contains the bus that should be removed
+                        info!(
+                          "Bus departure message received at station {} for bus {}",
+                          current_station.location.index, bus_index
+                      );
+                      assert!(
+                          current_station
+                              .docked_buses
+                              .iter()
+                              .any(|bus| bus.bus_index == bus_index),
+                          "Bus index to remove: {bus_index:?}. Station: {:?}. Docked buses: {:?}",
+                          current_station.location.index,
+                          current_station.docked_buses
+                      );
+
+                      current_station
+                          .docked_buses
+                          .retain(|bus| bus.bus_index != bus_index);
+
+                      // How is the bus departure received before going through this?
+                      info!(
+                          "Bus {} removed from station {}",
+                          bus_index, current_location.index
+                      );
+                      send_to_bus_channels[bus_index]
+                          .send(StationToBusMessages::StationRemovedBus)
+                          .unwrap();
+
+              },
+
+              StationEventMessages::NoMessage => { 
+                // This message is unneccesary now because the program is now using async threads instead of try_recv's
+                unimplemented!();
+              }
+
+              }
+
+            };
+
+            enum SelectThread{
+              MessageThread,
+              BusThread,
+            }
+            tokio::select!(_ = message_task => {/*process time tick*/},
+            _ = bus_task => {/*process bus message*/});
+            time_tick = time_tick_update;
           }
-          tasks.join_all();
       });
     });
 
