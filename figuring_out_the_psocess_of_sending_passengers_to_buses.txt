@@ -1,0 +1,13 @@
+How does that
+Bus station summary for BusUnloadingPassengers timetick
+
+1. get messages from the buses and if a bus_arrived message comes (now bus_message task):
+   a. Update the state of the passenger
+   b. Deal with passengers that are already at their destination and the passengers that have not arrived
+   c. add the arrived bus to the current_docked_buses list
+   d. send a FinishedUnloading bus message back to the boarded bus
+
+
+Bus station summary for BusLoading Passengers
+
+1. get messages from the buses and if a BusDeparted message arrives 
