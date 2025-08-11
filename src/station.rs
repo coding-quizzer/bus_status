@@ -53,7 +53,7 @@ impl From<VecDeque<PassengerOnboardingBusSchedule>> for PassengerScheduleWithDis
 use std::collections::{HashMap, VecDeque};
 use std::time::Duration;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Station {
     pub location: Location,
     pub docked_buses: Vec<SendableBus>,
@@ -636,6 +636,7 @@ pub fn create_station_thread(
         let mut station_unload_first_call_for_timetick = true;
         let rt = runtime::Builder::new_current_thread().build().unwrap();
 
+        let mut time_tick = station_time_tick;
         rt.block_on(async {
 
 
@@ -659,7 +660,6 @@ pub fn create_station_thread(
 
             // let received_message = current_receiver.recv().unwrap();
 
-            let mut time_tick = station_time_tick;
 
             // Set up runtime
 
@@ -1045,7 +1045,8 @@ pub fn create_station_thread(
             
             // DEBUG: Does this introduce a race condition?
             let mut time_tick_update = time_tick.clone();
-            
+            let mut updated_current_station_option = None;
+            let mut current_station_update = current_station.clone();
 
             let message_task = async {
               let message_from_sync = sync_to_stations_receiver.recv().await.unwrap();
@@ -1057,14 +1058,24 @@ pub fn create_station_thread(
               match time_tick_update.stage {
                 TimeTickStage::PassengerInit => unreachable!("The initial time tick should be taken care of already"),
                 TimeTickStage::BusLoadingPassengers => {
-                   add_passengers_to_buses(&mut current_station, num_of_buses, &current_thread_id, time_tick, &to_display_sender_clone, &send_to_bus_channels, &bus_route_list, &station_thread_passenger_bus_route_list, &final_passenger_list_clone);
-                    for passenger in current_station.passengers.iter() {
+                   add_passengers_to_buses(
+                    &mut current_station_update, 
+                    num_of_buses,
+                    &current_thread_id,
+                    time_tick,
+                    &to_display_sender_clone,
+                    &send_to_bus_channels,
+                    &bus_route_list,
+                    &station_thread_passenger_bus_route_list,
+                    &final_passenger_list_clone
+                  );
+                    for passenger in current_station_update.passengers.iter() {
                         to_display_sender_clone
                             .send(TerminalMessage {
                                 content: TerminalType::WaitingPassenger(
                                     display::WaitingPassengerInfo::new(
                                         passenger.id_for_display,
-                                        current_station.location.index,
+                                        current_station_update.location.index,
                                     ),
                                 ),
                                 time_tick,
@@ -1075,10 +1086,10 @@ pub fn create_station_thread(
                     debug!("Time tick when buses are dismissed: {:?}", &time_tick);
                     // One station is doing this twice. why?
                     let current_thread = thread::current();
-                    for bus in current_station.docked_buses.iter() {
+                    for bus in current_station_update.docked_buses.iter() {
                         debug!(
                             "Request departure from station {} for bus {} on timetick {:?} on thread {:?}",
-                            current_station.location.index,
+                            current_station_update.location.index,
                             bus.bus_index,
                             time_tick,
                             current_thread.id()
@@ -1092,6 +1103,7 @@ pub fn create_station_thread(
                 },
                 TimeTickStage::BusUnloadingPassengers => {},
               }
+              updated_current_station_option = Some(current_station_update);
             };
 
             let bus_task = async {
@@ -1240,6 +1252,7 @@ pub fn create_station_thread(
             tokio::select!(_ = message_task => {/*process time tick*/},
             _ = bus_task => {/*process bus message*/});
             time_tick = time_tick_update;
+            current_station = updated_current_station_option.unwrap_or(current_station);
           }
       });
     });
