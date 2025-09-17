@@ -45,10 +45,6 @@ pub fn read_data_from_file(path: &Path) -> Result<InputDataStructure, Box<dyn Er
         location_vector,
     } = data.clone();
 
-    assert_eq!(location_vector.len(), DEFAULT_GLOBAL_LOCATION_COUNT);
-    // assert_eq!(bus_routes.len(), DEFAULT_NUM_OF_BUSES);
-    assert_eq!(passengers.len(), GLOBAL_PASSENGER_COUNT);
-
     let bus_locations = bus_routes
         .iter()
         .flatten()
