@@ -650,7 +650,9 @@ pub fn create_station_thread(
               let message_from_sync = sync_to_stations_receiver.recv().await.unwrap();
               match message_from_sync {
                 SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick) => time_tick_update = new_time_tick,
-                SyncToStationAndPassengerMessages::ProgramFinished(_) => unimplemented!()
+                SyncToStationAndPassengerMessages::ProgramFinished(_) => {
+                  return;
+                }
               }
 
               match time_tick_update.stage {
@@ -739,6 +741,7 @@ pub fn create_station_thread(
                   let is_last_location =
                       passenger.bus_schedule_iterator.clone().next().is_none();
                   let display_id = passenger.id_for_display;
+                  debug!("Passenger {} arrived at station {} at time tick {}.", passenger.id_for_display, current_location.index, time_tick);
                   if is_last_location {
                       // add to the arrived passengers
                       current_station.arrived_passengers.push(passenger);
