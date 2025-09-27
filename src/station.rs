@@ -641,28 +641,32 @@ pub fn create_station_thread(
 
 
         'main: loop {            
-            // DEBUG: Does this introduce a race condition?
-            let mut time_tick_update = time_tick.clone();
+            
             let mut updated_current_station_option = None;
             let mut current_station_update = current_station.clone();
+
+            // DEBUG: Does this introduce a race condition?
+            let time_tick_update = time_tick.clone();
 
             let message_task = async {
               let message_from_sync = sync_to_stations_receiver.recv().await.unwrap();
               match message_from_sync {
-                SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick) => time_tick_update = new_time_tick,
+                SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick) => time_tick = new_time_tick,
                 SyncToStationAndPassengerMessages::ProgramFinished(_) => {
                   return;
                 }
               }
 
-              match time_tick_update.stage {
+              // DEBUG: Does this introduce a race condition?
+
+              match time_tick.stage {
                 TimeTickStage::PassengerInit => unreachable!("The initial time tick should be taken care of already"),
                 TimeTickStage::BusLoadingPassengers => {
                    add_passengers_to_buses(
                     &mut current_station_update, 
                     num_of_buses,
                     &current_thread_id,
-                    time_tick_update,
+                    time_tick,
                     &to_display_sender_clone,
                     &send_to_bus_channels,
                     &bus_route_list,
@@ -754,10 +758,10 @@ pub fn create_station_thread(
                                   current_location,
                                 ),
                               ),
-                              time_tick,
+                              time_tick: time_tick_update,
                             })
                             .unwrap();
-                        debug!("Passenger {} arrived at station {} at time tick {}.", passenger_display_id, current_location.index, time_tick);
+                        debug!("Passenger {} arrived at station {} at time tick {}.", passenger_display_id, current_location.index, time_tick_update);
                   } else {
                       // add to the current station's passengers
                       current_station.passengers.push(passenger);
@@ -770,7 +774,7 @@ pub fn create_station_thread(
                                       current_location,
                                   ),
                               ),
-                              time_tick,
+                              time_tick: time_tick_update,
                           })
                           .unwrap();
                   }
@@ -853,7 +857,7 @@ pub fn create_station_thread(
             }
             tokio::select!(_ = message_task => {/*process time tick*/},
             _ = bus_task => {/*process bus message*/});
-            time_tick = time_tick_update;
+            // time_tick = time_tick_update;
             current_station = updated_current_station_option.unwrap_or(current_station);
           }
       });
