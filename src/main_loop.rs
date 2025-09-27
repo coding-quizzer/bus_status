@@ -583,7 +583,8 @@ pub fn run_simulation(
                         writer,
                         "No stations did anything - {}",
                         passenger_message.time_tick
-                    );
+                    )
+                    .unwrap_or(());
                     break;
                 } else {
                     continue;
@@ -618,18 +619,17 @@ pub fn run_simulation(
             passenger_states[index] = new_state;
 
             writeln!(writer, "{passenger_message}").unwrap();
-
-            for state in passenger_states.iter_mut() {
-                *state = match state {
-                    PassengerState::Finished => PassengerState::Finished,
-                    PassengerState::Processed => PassengerState::Unprocessed,
-                    PassengerState::Unprocessed => {
-                        error!("Unprocessed should be filtered out already");
-                        PassengerState::Unprocessed
-                        // unreachable!("Unprocessed is filtered out already");
-                    }
-                    PassengerState::Boarded => PassengerState::Boarded,
+        }
+        for state in passenger_states.iter_mut() {
+            *state = match state {
+                PassengerState::Finished => PassengerState::Finished,
+                PassengerState::Processed => PassengerState::Unprocessed,
+                PassengerState::Unprocessed => {
+                    error!("Unprocessed should be filtered out already");
+                    PassengerState::Unprocessed
+                    // unreachable!("Unprocessed is filtered out already");
                 }
+                PassengerState::Boarded => PassengerState::Boarded,
             }
         }
 
@@ -647,12 +647,12 @@ pub fn run_simulation(
             println!("Display loop received new Time tick");
 
             // Reset the passenger States
-            // FIXME: It is possible that Boarded passengers still need to get off
+            // FIXME: Once all passengers are boarded or all the unp
             while passenger_states
                 .iter()
                 .any(|state| *state == PassengerState::Unprocessed)
             {
-                // FIXME: I want to impliment this with a vector and write the messages in numerical order
+                // TODO: I want to impliment this with a vector and write the messages in numerical order
                 let passenger_message = stations_reader.recv().unwrap();
 
                 if let TerminalType::NoPassengerFromStation { index } = passenger_message.content {

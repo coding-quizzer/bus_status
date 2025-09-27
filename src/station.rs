@@ -662,7 +662,7 @@ pub fn create_station_thread(
                     &mut current_station_update, 
                     num_of_buses,
                     &current_thread_id,
-                    time_tick,
+                    time_tick_update,
                     &to_display_sender_clone,
                     &send_to_bus_channels,
                     &bus_route_list,
@@ -714,7 +714,7 @@ pub fn create_station_thread(
                   receive_fresh_passengers(
                   &mut passengers,
                   &mut current_station,
-                  &time_tick,
+                  &time_tick_update,
                   &station_thread_passenger_bus_route_list,
                   &mut bus_passengers_initialized,
                   &rejected_passenger_clone,
@@ -741,22 +741,23 @@ pub fn create_station_thread(
                   let is_last_location =
                       passenger.bus_schedule_iterator.clone().next().is_none();
                   let display_id = passenger.id_for_display;
-                  debug!("Passenger {} arrived at station {} at time tick {}.", passenger.id_for_display, current_location.index, time_tick);
                   if is_last_location {
-                      // add to the arrived passengers
-                      current_station.arrived_passengers.push(passenger);
-                      // send to display stream
-                      to_display_sender_clone
-                          .send(TerminalMessage {
+                    let passenger_display_id = passenger.id_for_display;
+                    // add to the arrived passengers
+                    current_station.arrived_passengers.push(passenger);
+                    // send to display stream
+                    to_display_sender_clone
+                    .send(TerminalMessage {
                               content: TerminalType::ArrivedPassenger(
-                                  crate::display::ArrivedPassengerInfo::new_final(
-                                      display_id,
-                                      current_location,
-                                  ),
+                                crate::display::ArrivedPassengerInfo::new_final(
+                                  display_id,
+                                  current_location,
+                                ),
                               ),
                               time_tick,
-                          })
-                          .unwrap();
+                            })
+                            .unwrap();
+                        debug!("Passenger {} arrived at station {} at time tick {}.", passenger_display_id, current_location.index, time_tick);
                   } else {
                       // add to the current station's passengers
                       current_station.passengers.push(passenger);
