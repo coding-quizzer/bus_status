@@ -5,6 +5,7 @@ use crate::TimeTick;
 pub struct TerminalMessage {
     pub content: TerminalType,
     pub time_tick: TimeTick,
+    pub station_index: usize,
 }
 
 impl Display for TerminalMessage {
@@ -40,48 +41,54 @@ impl Display for TerminalType {
 }
 
 pub struct ArrivedPassengerInfo {
-    pub index: usize,
+    pub passenger_index: usize,
     station_location: crate::Location,
     pub final_location: bool,
 }
 
 pub struct BoardedPassengerInfo {
-    pub index: usize,
+    pub passenger_index: usize,
     bus_number: usize,
 }
 
 pub struct RejectedPassengerInfo {
-    pub index: usize,
+    pub passenger_index: usize,
     bus_number: usize,
 }
 
 pub struct StrandedPassengerInfo {
-    pub index: usize,
+    pub passenger_index: usize,
     current_station_index: usize,
     destination_location_index: usize,
 }
 
 pub struct WaitingPassengerInfo {
-    pub index: usize,
+    pub passenger_index: usize,
     location_index: usize,
 }
 
 pub struct InitiatedPassengerInfo {
-    pub index: usize,
+    pub passenger_index: usize,
     location_index: usize,
 }
 
 impl ArrivedPassengerInfo {
-    pub fn new_layover(index: usize, station_location: crate::Location) -> ArrivedPassengerInfo {
+    pub fn new_layover(
+        passenger_index: usize,
+        station_location: crate::Location,
+    ) -> ArrivedPassengerInfo {
         ArrivedPassengerInfo {
-            index,
+            passenger_index,
             station_location,
             final_location: false,
         }
     }
-    pub fn new_final(index: usize, station_location: crate::Location) -> ArrivedPassengerInfo {
+    pub fn new_final(
+        passenger_index: usize,
+        station_location: crate::Location,
+    ) -> ArrivedPassengerInfo {
         ArrivedPassengerInfo {
-            index,
+            passenger_index,
             station_location,
             final_location: true,
         }
@@ -94,13 +101,13 @@ impl std::fmt::Display for ArrivedPassengerInfo {
             write!(
                 f,
                 "Passenger {} arrived at destination location: Location {}",
-                self.index, self.station_location
+                self.passenger_index, self.station_location
             )
         } else {
             write!(
                 f,
                 "Passenger {} arrived at intermediate location: Location {}",
-                self.index, self.station_location
+                self.passenger_index, self.station_location
             )
         }
     }
@@ -109,7 +116,7 @@ impl std::fmt::Display for ArrivedPassengerInfo {
 impl BoardedPassengerInfo {
     pub fn new(passenger_index: usize, bus_number: usize) -> BoardedPassengerInfo {
         BoardedPassengerInfo {
-            index: passenger_index,
+            passenger_index,
             bus_number,
         }
     }
@@ -120,7 +127,7 @@ impl Display for BoardedPassengerInfo {
         write!(
             f,
             "Passenger {} boarded bus {}",
-            self.index, self.bus_number
+            self.passenger_index, self.bus_number
         )
     }
 }
@@ -128,7 +135,7 @@ impl Display for BoardedPassengerInfo {
 impl RejectedPassengerInfo {
     pub fn new(passenger_index: usize, bus_number: usize) -> RejectedPassengerInfo {
         RejectedPassengerInfo {
-            index: passenger_index,
+            passenger_index,
             bus_number,
         }
     }
@@ -139,7 +146,7 @@ impl Display for RejectedPassengerInfo {
         write!(
             f,
             "Passenger {} rejected from Bus {} because it was already at capacity",
-            self.index, self.bus_number
+            self.passenger_index, self.bus_number
         )
     }
 }
@@ -151,7 +158,7 @@ impl StrandedPassengerInfo {
         destination_location_index: usize,
     ) -> StrandedPassengerInfo {
         StrandedPassengerInfo {
-            index,
+            passenger_index: index,
             current_station_index,
             destination_location_index,
         }
@@ -163,14 +170,14 @@ impl Display for StrandedPassengerInfo {
         write!(
             f,
             "Passenger {} stuck at station {}. Failed to find valid route to destination {}",
-            self.index, self.current_station_index, self.destination_location_index
+            self.passenger_index, self.current_station_index, self.destination_location_index
         )
     }
 }
 impl WaitingPassengerInfo {
     pub fn new(passenger_index: usize, location_index: usize) -> WaitingPassengerInfo {
         WaitingPassengerInfo {
-            index: passenger_index,
+            passenger_index,
             location_index,
         }
     }
@@ -180,7 +187,7 @@ impl Display for WaitingPassengerInfo {
         write!(
             f,
             "Passenger {} waiting in station {}",
-            self.index, self.location_index,
+            self.passenger_index, self.location_index,
         )
     }
 }
@@ -188,7 +195,7 @@ impl Display for WaitingPassengerInfo {
 impl InitiatedPassengerInfo {
     pub fn new(index: usize, location_index: usize) -> InitiatedPassengerInfo {
         InitiatedPassengerInfo {
-            index,
+            passenger_index: index,
             location_index,
         }
     }
@@ -199,7 +206,7 @@ impl Display for InitiatedPassengerInfo {
         write!(
             f,
             "Passenger {} initiated in station {}",
-            self.index, self.location_index,
+            self.passenger_index, self.location_index,
         )
     }
 }
@@ -210,4 +217,11 @@ pub enum PassengerState {
     Boarded,
     Processed,
     Finished,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum StationState {
+    Unprocessed,
+    NoPassengers,
+    Processed,
 }
