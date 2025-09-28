@@ -742,6 +742,10 @@ pub fn run_simulation(
             for station in station_has_passengers.iter_mut() {
                 *station = true;
             }
+
+            for station_state in station_states.iter_mut() {
+                *station_state = StationState::Unprocessed;
+            }
         }
 
         // need to somehow navigate around passengers who cannot reach the destination or who have already reached their destination

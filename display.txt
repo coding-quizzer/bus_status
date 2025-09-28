@@ -1,69 +1,63 @@
 First time tick: TimeTick { number: 0, stage: PassengerInit }
 
-Passenger 5 initiated in station 0 - Time Tick: (0 - init)
-Passenger 1 initiated in station 0 - Time Tick: (0 - init)
-Passenger 2 initiated in station 3 - Time Tick: (0 - init)
 Passenger 7 initiated in station 1 - Time Tick: (0 - init)
 Passenger 6 initiated in station 1 - Time Tick: (0 - init)
+Passenger 2 initiated in station 3 - Time Tick: (0 - init)
+Passenger 0 initiated in station 3 - Time Tick: (0 - init)
+Passenger 9 initiated in station 4 - Time Tick: (0 - init)
+Passenger 5 initiated in station 0 - Time Tick: (0 - init)
+Passenger 1 initiated in station 0 - Time Tick: (0 - init)
 Passenger 8 initiated in station 2 - Time Tick: (0 - init)
 Passenger 4 initiated in station 2 - Time Tick: (0 - init)
 Passenger 3 initiated in station 2 - Time Tick: (0 - init)
-Passenger 0 initiated in station 3 - Time Tick: (0 - init)
-Passenger 9 initiated in station 4 - Time Tick: (0 - init)
 
 Current Time Tick: TimeTick { number: 1, stage: BusUnloadingPassengers }
-Passenger 2 waiting in station 3 - Time Tick: (1 - loading)
-Passenger 0 waiting in station 3 - Time Tick: (1 - loading)
-Passenger 5 waiting in station 0 - Time Tick: (1 - loading)
-Passenger 1 waiting in station 0 - Time Tick: (1 - loading)
+Passenger 9 waiting in station 4 - Time Tick: (1 - loading)
 Passenger 8 waiting in station 2 - Time Tick: (1 - loading)
 Passenger 4 waiting in station 2 - Time Tick: (1 - loading)
 Passenger 3 waiting in station 2 - Time Tick: (1 - loading)
-Passenger 9 waiting in station 4 - Time Tick: (1 - loading)
+Passenger 2 waiting in station 3 - Time Tick: (1 - loading)
+Passenger 0 waiting in station 3 - Time Tick: (1 - loading)
 Passenger 7 waiting in station 1 - Time Tick: (1 - loading)
 Passenger 6 waiting in station 1 - Time Tick: (1 - loading)
+Passenger 5 waiting in station 0 - Time Tick: (1 - loading)
+Passenger 1 waiting in station 0 - Time Tick: (1 - loading)
 
 Current Time Tick: TimeTick { number: 1, stage: BusLoadingPassengers }
 Passenger 2 waiting in station 3 - Time Tick: (2 - loading)
 Passenger 0 waiting in station 3 - Time Tick: (2 - loading)
+Passenger 5 boarded bus 0 - Time Tick: (2 - loading)
 Passenger 8 waiting in station 2 - Time Tick: (2 - loading)
 Passenger 4 waiting in station 2 - Time Tick: (2 - loading)
 Passenger 3 waiting in station 2 - Time Tick: (2 - loading)
-Passenger 5 boarded bus 0 - Time Tick: (2 - loading)
+Passenger 1 boarded bus 0 - Time Tick: (2 - loading)
 Passenger 7 waiting in station 1 - Time Tick: (2 - loading)
 Passenger 6 waiting in station 1 - Time Tick: (2 - loading)
 Passenger 9 waiting in station 4 - Time Tick: (2 - loading)
-Passenger 1 boarded bus 0 - Time Tick: (2 - loading)
 
 Current Time Tick: TimeTick { number: 2, stage: BusUnloadingPassengers }
+Passenger 7 waiting in station 1 - Time Tick: (3 - loading)
+Passenger 6 waiting in station 1 - Time Tick: (3 - loading)
+Passenger 9 waiting in station 4 - Time Tick: (3 - loading)
 Passenger 2 waiting in station 3 - Time Tick: (3 - loading)
 Passenger 0 waiting in station 3 - Time Tick: (3 - loading)
-Passenger 9 waiting in station 4 - Time Tick: (3 - loading)
 Passenger 8 waiting in station 2 - Time Tick: (3 - loading)
 Passenger 4 waiting in station 2 - Time Tick: (3 - loading)
 Passenger 3 waiting in station 2 - Time Tick: (3 - loading)
-Passenger 7 waiting in station 1 - Time Tick: (3 - loading)
-Passenger 6 waiting in station 1 - Time Tick: (3 - loading)
-
-Current Time Tick: TimeTick { number: 2, stage: BusLoadingPassengers }
 Passenger 2 waiting in station 3 - Time Tick: (4 - loading)
 Passenger 0 waiting in station 3 - Time Tick: (4 - loading)
 Passenger 9 waiting in station 4 - Time Tick: (4 - loading)
+Passenger 7 boarded bus 0 - Time Tick: (4 - loading)
+Passenger 6 boarded bus 0 - Time Tick: (4 - loading)
 Passenger 8 waiting in station 2 - Time Tick: (4 - loading)
 Passenger 4 waiting in station 2 - Time Tick: (4 - loading)
 Passenger 3 waiting in station 2 - Time Tick: (4 - loading)
-Passenger 7 boarded bus 0 - Time Tick: (4 - loading)
-Passenger 6 boarded bus 0 - Time Tick: (4 - loading)
-
-Current Time Tick: TimeTick { number: 3, stage: BusUnloadingPassengers }
 Passenger 2 waiting in station 3 - Time Tick: (5 - loading)
 Passenger 0 waiting in station 3 - Time Tick: (5 - loading)
+Passenger 9 waiting in station 4 - Time Tick: (5 - loading)
 Passenger 8 waiting in station 2 - Time Tick: (5 - loading)
 Passenger 4 waiting in station 2 - Time Tick: (5 - loading)
 Passenger 3 waiting in station 2 - Time Tick: (5 - loading)
-Passenger 9 waiting in station 4 - Time Tick: (5 - loading)
-
-Current Time Tick: TimeTick { number: 3, stage: BusLoadingPassengers }
 Passenger 5 arrived at destination location: Location Location 2 - Time Tick: (6 - unloading)
 Passenger 7 arrived at destination location: Location Location 2 - Time Tick: (6 - unloading)
 Passenger 2 waiting in station 3 - Time Tick: (6 - loading)
@@ -72,83 +66,21 @@ Passenger 9 waiting in station 4 - Time Tick: (6 - loading)
 Passenger 8 boarded bus 0 - Time Tick: (6 - loading)
 Passenger 4 boarded bus 0 - Time Tick: (6 - loading)
 Passenger 3 boarded bus 0 - Time Tick: (6 - loading)
-
-Current Time Tick: TimeTick { number: 4, stage: BusUnloadingPassengers }
-Passenger 9 waiting in station 4 - Time Tick: (7 - loading)
 Passenger 2 waiting in station 3 - Time Tick: (7 - loading)
 Passenger 0 waiting in station 3 - Time Tick: (7 - loading)
-
-Current Time Tick: TimeTick { number: 4, stage: BusLoadingPassengers }
+Passenger 9 waiting in station 4 - Time Tick: (7 - loading)
 Passenger 1 arrived at destination location: Location Location 3 - Time Tick: (8 - unloading)
 Passenger 4 arrived at destination location: Location Location 3 - Time Tick: (8 - unloading)
 Passenger 9 waiting in station 4 - Time Tick: (8 - loading)
 Passenger 2 boarded bus 0 - Time Tick: (8 - loading)
 Passenger 0 boarded bus 0 - Time Tick: (8 - loading)
-
-Current Time Tick: TimeTick { number: 5, stage: BusUnloadingPassengers }
 Passenger 9 waiting in station 4 - Time Tick: (9 - loading)
-
-Current Time Tick: TimeTick { number: 5, stage: BusLoadingPassengers }
 Passenger 9 boarded bus 0 - Time Tick: (10 - loading)
+Passenger 6 arrived at destination location: Location Location 0 - Time Tick: (12 - unloading)
 
-Current Time Tick: TimeTick { number: 6, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 6, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 7, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 7, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 8, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 8, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 9, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 9, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 10, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 10, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 11, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 11, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 12, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 12, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 13, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 13, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 14, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 14, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 15, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 15, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 16, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 16, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 17, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 17, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 18, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 18, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 19, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 19, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 20, stage: BusUnloadingPassengers }
-
-Current Time Tick: TimeTick { number: 20, stage: BusLoadingPassengers }
-
-Current Time Tick: TimeTick { number: 21, stage: BusUnloadingPassengers }
+Current Time Tick: TimeTick { number: 2, stage: BusLoadingPassengers }
+Passenger 8 arrived at destination location: Location Location 0 - Time Tick: (12 - unloading)
+Passenger 3 arrived at destination location: Location Location 1 - Time Tick: (14 - unloading)
+Passenger 2 arrived at destination location: Location Location 1 - Time Tick: (14 - unloading)
+Passenger 0 arrived at destination location: Location Location 1 - Time Tick: (14 - unloading)
+Passenger 9 arrived at destination location: Location Location 3 - Time Tick: (18 - unloading)
