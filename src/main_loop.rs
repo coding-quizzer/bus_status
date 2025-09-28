@@ -4,7 +4,7 @@ use crate::data;
 use crate::data::InputDataStructure;
 use crate::display::{
     ArrivedPassengerInfo, BoardedPassengerInfo, InitiatedPassengerInfo, PassengerState,
-    RejectedPassengerInfo, StrandedPassengerInfo, TerminalType, WaitingPassengerInfo,
+    RejectedPassengerInfo, StationState, StrandedPassengerInfo, TerminalType, WaitingPassengerInfo,
 };
 use crate::location::{BusLocation, PassengerBusLocation};
 use crate::station;
@@ -561,8 +561,10 @@ pub fn run_simulation(
         let mut writer = std::io::LineWriter::new(output_file);
         let mut current_time_tick = TimeTick::default();
         let mut passenger_states = Vec::new();
-        let mut station_has_passengers = Vec::new();
         passenger_states.resize(config.num_of_passengers, PassengerState::Unprocessed);
+        let mut station_has_passengers = Vec::new();
+        let mut station_states = Vec::new();
+        station_states.resize(config.num_of_locations, StationState::Unprocessed);
 
         writeln!(writer, "First time tick: {:?}\n", TimeTick::default()).unwrap();
 
@@ -572,8 +574,12 @@ pub fn run_simulation(
             station_has_passengers.resize(config.num_of_locations, true);
             // FIXME: I want to impliment this with a vector and write the messages in numerical order
             let passenger_message = stations_reader.recv().unwrap();
-            if let TerminalType::NoPassengerFromStation { index } = passenger_message.content {
-                station_has_passengers[index] = false;
+            let message_station_index = passenger_message.station_index;
+            if let TerminalType::NoPassengerFromStation { passenger_index } =
+                passenger_message.content
+            {
+                station_has_passengers[passenger_index] = false;
+                station_states[message_station_index] = StationState::NoPassengers;
 
                 if station_has_passengers
                     .iter()
@@ -590,33 +596,40 @@ pub fn run_simulation(
                     continue;
                 }
             }
-            let (new_state, index) = match passenger_message.content {
-                TerminalType::InitiatedPassenger(InitiatedPassengerInfo { index, .. }) => {
-                    (PassengerState::Processed, index)
-                }
+
+            let (new_state, passenger_index) = match passenger_message.content {
+                TerminalType::InitiatedPassenger(InitiatedPassengerInfo {
+                    passenger_index,
+                    ..
+                }) => (PassengerState::Processed, passenger_index),
                 TerminalType::ArrivedPassenger(ArrivedPassengerInfo {
-                    index,
+                    passenger_index,
                     final_location: false,
                     ..
                 })
-                | TerminalType::RejectedPassenger(RejectedPassengerInfo { index, .. })
-                | TerminalType::WaitingPassenger(WaitingPassengerInfo { index, .. }) => {
-                    (PassengerState::Processed, index)
-                }
-                TerminalType::StrandedPassenger(StrandedPassengerInfo { index, .. })
+                | TerminalType::RejectedPassenger(RejectedPassengerInfo {
+                    passenger_index, ..
+                })
+                | TerminalType::WaitingPassenger(WaitingPassengerInfo {
+                    passenger_index, ..
+                }) => (PassengerState::Processed, passenger_index),
+                TerminalType::StrandedPassenger(StrandedPassengerInfo {
+                    passenger_index, ..
+                })
                 | TerminalType::ArrivedPassenger(ArrivedPassengerInfo {
-                    index,
+                    passenger_index,
                     final_location: true,
                     ..
-                }) => (PassengerState::Finished, index),
-                TerminalType::BoardedPassenger(BoardedPassengerInfo { index, .. }) => {
-                    (PassengerState::Boarded, index)
-                }
-                TerminalType::NoPassengerFromStation { index } => {
+                }) => (PassengerState::Finished, passenger_index),
+                TerminalType::BoardedPassenger(BoardedPassengerInfo {
+                    passenger_index, ..
+                }) => (PassengerState::Boarded, passenger_index),
+                TerminalType::NoPassengerFromStation { passenger_index: _ } => {
                     unreachable!("All stations without passengers have been dealt with already");
                 }
             };
-            passenger_states[index] = new_state;
+            station_states[message_station_index] = StationState::Processed;
+            passenger_states[passenger_index] = new_state;
 
             writeln!(writer, "{passenger_message}").unwrap();
         }
@@ -648,14 +661,18 @@ pub fn run_simulation(
 
             // Reset the passenger States
             // FIXME: Once all passengers are boarded or all the unp
-            while passenger_states
-                .iter()
-                .any(|state| *state == PassengerState::Unprocessed)
+            while passenger_states.contains(&PassengerState::Unprocessed)
+                || station_states.contains(&StationState::Unprocessed)
+            // Make sure all stations send passengers so that passengers that were travelling to the station are processed
             {
                 // TODO: I want to impliment this with a vector and write the messages in numerical order
                 let passenger_message = stations_reader.recv().unwrap();
+                let message_station_index = passenger_message.station_index;
 
-                if let TerminalType::NoPassengerFromStation { index } = passenger_message.content {
+                if let TerminalType::NoPassengerFromStation {
+                    passenger_index: index,
+                } = passenger_message.content
+                {
                     station_has_passengers[index] = false;
 
                     if station_has_passengers.iter().all(|station| !station) {
@@ -666,33 +683,43 @@ pub fn run_simulation(
                     }
                 }
 
-                let (new_state, index) = match passenger_message.content {
-                    TerminalType::InitiatedPassenger(InitiatedPassengerInfo { index, .. }) => {
-                        (PassengerState::Processed, index)
-                    }
+                let (new_state, passenger_index) = match passenger_message.content {
+                    TerminalType::InitiatedPassenger(InitiatedPassengerInfo {
+                        passenger_index,
+                        ..
+                    }) => (PassengerState::Processed, passenger_index),
                     TerminalType::ArrivedPassenger(ArrivedPassengerInfo {
-                        index,
+                        passenger_index,
                         final_location: false,
                         ..
                     })
-                    | TerminalType::RejectedPassenger(RejectedPassengerInfo { index, .. })
-                    | TerminalType::WaitingPassenger(WaitingPassengerInfo { index, .. }) => {
-                        (PassengerState::Processed, index)
-                    }
-                    TerminalType::StrandedPassenger(StrandedPassengerInfo { index, .. })
+                    | TerminalType::RejectedPassenger(RejectedPassengerInfo {
+                        passenger_index,
+                        ..
+                    })
+                    | TerminalType::WaitingPassenger(WaitingPassengerInfo {
+                        passenger_index,
+                        ..
+                    }) => (PassengerState::Processed, passenger_index),
+                    TerminalType::StrandedPassenger(StrandedPassengerInfo {
+                        passenger_index,
+                        ..
+                    })
                     | TerminalType::ArrivedPassenger(ArrivedPassengerInfo {
-                        index,
+                        passenger_index,
                         final_location: true,
                         ..
-                    }) => (PassengerState::Finished, index),
-                    TerminalType::BoardedPassenger(BoardedPassengerInfo { index, .. }) => {
-                        (PassengerState::Boarded, index)
-                    }
-                    TerminalType::NoPassengerFromStation { index: _ } => {
+                    }) => (PassengerState::Finished, passenger_index),
+                    TerminalType::BoardedPassenger(BoardedPassengerInfo {
+                        passenger_index,
+                        ..
+                    }) => (PassengerState::Boarded, passenger_index),
+                    TerminalType::NoPassengerFromStation { passenger_index: _ } => {
                         unreachable!("No passengers from station case has already been covered");
                     }
                 };
-                passenger_states[index] = new_state;
+                passenger_states[passenger_index] = new_state;
+                station_states[message_station_index] = StationState::Processed;
 
                 writeln!(writer, "{passenger_message}").unwrap();
                 // TODO: Update passenger States to prevent an infinite loop

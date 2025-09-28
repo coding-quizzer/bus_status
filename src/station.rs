@@ -278,6 +278,7 @@ fn receive_fresh_passengers(
                         station_index,
                     )),
                     time_tick: *time_tick,
+                    station_index
                 })
                 .unwrap(),
 
@@ -290,6 +291,7 @@ fn receive_fresh_passengers(
                             passenger.destination_location.index,
                         )),
                         time_tick: *time_tick,
+                        station_index
                     })
                     .unwrap();
                 (*rejected_passenger_clone.lock().unwrap()).push(passenger.clone());
@@ -516,6 +518,7 @@ for bus in docked_buses {
                         ),
                     ),
                     time_tick,
+                    station_index,
                 })
                 .unwrap();
         }
@@ -529,6 +532,7 @@ for bus in docked_buses {
                         ),
                     ),
                     time_tick,
+                    station_index,
                 })
                 .unwrap()
         }
@@ -544,6 +548,7 @@ for bus in docked_buses {
                         ),
                     ),
                     time_tick,
+                    station_index
                 })
                 .unwrap();
             debug!(
@@ -683,6 +688,7 @@ pub fn create_station_thread(
                                     ),
                                 ),
                                 time_tick,
+                                station_index,
                             })
                             .unwrap();
                     }
@@ -759,6 +765,7 @@ pub fn create_station_thread(
                                 ),
                               ),
                               time_tick: time_tick_update,
+                              station_index
                             })
                             .unwrap();
                         debug!("Passenger {} arrived at station {} at time tick {}.", passenger_display_id, current_location.index, time_tick_update);
@@ -775,6 +782,7 @@ pub fn create_station_thread(
                                   ),
                               ),
                               time_tick: time_tick_update,
+                              station_index
                           })
                           .unwrap();
                   }
