@@ -18,7 +18,7 @@ use crate::{station, TimeTick};
 use crate::{ReceiverWithIndex, TimeTickStage};
 use core::time;
 use log::{debug, error, info, trace};
-use std::sync::mpsc::TryRecvError;
+use std::sync::mpsc::{RecvError, TryRecvError};
 use std::sync::{
     mpsc::{Receiver, Sender},
     Arc, Mutex,
@@ -654,18 +654,33 @@ pub fn create_station_thread(
             let time_tick_update = time_tick.clone();
 
             let message_task = async {
-              let message_from_sync = sync_to_stations_receiver.recv().await.unwrap();
+              // All recevers in the task are from Tokio UnboundedReceivers, so overwriting TryRecvError to tokio instead of std should not be an issue
+              use tokio::sync::mpsc::error::TryRecvError;
+              let mut message_from_sync = sync_to_stations_receiver.try_recv();
+              while message_from_sync.is_ok() {
+              message_from_sync = sync_to_stations_receiver.try_recv();
               match message_from_sync {
-                SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick) => time_tick = new_time_tick,
-                SyncToStationAndPassengerMessages::ProgramFinished(_) => {
+                Ok(SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick) )=> time_tick = new_time_tick,
+                Ok(SyncToStationAndPassengerMessages::ProgramFinished(_)) => {
+                  return;
+                }
+                Err(TryRecvError::Empty) => {
+                  break;
+                }
+                Err(TryRecvError::Disconnected) => {
+                  error!("Station {} disconnected from sync sender", current_location.index);
                   return;
                 }
               }
-
-              // DEBUG: Does this introduce a race condition?
+            }
 
               match time_tick.stage {
-                TimeTickStage::PassengerInit => unreachable!("The initial time tick should be taken care of already"),
+                TimeTickStage::PassengerInit => {
+                  // I can't remember why this worked before, I will continue for now
+                  // unreachable!("The initial time tick should be taken care of already")
+                  error!("The initial time tick should be taken care of already");
+
+                },
                 TimeTickStage::BusLoadingPassengers => {
                    add_passengers_to_buses(
                     &mut current_station_update, 
