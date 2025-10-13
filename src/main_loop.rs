@@ -646,7 +646,7 @@ pub fn run_simulation(
             }
         }
 
-        loop {
+        'main_display: loop {
             log::debug!("Display loop beginning");
             let new_time_tick_message = sync_reader.recv().unwrap();
             if let SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick) =
@@ -665,9 +665,26 @@ pub fn run_simulation(
                 || station_states.contains(&StationState::Unprocessed)
             // Make sure all stations send passengers so that passengers that were travelling to the station are processed
             {
+                // DEBUG: could process current timetick here to see what is happening
+                let sync_message = sync_reader.try_recv();
+                if let Ok(SyncToStationAndPassengerMessages::AdvanceTimeStep(time_step)) =
+                    sync_message
+                {
+                    current_time_tick = time_step;
+                    writeln!(
+                        writer,
+                        "\nCurrent Time Tick during time tick advance: {:?}",
+                        time_step
+                    )
+                    .unwrap();
+                }
+
                 // TODO: I want to impliment this with a vector and write the messages in numerical order
                 let passenger_message = stations_reader.recv().unwrap();
                 let message_station_index = passenger_message.station_index;
+
+                log::debug!("Passenger States: {passenger_states:?}");
+                log::debug!("Station States: {station_states:?}");
 
                 if let TerminalType::NoPassengerFromStation {
                     passenger_index: index,
@@ -724,6 +741,7 @@ pub fn run_simulation(
                 writeln!(writer, "{passenger_message}").unwrap();
                 // TODO: Update passenger States to prevent an infinite loop
             }
+
             for state in passenger_states.iter_mut() {
                 *state = match state {
                     // TODO: add logic in bus thread for dealing with passengers on buses. For now,

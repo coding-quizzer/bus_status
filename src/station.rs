@@ -655,24 +655,15 @@ pub fn create_station_thread(
 
             let message_task = async {
               // All recevers in the task are from Tokio UnboundedReceivers, so overwriting TryRecvError to tokio instead of std should not be an issue
-              use tokio::sync::mpsc::error::TryRecvError;
-              let mut message_from_sync = sync_to_stations_receiver.try_recv();
-              while message_from_sync.is_ok() {
-              message_from_sync = sync_to_stations_receiver.try_recv();
+              let message_from_sync = sync_to_stations_receiver.recv().await.unwrap();
+
               match message_from_sync {
-                Ok(SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick) )=> time_tick = new_time_tick,
-                Ok(SyncToStationAndPassengerMessages::ProgramFinished(_)) => {
-                  return;
-                }
-                Err(TryRecvError::Empty) => {
-                  break;
-                }
-                Err(TryRecvError::Disconnected) => {
-                  error!("Station {} disconnected from sync sender", current_location.index);
+                SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick) =>  time_tick = new_time_tick,
+                SyncToStationAndPassengerMessages::ProgramFinished(_) => {
                   return;
                 }
               }
-            }
+
 
               match time_tick.stage {
                 TimeTickStage::PassengerInit => {
@@ -726,7 +717,9 @@ pub fn create_station_thread(
 
                     info!("Departure message sent");
                 },
-                TimeTickStage::BusUnloadingPassengers => {},
+                TimeTickStage::BusUnloadingPassengers => {
+                  // FIXME: Add logic about passengers waiting or else send a blank message if there are no passengers 
+                },
               }
               updated_current_station_option = Some(current_station_update);
             };
