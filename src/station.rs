@@ -1,6 +1,6 @@
 use crate::bus::{BusLocation, SendableBus};
 use crate::display::{
-    self, InitiatedPassengerInfo, StrandedPassengerInfo, TerminalMessage, TerminalType,
+    self, InitiatedPassengerInfo, StrandedPassengerInfo, TerminalMessage, TerminalType, WaitingPassengerInfo,
 };
 use crate::location::{Location, PassengerBusLocation};
 use crate::main_loop::{ConfigStruct, FinalPassengerLists};
@@ -58,6 +58,7 @@ pub struct Station {
     pub location: Location,
     pub docked_buses: Vec<SendableBus>,
     pub passengers: Vec<Passenger>,
+    pub new_passengers: Vec<Passenger>,
     pub buses_unavailable: Vec<usize>,
     pub bus_loading_first_iteration: Option<bool>,
     pub arrived_passengers: Vec<Passenger>,
@@ -75,6 +76,7 @@ impl Station {
             location,
             docked_buses: Vec::new(),
             passengers: Vec::new(),
+            new_passengers: Vec::new(),
             buses_unavailable: Vec::new(),
             bus_loading_first_iteration: None,
             arrived_passengers: Vec::new(),
@@ -718,7 +720,20 @@ pub fn create_station_thread(
                     info!("Departure message sent");
                 },
                 TimeTickStage::BusUnloadingPassengers => {
-                  // FIXME: Add logic about passengers waiting or else send a blank message if there are no passengers 
+                  for passenger in current_station_update.passengers.iter() {
+                    to_display_sender_clone.send(
+                      TerminalMessage {
+                      content: TerminalType::WaitingPassenger(WaitingPassengerInfo::new(passenger.id_for_display, current_location.index)),
+                      time_tick,
+                      station_index: current_location.index,
+                    }
+                  ).unwrap();
+                  }
+
+                  // DEBUG: this should work because the value is updated according to which message was recieved. Confirm that it works
+                  current_station_update.passengers.append(&mut current_station_update.new_passengers);
+                  current_station_update.new_passengers = Vec::new();
+
                 },
               }
               updated_current_station_option = Some(current_station_update);
@@ -779,7 +794,7 @@ pub fn create_station_thread(
                         debug!("Passenger {} arrived at station {} at time tick {}.", passenger_display_id, current_location.index, time_tick_update);
                   } else {
                       // add to the current station's passengers
-                      current_station.passengers.push(passenger);
+                      current_station.new_passengers.push(passenger);
                       // send to display stream
                       to_display_sender_clone
                           .send(TerminalMessage {
