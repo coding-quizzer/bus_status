@@ -21,6 +21,7 @@ use log::error;
 
 use std::collections::VecDeque;
 use std::ops::ControlFlow;
+use std::os::linux::raw::stat;
 use std::sync::mpsc::TryRecvError;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread::current;
@@ -114,6 +115,9 @@ pub fn run_simulation(
     let (tx_stations_to_display, rx_stations_to_display) =
         mpsc::channel::<crate::display::TerminalMessage>();
 
+    let (tx_confirm_advance_time_tick, rx_confirm_advance_timestep) =
+        mpsc::channel::<crate::thread::TimeTickAdvanced>();
+
     // let current_time_tick_clone = current_time_tick.clone();
 
     #[track_caller]
@@ -127,6 +131,7 @@ pub fn run_simulation(
         bus_senders: &Vec<mpsc::Sender<SyncToBusMessages>>,
         passenger_sender: &mpsc::Sender<SyncToStationAndPassengerMessages>,
         display_sender: &mpsc::Sender<SyncToStationAndPassengerMessages>,
+        confirm_time_step_receiver: &mpsc::Receiver<crate::thread::TimeTickAdvanced>,
         bus_status_vector: &mut [BusThreadStatus],
     ) {
         let call_location = std::panic::Location::caller();
@@ -177,6 +182,11 @@ pub fn run_simulation(
                 *time_tick,
             ))
             .unwrap();
+
+        // TODO: filter out stations and buses that are finished operating
+        for _ in 0..(station_senders.len() + bus_senders.len()) {
+            let crate::thread::TimeTickAdvanced = confirm_time_step_receiver.recv().unwrap();
+        }
     }
 
     // fn manage_time_tick_increase_for_finished_loading_tick(
@@ -235,6 +245,7 @@ pub fn run_simulation(
         &passenger_bus_route_arc,
         &rejected_passengers_pointer,
         tx_stations_to_passengers,
+        &tx_confirm_advance_time_tick,
         tx_stations_to_display,
         sync_to_stations_receiver,
         &final_passengers_arc,
@@ -259,6 +270,8 @@ pub fn run_simulation(
         //     Option<crate::ReceiverWithIndex<SyncToBusMessages>>,
         // > = receiver_sync_to_bus_list.as_mut();
         let current_time_tick = TimeTick::default();
+
+        let advance_time_tick_sender = tx_confirm_advance_time_tick.clone();
 
         // TODO: Remove if not useful
         let mut time_clone_check = 0;
@@ -348,6 +361,7 @@ pub fn run_simulation(
                     &bus_receiver_from_station,
                     &sender,
                     &current_bus_receiver_from_sync.receiver,
+                    &advance_time_tick_sender,
                 );
 
                 if bus_update_output == ControlFlow::Break(()) {
@@ -666,18 +680,18 @@ pub fn run_simulation(
             // Make sure all stations send passengers so that passengers that were travelling to the station are processed
             {
                 // DEBUG: could process current timetick here to see what is happening
-                let sync_message = sync_reader.try_recv();
-                if let Ok(SyncToStationAndPassengerMessages::AdvanceTimeStep(time_step)) =
-                    sync_message
-                {
-                    current_time_tick = time_step;
-                    writeln!(
-                        writer,
-                        "\nCurrent Time Tick during time tick advance: {:?}",
-                        time_step
-                    )
-                    .unwrap();
-                }
+                // let sync_message = sync_reader.try_recv();
+                // if let Ok(SyncToStationAndPassengerMessages::AdvanceTimeStep(time_step)) =
+                //     sync_message
+                // {
+                //     current_time_tick = time_step;
+                //     writeln!(
+                //         writer,
+                //         "\nCurrent Time Tick during time tick advance: {:?}",
+                //         time_step
+                //     )
+                //     .unwrap();
+                // }
 
                 // TODO: I want to impliment this with a vector and write the messages in numerical order
                 let passenger_message = stations_reader.recv().unwrap();
@@ -741,6 +755,7 @@ pub fn run_simulation(
                 writeln!(writer, "{passenger_message}").unwrap();
                 // TODO: Update passenger States to prevent an infinite loop
             }
+            log::debug!("End of display while loop");
 
             for state in passenger_states.iter_mut() {
                 *state = match state {
@@ -800,6 +815,8 @@ pub fn run_simulation(
     let route_sync_location_vec_arc = location_vector_arc.clone();
     let route_sync_passenger_list_arc = passenger_list_pointer.clone();
     let route_sync_bus_route_vec_arc = bus_route_vec_arc.clone();
+
+    let confirm_advance_timestep_receiver = rx_confirm_advance_timestep;
     let mut passengers_initialized = false;
 
     'sync_loop: loop {
@@ -1024,6 +1041,7 @@ pub fn run_simulation(
                     &send_to_buses,
                     &send_to_passengers,
                     &send_to_display,
+                    &confirm_advance_timestep_receiver,
                     &mut bus_status_vector,
                 );
             }
@@ -1122,9 +1140,10 @@ pub fn run_simulation(
                 &send_to_buses,
                 &send_to_passengers,
                 &send_to_display,
+                &confirm_advance_timestep_receiver,
                 &mut bus_status_vector,
             );
-        } else if let TimeTickStage::BusLoadingPassengers { .. } = current_time_tick.stage {
+        } else if let TimeTickStage::BusLoadingPassengers = current_time_tick.stage {
             if (bus_status_vector.iter().all(|bus_thread_status| {
                 LOADING_BUS_VALID_STATUSES
                     .iter()
@@ -1143,6 +1162,7 @@ pub fn run_simulation(
                     &send_to_buses,
                     &send_to_passengers,
                     &send_to_display,
+                    &confirm_advance_timestep_receiver,
                     &mut bus_status_vector,
                 );
             }

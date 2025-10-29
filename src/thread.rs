@@ -52,12 +52,18 @@ pub enum ProgramEndType {
 pub enum SyncToStationAndPassengerMessages {
     AdvanceTimeStep(crate::TimeTick),
     ProgramFinished(ProgramEndType),
+    // TODO: Incorperate into
+    // FinishedAdvancingTimetick,
 }
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct TimeTickAdvanced;
 
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum StationToSyncMessages {
     CrashProgram { message: String },
+    // AdvancedTimeStep(u32),
 }
 
 #[derive(Debug)]

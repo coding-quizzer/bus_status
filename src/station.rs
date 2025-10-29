@@ -8,7 +8,7 @@ use crate::passenger::Passenger;
 use crate::passenger::PassengerOnboardingBusSchedule;
 use crate::thread::{
     StationEventMessages, StationToBusMessages, StationToDisplayMessages,
-    StationToPassengersMessages, SyncToStationAndPassengerMessages,
+    StationToPassengersMessages, SyncToStationAndPassengerMessages, TimeTickAdvanced
 };
 use crate::{
     calculate_passenger_schedule_for_bus,
@@ -188,6 +188,7 @@ pub fn get_station_threads(
     rejected_passengers_pointer: &Arc<Mutex<Vec<Passenger>>>,
 
     tx_stations_to_passengers: Sender<StationToPassengersMessages>,
+    tx_confirm_advance_time_tick: &Sender<TimeTickAdvanced>,
     display_sender: Sender<display::TerminalMessage>,
     rx_sync_to_stations_list: Arc<
         Mutex<Vec<Option<AsyncReceiverWithIndex<SyncToStationAndPassengerMessages>>>>,
@@ -223,6 +224,8 @@ pub fn get_station_threads(
         let to_passengers_sender_clone = tx_stations_to_passengers.clone();
         let to_display_sender_clone = display_sender.clone();
 
+        let tx_confirm_advance_time_tick_clone = tx_confirm_advance_time_tick.clone();
+
         let station_handle = create_station_thread(
             current_location,
             // *current_time_tick,
@@ -233,6 +236,7 @@ pub fn get_station_threads(
             rejected_passenger_clone,
             to_passengers_sender_clone,
             to_display_sender_clone,
+            tx_confirm_advance_time_tick_clone,
             sync_to_stations_reciever,
             final_passenger_list_clone,
             config.num_of_buses,
@@ -488,7 +492,6 @@ for bus in docked_buses {
     let bus_index = bus.bus_index;
     let remaining_capacity = bus.capacity_remaining;
     // The index does not exist in the array - even though the index should be of a docked bus
-    // let passengers_overflowed: Vec<_> = todo!();
 
     debug!(
         "Next passengers for buses, {:?}. Bus index: {}",
@@ -572,15 +575,14 @@ for bus in docked_buses {
         .send(StationToBusMessages::SendPassengers(passengers_to_send))
         .unwrap();
 
-    let current_bus_route_list = bus_route_list.lock().unwrap();
-    let bus_route_vec: Vec<_> =
-        current_bus_route_list.clone().into_iter().collect();
+    // let current_bus_route_list = bus_route_list.lock().unwrap();
+    // let bus_route_vec: Vec<_> =
+    //     current_bus_route_list.clone().into_iter().collect();
     // bus_route_vec[0][0].
 
-    drop(current_bus_route_list);
+    // drop(current_bus_route_list);
     debug!("Current bus route list dropped");
 
-    // TODO: Deal with passengers without an available route
     for passenger in passengers_overflowed.clone() {
         let unavailable_buses = current_station.buses_unavailable.clone();
         info!("Unavailable buses: {:?}", unavailable_buses);
@@ -610,8 +612,6 @@ for bus in docked_buses {
 
 pub fn create_station_thread(
     current_location: Location,
-    // TODO: I have shadowed this
-    // station_time_tick: TimeTick,
     send_to_bus_channels: Arc<Vec<Sender<StationToBusMessages>>>,
     station_channel_receiver: AsyncReceiverWithIndex<StationEventMessages>,
     bus_route_list: Arc<Mutex<Vec<Vec<BusLocation>>>>,
@@ -619,6 +619,7 @@ pub fn create_station_thread(
     rejected_passenger_clone: Arc<Mutex<Vec<Passenger>>>,
     to_passengers_sender_clone: Sender<StationToPassengersMessages>,
     to_display_sender_clone: Sender<display::TerminalMessage>,
+    send_time_tick_confirmation: Sender<TimeTickAdvanced>,
     mut sync_to_stations_receiver: UnboundedReceiver<SyncToStationAndPassengerMessages>,
     final_passenger_list_clone: Arc<Mutex<FinalPassengerLists>>,
     num_of_buses: usize,
@@ -660,7 +661,12 @@ pub fn create_station_thread(
               let message_from_sync = sync_to_stations_receiver.recv().await.unwrap();
 
               match message_from_sync {
-                SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick) =>  time_tick = new_time_tick,
+                SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick) =>  {
+                  time_tick = new_time_tick;
+                  send_time_tick_confirmation.send(TimeTickAdvanced);
+                  // TODO: receive confirmation message from sync thread
+                
+                },
                 SyncToStationAndPassengerMessages::ProgramFinished(_) => {
                   return;
                 }

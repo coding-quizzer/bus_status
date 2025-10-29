@@ -2,6 +2,7 @@ use crate::passenger::Passenger;
 use crate::passenger::PassengerOnboardingBusSchedule;
 use crate::station::Station;
 use crate::thread::SyncToBusMessages;
+use crate::thread::TimeTickAdvanced;
 use crate::thread::{BusMessages, StationEventMessages, StationToBusMessages};
 use crate::TimeTick;
 use crate::TimeTickStage;
@@ -234,6 +235,7 @@ impl Bus {
         station_receiver: &Receiver<StationToBusMessages>,
         sync_sender: &Sender<BusMessages>,
         sync_receiver: &Receiver<SyncToBusMessages>,
+        time_tick_confirmation_sender: &Sender<crate::thread::TimeTickAdvanced>,
     ) -> ControlFlow<()> {
         // somewhere there is a time advane message that is not recorded
         println!(
@@ -378,14 +380,19 @@ impl Bus {
                         if let TimeTickStage::BusLoadingPassengers { .. } = self.time_tick.stage {
                         } else {
                             println!("Debug: waiting for time step to advance in bus");
-                            // TODO: Replace with waiting for time tick
                             let incoming_message = sync_receiver.recv().unwrap();
-
-                            let time_tick_temp: TimeTick = match incoming_message {
-                                SyncToBusMessages::AdvanceTimeStep(time_step) => time_step,
+                            let time_tick_temp;
+                            //
+                            match incoming_message {
+                                SyncToBusMessages::AdvanceTimeStep(time_step) => {
+                                    time_tick_temp = time_step;
+                                    time_tick_confirmation_sender.send(TimeTickAdvanced);
+                                    // TODO: Wait for time_tick advance message
+                                }
                                 // So far, there are no other options
                                 _ => unreachable!(),
                             };
+
                             println!(
                                 "Bus {} Time tick incremented. Time tick: {time_tick_temp:?}",
                                 self.bus_index
