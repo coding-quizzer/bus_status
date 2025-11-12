@@ -7,8 +7,7 @@ use crate::main_loop::{ConfigStruct, FinalPassengerLists};
 use crate::passenger::Passenger;
 use crate::passenger::PassengerOnboardingBusSchedule;
 use crate::thread::{
-    StationEventMessages, StationToBusMessages, StationToDisplayMessages,
-    StationToPassengersMessages, SyncToStationAndPassengerMessages, TimeTickAdvanced
+    FinishTimeTickAdvance, StationEventMessages, StationToBusMessages, StationToDisplayMessages, StationToPassengersMessages, SyncToStationAndPassengerMessages, TimeTickAdvanced
 };
 use crate::{
     calculate_passenger_schedule_for_bus,
@@ -183,6 +182,7 @@ pub fn get_station_threads(
     receive_in_station_channels_arc: &Arc<
         Mutex<Vec<Option<AsyncReceiverWithIndex<StationEventMessages>>>>,
     >,
+    receive_affirm_timestep_in_station_channels_arc: &Arc<Mutex<Vec<Option<AsyncReceiverWithIndex<FinishTimeTickAdvance>>>>>,
     bus_route_vec_arc: &Arc<Mutex<Vec<Vec<BusLocation>>>>,
     passenger_bus_route_arc: &Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>,
     rejected_passengers_pointer: &Arc<Mutex<Vec<Passenger>>>,
@@ -212,6 +212,11 @@ pub fn get_station_threads(
             [station_index]
             .take()
             .expect("Station index in station_receivers list should still be available");
+
+        let station_affirm_timetick_channel = receive_affirm_timestep_in_station_channels_arc.clone().lock().unwrap()[station_index].take().expect("Station index in station_affirm_timestep list should be available").receiver;
+
+        // let finish_time_tick_advancement;
+
         let current_location = *location;
         let send_to_bus_channels = send_to_bus_channels_arc.clone();
         let station_channels = receive_in_station_channels_arc.clone();
@@ -238,6 +243,7 @@ pub fn get_station_threads(
             to_display_sender_clone,
             tx_confirm_advance_time_tick_clone,
             sync_to_stations_reciever,
+            station_affirm_timetick_channel,
             final_passenger_list_clone,
             config.num_of_buses,
         );
@@ -621,6 +627,7 @@ pub fn create_station_thread(
     to_display_sender_clone: Sender<display::TerminalMessage>,
     send_time_tick_confirmation: Sender<TimeTickAdvanced>,
     mut sync_to_stations_receiver: UnboundedReceiver<SyncToStationAndPassengerMessages>,
+    mut station_affirm_timestep_channel_receiver: UnboundedReceiver<FinishTimeTickAdvance>,
     final_passenger_list_clone: Arc<Mutex<FinalPassengerLists>>,
     num_of_buses: usize,
 ) -> JoinHandle<()> {
@@ -665,6 +672,7 @@ pub fn create_station_thread(
                   time_tick = new_time_tick;
                   send_time_tick_confirmation.send(TimeTickAdvanced);
                   // TODO: receive confirmation message from sync thread
+                  let FinishTimeTickAdvance = station_affirm_timestep_channel_receiver.recv().await.unwrap();
                 
                 },
                 SyncToStationAndPassengerMessages::ProgramFinished(_) => {

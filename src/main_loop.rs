@@ -9,9 +9,9 @@ use crate::display::{
 use crate::location::{BusLocation, PassengerBusLocation};
 use crate::station;
 use crate::thread::{
-    BusMessages, BusThreadStatus, StationEventMessages, StationToDisplayMessages,
-    StationToPassengersMessages, StationToSyncMessages, SyncToBusMessages,
-    SyncToStationAndPassengerMessages,
+    BusMessages, BusThreadStatus, FinishTimeTickAdvance, StationEventMessages,
+    StationToDisplayMessages, StationToPassengersMessages, StationToSyncMessages,
+    SyncToBusMessages, SyncToStationAndPassengerMessages, TimeTickAdvanced,
 };
 use crate::{initialize_async_channel_list, initialize_channel_list};
 use crate::{Location, Passenger};
@@ -118,7 +118,29 @@ pub fn run_simulation(
     let (tx_confirm_advance_time_tick, rx_confirm_advance_timestep) =
         mpsc::channel::<crate::thread::TimeTickAdvanced>();
 
-    // let current_time_tick_clone = current_time_tick.clone();
+    let (
+        tx_finish_time_tick_advance_channels_stations,
+        rx_finish_time_tick_advance_channels_stations,
+    ) = crate::initialize_async_channel_list::<crate::thread::FinishTimeTickAdvance>(
+        config.num_of_locations,
+    );
+
+    let finish_time_tick_advance_channels_stations_receivers: Vec<_> =
+        rx_finish_time_tick_advance_channels_stations
+            .into_iter()
+            .map(Some)
+            .collect();
+
+    let (tx_finish_time_tick_advance_channels_buses, rx_finish_time_tick_advance_channels_buses) =
+        crate::initialize_channel_list::<crate::thread::FinishTimeTickAdvance>(
+            config.num_of_locations,
+        );
+
+    let finish_time_tick_advance_channels_buses_receivers: Vec<_> =
+        rx_finish_time_tick_advance_channels_buses
+            .into_iter()
+            .map(Some)
+            .collect();
 
     #[track_caller]
     fn increment_time_step(
@@ -132,6 +154,10 @@ pub fn run_simulation(
         passenger_sender: &mpsc::Sender<SyncToStationAndPassengerMessages>,
         display_sender: &mpsc::Sender<SyncToStationAndPassengerMessages>,
         confirm_time_step_receiver: &mpsc::Receiver<crate::thread::TimeTickAdvanced>,
+        affirm_time_step_sender_buses: &Vec<mpsc::Sender<FinishTimeTickAdvance>>,
+        affirm_time_step_sender_stations: &Vec<
+            tokio::sync::mpsc::UnboundedSender<FinishTimeTickAdvance>,
+        >,
         bus_status_vector: &mut [BusThreadStatus],
     ) {
         let call_location = std::panic::Location::caller();
@@ -183,9 +209,22 @@ pub fn run_simulation(
             ))
             .unwrap();
 
-        // TODO: filter out stations and buses that are finished operating
-        for _ in 0..(station_senders.len() + bus_senders.len()) {
+        let current_bus_count = bus_status_vector
+            .iter()
+            .filter(|status| **status != BusThreadStatus::BusFinishedRoute)
+            .count();
+
+        // TODO: filter out buses that are finished operating
+        for _ in 0..(station_senders.len() + current_bus_count) {
             let crate::thread::TimeTickAdvanced = confirm_time_step_receiver.recv().unwrap();
+        }
+
+        for station_sender in affirm_time_step_sender_stations {
+            station_sender.send(FinishTimeTickAdvance).unwrap();
+        }
+
+        for bus_sender in affirm_time_step_sender_buses {
+            bus_sender.send(FinishTimeTickAdvance).unwrap_or(());
         }
     }
 
@@ -230,6 +269,10 @@ pub fn run_simulation(
     let send_to_bus_channels_arc = Arc::new(send_to_bus_channels);
     let receive_in_station_channels_arc = Arc::new(Mutex::new(receive_in_station_channels));
 
+    let receive_affirm_message_in_stations_channels = Arc::new(Mutex::new(
+        finish_time_tick_advance_channels_stations_receivers,
+    ));
+
     // station thread (passenger data)
     // TODO: Change the station_handle_list function to deal with the time tick
     let station_location_list = location_vector_arc.clone();
@@ -241,6 +284,7 @@ pub fn run_simulation(
         &station_time_tick,
         &send_to_bus_channels_arc,
         &receive_in_station_channels_arc,
+        &receive_affirm_message_in_stations_channels,
         &bus_route_vec_arc,
         &passenger_bus_route_arc,
         &rejected_passengers_pointer,
@@ -259,8 +303,13 @@ pub fn run_simulation(
     let bus_receiver_channels_arc = Arc::new(Mutex::new(receive_from_bus_channels));
     let receiver_sync_to_bus_channels_arc = Arc::new(Mutex::new(receiver_sync_to_bus_channels));
 
+    let receiver_affirm_timetick = Arc::new(Mutex::new(
+        finish_time_tick_advance_channels_buses_receivers,
+    ));
+
     for _ in 0..config.num_of_buses {
         let receiver_sync_to_bus_channels_clone = receiver_sync_to_bus_channels_arc.clone();
+        let receiver_affirm_timetick_clone = receiver_affirm_timetick.clone();
         let bus_route_vector_clone = bus_route_vec_arc.clone();
         let station_senders_clone = send_to_station_channels_arc.clone();
         let sender = tx_from_bus_threads.clone();
@@ -289,6 +338,15 @@ pub fn run_simulation(
                 .expect("List should be long enough for all the buses")
                 .take()
                 .expect("This value should not have been taken already");
+
+            let current_bus_affirm_timetick_receiver = receiver_affirm_timetick_clone
+                .lock()
+                .unwrap()
+                .get_mut(bus_index)
+                .expect("List should be long enough for all buses")
+                .take()
+                .expect("This value should not have been taken already");
+
             println!("Bus index: {}", bus_index);
             let bus_receiver_from_station = current_bus_receiver_from_station_with_index.receiver;
 
@@ -346,6 +404,11 @@ pub fn run_simulation(
                     // So far, there are no other options
                     _ => unreachable!(),
                 };
+                advance_time_tick_sender.send(TimeTickAdvanced).unwrap();
+                let FinishTimeTickAdvance = current_bus_affirm_timetick_receiver
+                    .receiver
+                    .recv()
+                    .unwrap();
                 println!("Bus thread Time tick incremented. Time tick: {time_tick:?}");
 
                 if time_tick == previous_time_tick
@@ -360,6 +423,7 @@ pub fn run_simulation(
                     &station_senders_clone,
                     &bus_receiver_from_station,
                     &sender,
+                    &current_bus_affirm_timetick_receiver.receiver,
                     &current_bus_receiver_from_sync.receiver,
                     &advance_time_tick_sender,
                 );
@@ -795,6 +859,9 @@ pub fn run_simulation(
     let send_to_passengers = tx_sync_to_passengers;
     let send_to_display = tx_sync_to_display;
 
+    let station_affirm_timetick_senders = tx_finish_time_tick_advance_channels_stations.clone();
+    let bus_affirm_timetick_senders = tx_finish_time_tick_advance_channels_buses.clone();
+
     // Main thread: Keeps track of the remaining threads as a whole. Sends messages
 
     // Initialize bus status vector
@@ -1042,6 +1109,8 @@ pub fn run_simulation(
                     &send_to_passengers,
                     &send_to_display,
                     &confirm_advance_timestep_receiver,
+                    &bus_affirm_timetick_senders,
+                    &station_affirm_timetick_senders,
                     &mut bus_status_vector,
                 );
             }
@@ -1141,6 +1210,8 @@ pub fn run_simulation(
                 &send_to_passengers,
                 &send_to_display,
                 &confirm_advance_timestep_receiver,
+                &bus_affirm_timetick_senders,
+                &station_affirm_timetick_senders,
                 &mut bus_status_vector,
             );
         } else if let TimeTickStage::BusLoadingPassengers = current_time_tick.stage {
@@ -1163,6 +1234,8 @@ pub fn run_simulation(
                     &send_to_passengers,
                     &send_to_display,
                     &confirm_advance_timestep_receiver,
+                    &bus_affirm_timetick_senders,
+                    &station_affirm_timetick_senders,
                     &mut bus_status_vector,
                 );
             }

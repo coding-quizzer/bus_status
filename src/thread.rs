@@ -59,6 +59,9 @@ pub enum SyncToStationAndPassengerMessages {
 #[derive(Debug, PartialEq, Eq)]
 pub struct TimeTickAdvanced;
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct FinishTimeTickAdvance;
+
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum StationToSyncMessages {

@@ -1,6 +1,7 @@
 use crate::passenger::Passenger;
 use crate::passenger::PassengerOnboardingBusSchedule;
 use crate::station::Station;
+use crate::thread::FinishTimeTickAdvance;
 use crate::thread::SyncToBusMessages;
 use crate::thread::TimeTickAdvanced;
 use crate::thread::{BusMessages, StationEventMessages, StationToBusMessages};
@@ -234,6 +235,7 @@ impl Bus {
         station_senders: &[UnboundedSender<StationEventMessages>],
         station_receiver: &Receiver<StationToBusMessages>,
         sync_sender: &Sender<BusMessages>,
+        sync_affrim_timetick_receiver: &Receiver<FinishTimeTickAdvance>,
         sync_receiver: &Receiver<SyncToBusMessages>,
         time_tick_confirmation_sender: &Sender<crate::thread::TimeTickAdvanced>,
     ) -> ControlFlow<()> {
@@ -388,6 +390,8 @@ impl Bus {
                                     time_tick_temp = time_step;
                                     time_tick_confirmation_sender.send(TimeTickAdvanced);
                                     // TODO: Wait for time_tick advance message
+                                    let FinishTimeTickAdvance =
+                                        sync_affrim_timetick_receiver.recv().unwrap();
                                 }
                                 // So far, there are no other options
                                 _ => unreachable!(),
