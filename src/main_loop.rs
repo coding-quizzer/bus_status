@@ -351,7 +351,7 @@ pub fn run_simulation(
 
             let mut bus_route_vector = bus_route_vector_clone.lock().unwrap();
             let bus_route = bus_route_vector.get(bus_index).unwrap();
-            println!("Bus {bus_index} bus route: {bus_route:#?}");
+            // println!("Bus {bus_index} bus route: {bus_route:#?}");
             let simulated_bus_option =
                 Bus::try_new(bus_route.clone(), config.bus_capacity as usize, bus_index);
 

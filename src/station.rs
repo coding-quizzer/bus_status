@@ -670,9 +670,11 @@ pub fn create_station_thread(
               match message_from_sync {
                 SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick) =>  {
                   time_tick = new_time_tick;
-                  send_time_tick_confirmation.send(TimeTickAdvanced);
+                  send_time_tick_confirmation.send(TimeTickAdvanced).unwrap();
+                  println!("Sent time tick advanced from station {} at time tick {}", current_station_update.location.index, time_tick);
                   // TODO: receive confirmation message from sync thread
                   let FinishTimeTickAdvance = station_affirm_timestep_channel_receiver.recv().await.unwrap();
+                  println!("Recieved time tick advanced from station {} at time tick {}", current_station_update.location.index, time_tick);
                 
                 },
                 SyncToStationAndPassengerMessages::ProgramFinished(_) => {
@@ -837,13 +839,6 @@ pub fn create_station_thread(
                   .any(|station_bus| station_bus == &bus_info));
 
               current_station.docked_buses.push(bus_info);
-
-              //FIXME: Two consecutive sends to the same thread without any regulation of timing
-
-              // So far, acknowledge arrival doesn't acctually do anything
-              // send_to_bus_channels[bus_index]
-              //     .send(StationToBusMessages::AcknowledgeArrival())
-              //     .unwrap();
 
               send_to_bus_channels[bus_index]
                   .send(StationToBusMessages::FinishedUnloading)

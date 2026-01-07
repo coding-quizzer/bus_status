@@ -358,7 +358,7 @@ fn calculate_passenger_schedule_for_bus_with_recursion(
         }
     }
 
-    println!("Destination list: {:?}", destination_list);
+    // println!("Destination list: {:?}", destination_list);
     for destination in destination_list.iter() {
         let mut bus_schedule = VecDeque::new();
         let mut visited_locations = visited_locations.clone();
