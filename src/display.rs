@@ -20,7 +20,7 @@ pub enum TerminalType {
     BoardedPassenger(BoardedPassengerInfo),
     RejectedPassenger(RejectedPassengerInfo),
     StrandedPassenger(StrandedPassengerInfo),
-    NoPassengerFromStation { passenger_index: usize },
+    NoPassengerFromStation { station_index: usize },
 }
 
 impl Display for TerminalType {
@@ -33,7 +33,7 @@ impl Display for TerminalType {
             TerminalType::StrandedPassenger(info) => write!(f, "{info}"),
             TerminalType::WaitingPassenger(info) => write!(f, "{info}"),
             TerminalType::NoPassengerFromStation {
-                passenger_index: index,
+                station_index: index,
             } => write!(
                 f,
                 "Station {index} processes no passengers in the current time tick"

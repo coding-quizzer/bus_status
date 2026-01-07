@@ -214,7 +214,6 @@ pub fn run_simulation(
             .filter(|status| **status != BusThreadStatus::BusFinishedRoute)
             .count();
 
-        // TODO: filter out buses that are finished operating
         for _ in 0..(station_senders.len() + current_bus_count) {
             let crate::thread::TimeTickAdvanced = confirm_time_step_receiver.recv().unwrap();
         }
@@ -653,10 +652,10 @@ pub fn run_simulation(
             // FIXME: I want to impliment this with a vector and write the messages in numerical order
             let passenger_message = stations_reader.recv().unwrap();
             let message_station_index = passenger_message.station_index;
-            if let TerminalType::NoPassengerFromStation { passenger_index } =
+            if let TerminalType::NoPassengerFromStation { station_index } =
                 passenger_message.content
             {
-                station_has_passengers[passenger_index] = false;
+                station_has_passengers[station_index] = false;
                 station_states[message_station_index] = StationState::NoPassengers;
 
                 if station_has_passengers
@@ -702,7 +701,7 @@ pub fn run_simulation(
                 TerminalType::BoardedPassenger(BoardedPassengerInfo {
                     passenger_index, ..
                 }) => (PassengerState::Boarded, passenger_index),
-                TerminalType::NoPassengerFromStation { passenger_index: _ } => {
+                TerminalType::NoPassengerFromStation { station_index: _ } => {
                     unreachable!("All stations without passengers have been dealt with already");
                 }
             };
@@ -765,7 +764,7 @@ pub fn run_simulation(
                 log::debug!("Station States: {station_states:?}");
 
                 if let TerminalType::NoPassengerFromStation {
-                    passenger_index: index,
+                    station_index: index,
                 } = passenger_message.content
                 {
                     station_has_passengers[index] = false;
@@ -809,7 +808,7 @@ pub fn run_simulation(
                         passenger_index,
                         ..
                     }) => (PassengerState::Boarded, passenger_index),
-                    TerminalType::NoPassengerFromStation { passenger_index: _ } => {
+                    TerminalType::NoPassengerFromStation { station_index: _ } => {
                         unreachable!("No passengers from station case has already been covered");
                     }
                 };
