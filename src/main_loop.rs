@@ -608,11 +608,12 @@ pub fn run_simulation(
                     rejected_passengers.push(rejected_passenger);
                 } */
 
-                passenger_thread_sender
-                    .send(BusMessages::InitPassengers)
-                    .unwrap();
+                /* passenger_thread_sender
+                .send(BusMessages::InitPassengers)
+                .unwrap(); */
 
-                println!("Passengers init message sent");
+                // println!("Passengers init message sent");
+
                 // TODO: Replace with something comperable to the panic message
                 assert_eq!(
                     passenger_list.len() + rejected_passengers.len(),
@@ -639,7 +640,7 @@ pub fn run_simulation(
         let mut current_time_tick = TimeTick::default();
         let mut passenger_states = Vec::new();
         passenger_states.resize(config.num_of_passengers, PassengerState::Unprocessed);
-        let mut station_has_passengers = Vec::new();
+        let mut station_has_passengers_list = Vec::new();
         let mut station_states = Vec::new();
         station_states.resize(config.num_of_locations, StationState::Unprocessed);
 
@@ -647,18 +648,20 @@ pub fn run_simulation(
 
         // TODO: Remove when setup timetick is not set up anymore
         // Setup time tick
+        // TODO: this will be a problem when passengers arrive at staggered time steps
+        // remove fixed loop waiting for message from every passenger
         for _ in 0..config.num_of_passengers {
-            station_has_passengers.resize(config.num_of_locations, true);
+            station_has_passengers_list.resize(config.num_of_locations, true);
             // FIXME: I want to impliment this with a vector and write the messages in numerical order
             let passenger_message = stations_reader.recv().unwrap();
             let message_station_index = passenger_message.station_index;
             if let TerminalType::NoPassengerFromStation { station_index } =
                 passenger_message.content
             {
-                station_has_passengers[station_index] = false;
+                station_has_passengers_list[station_index] = false;
                 station_states[message_station_index] = StationState::NoPassengers;
 
-                if station_has_passengers
+                if station_has_passengers_list
                     .iter()
                     .all(|station| *station == false)
                 {
@@ -767,9 +770,14 @@ pub fn run_simulation(
                     station_index: index,
                 } = passenger_message.content
                 {
-                    station_has_passengers[index] = false;
+                    station_has_passengers_list[index] = false;
 
-                    if station_has_passengers.iter().all(|station| !station) {
+                    if station_has_passengers_list
+                        .iter()
+                        .all(|current_station_has_passengers| {
+                            current_station_has_passengers == &false
+                        })
+                    {
                         writeln!(writer, "{}", passenger_message).unwrap();
                         break;
                     } else {
@@ -835,7 +843,7 @@ pub fn run_simulation(
             }
 
             // Reset station bools for next loop
-            for station in station_has_passengers.iter_mut() {
+            for station in station_has_passengers_list.iter_mut() {
                 *station = true;
             }
 
@@ -1114,10 +1122,22 @@ pub fn run_simulation(
                 );
             }
 
-            println!(
-                "All Buses Initialized. Time tick 0 message: {:?}",
-                received_bus_stop_message
-            );
+            if let BusMessages::InitBus { bus_index } = received_bus_stop_message {
+                println!(
+                    "Initialized bus {}. Time tick 0 message: {:?}",
+                    bus_index, received_bus_stop_message
+                );
+            } else if let BusMessages::InitPassengers = received_bus_stop_message {
+                println!(
+                    "Initialized passengers. Time tick 0 message: {:?}",
+                    received_bus_stop_message
+                )
+            } else {
+                println!(
+                    "Initialized stuff Invalid message: {:?}",
+                    received_bus_stop_message
+                )
+            }
 
             // Time tick could increment here
         }

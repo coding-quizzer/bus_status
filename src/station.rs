@@ -663,9 +663,9 @@ pub fn create_station_thread(
             // DEBUG: Does this introduce a race condition?
             let time_tick_update = time_tick.clone();
 
-            let message_task = async {
+            let message_task = async |message_from_sync: SyncToStationAndPassengerMessages| {
               // All recevers in the task are from Tokio UnboundedReceivers, so overwriting TryRecvError to tokio instead of std should not be an issue
-              let message_from_sync = sync_to_stations_receiver.recv().await.unwrap();
+              // let message_from_sync = sync_to_stations_receiver.recv().await.unwrap();
 
               match message_from_sync {
                 SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick) =>  {
@@ -895,7 +895,7 @@ pub fn create_station_thread(
               MessageThread,
               BusThread,
             }
-            tokio::select!(_ = message_task => {/*process time tick*/},
+            tokio::select!(message_from_sync = sync_to_stations_receiver.recv() => {message_task(message_from_sync.unwrap()).await},
             _ = bus_task => {/*process bus message*/});
             // time_tick = time_tick_update;
             current_station = updated_current_station_option.unwrap_or(current_station);

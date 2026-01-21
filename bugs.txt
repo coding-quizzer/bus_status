@@ -1,5 +1,7 @@
 Bug: {
-  input: First bus route has locations but the other two do not,
-  expected: The program should panic because of the buses that do not have a first location
-  actual: The program deadlocks
+  we create more than 1 async thread per station thread
 }
+{
+  Sync thread is not always replying
+}
+
