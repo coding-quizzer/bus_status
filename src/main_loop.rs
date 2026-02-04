@@ -25,6 +25,7 @@ use std::os::linux::raw::stat;
 use std::sync::mpsc::TryRecvError;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread::current;
+use std::time::Duration;
 
 #[derive(Debug, Default, Clone)]
 pub struct FinalPassengerLists {
@@ -216,7 +217,11 @@ pub fn run_simulation(
 
         for _ in 0..(station_senders.len() + current_bus_count) {
             let crate::thread::TimeTickAdvanced = confirm_time_step_receiver.recv().unwrap();
+            println!("received time tick advanced message in sync waiter");
         }
+
+        // DEBUG: sleep is deletable
+        std::thread::sleep(Duration::from_millis(10));
 
         for station_sender in affirm_time_step_sender_stations {
             station_sender.send(FinishTimeTickAdvance).unwrap();

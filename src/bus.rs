@@ -389,7 +389,6 @@ impl Bus {
                                 SyncToBusMessages::AdvanceTimeStep(time_step) => {
                                     time_tick_temp = time_step;
                                     time_tick_confirmation_sender.send(TimeTickAdvanced);
-                                    // TODO: Wait for time_tick advance message
                                     let FinishTimeTickAdvance =
                                         sync_affrim_timetick_receiver.recv().unwrap();
                                 }

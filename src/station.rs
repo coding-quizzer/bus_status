@@ -755,8 +755,7 @@ pub fn create_station_thread(
               updated_current_station_option = Some(current_station_update);
             };
 
-            let bus_task = async {
-              let message_from_bus = bus_message_receiver.recv().await.unwrap();
+            let mut bus_task = |message_from_bus: StationEventMessages| {
               match message_from_bus {
                 StationEventMessages::InitPassengerList(mut passengers) => {
                   
@@ -895,8 +894,9 @@ pub fn create_station_thread(
               MessageThread,
               BusThread,
             }
+
             tokio::select!(message_from_sync = sync_to_stations_receiver.recv() => {message_task(message_from_sync.unwrap()).await},
-            _ = bus_task => {/*process bus message*/});
+            message_from_bus = bus_message_receiver.recv() => {bus_task(message_from_bus.unwrap())});
             // time_tick = time_tick_update;
             current_station = updated_current_station_option.unwrap_or(current_station);
           }
