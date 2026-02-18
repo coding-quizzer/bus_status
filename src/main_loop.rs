@@ -215,9 +215,10 @@ pub fn run_simulation(
             .filter(|status| **status != BusThreadStatus::BusFinishedRoute)
             .count();
 
-        for _ in 0..(station_senders.len() + current_bus_count) {
-            let crate::thread::TimeTickAdvanced = confirm_time_step_receiver.recv().unwrap();
-            println!("received time tick advanced message in sync waiter");
+        for index in 0..(station_senders.len() + current_bus_count) {
+            let message = confirm_time_step_receiver.recv().unwrap();
+            // TimeTickAdvanced from bus/station <index>
+            println!("{message:?}");
         }
 
         // DEBUG: sleep is deletable
@@ -408,7 +409,13 @@ pub fn run_simulation(
                     // So far, there are no other options
                     _ => unreachable!(),
                 };
-                advance_time_tick_sender.send(TimeTickAdvanced).unwrap();
+                // Note: Time tick incremented both in bus thread and in bus update
+                advance_time_tick_sender
+                    .send(TimeTickAdvanced(
+                        crate::thread::TimeTickAdvancedObject::Bus { index: bus_index },
+                    ))
+                    .unwrap();
+                println!("Bus sent time tick advanced");
                 let FinishTimeTickAdvance = current_bus_affirm_timetick_receiver
                     .receiver
                     .recv()
@@ -433,6 +440,7 @@ pub fn run_simulation(
                 );
 
                 if bus_update_output == ControlFlow::Break(()) {
+                    println!("Broken out of the bus loop.");
                     break;
                 }
             }
@@ -880,6 +888,7 @@ pub fn run_simulation(
     let mut bus_status_vector = Vec::new();
     bus_status_vector.resize(config.num_of_buses, BusThreadStatus::Uninitialized);
 
+    // Debug: this variable is never updated
     let mut processed_bus_received_count = 0;
     let mut processed_moving_bus_received_count;
     let passenger_sender = tx_to_passengers;

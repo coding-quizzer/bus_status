@@ -56,8 +56,27 @@ pub enum SyncToStationAndPassengerMessages {
     // FinishedAdvancingTimetick,
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct TimeTickAdvanced;
+#[derive(PartialEq, Eq)]
+pub struct TimeTickAdvanced(pub TimeTickAdvancedObject);
+
+#[derive(PartialEq, Eq)]
+pub enum TimeTickAdvancedObject {
+    Bus { index: usize },
+    Station { index: usize },
+}
+use std::fmt::{Debug, Formatter};
+impl Debug for TimeTickAdvanced {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match self.0 {
+            TimeTickAdvancedObject::Bus { index } => {
+                write!(f, "TimeTickAdvanced from bus {}", index)
+            }
+            TimeTickAdvancedObject::Station { index } => {
+                write!(f, "TimeTickAdvanced from station {}", index)
+            }
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct FinishTimeTickAdvance;

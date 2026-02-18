@@ -275,6 +275,7 @@ impl Bus {
                 "Bus {} sent message to sync thread for moving bus",
                 self.bus_index
             );
+            println!("Finished Bus moving update");
             return ControlFlow::Continue(());
         } else {
             println!("Bus moving else branch");
@@ -370,8 +371,9 @@ impl Bus {
 
             // command for bus departing is happening before
             while !bus_departed {
-                println!("Waiting for station messages");
+                println!("Bus waiting for station messages");
                 let received_message = station_receiver.recv().unwrap();
+                println!("Line 376 message");
                 match received_message {
                     StationToBusMessages::AcknowledgeArrival() => {
                         // Note: Not implimented
@@ -379,16 +381,23 @@ impl Bus {
                     }
                     StationToBusMessages::RequestDeparture => {
                         // dbg!(time_tick);
+                        // Time sync synchronization code
                         if let TimeTickStage::BusLoadingPassengers { .. } = self.time_tick.stage {
                         } else {
-                            println!("Debug: waiting for time step to advance in bus");
+                            println!("Debug: waiting for time step to advance in bus for catching up the time tick");
                             let incoming_message = sync_receiver.recv().unwrap();
+                            println!("Line 389 message");
                             let time_tick_temp;
                             //
                             match incoming_message {
                                 SyncToBusMessages::AdvanceTimeStep(time_step) => {
                                     time_tick_temp = time_step;
-                                    time_tick_confirmation_sender.send(TimeTickAdvanced);
+                                    // Debug: I remember there being a reason for not unwrapping this instance
+                                    time_tick_confirmation_sender.send(TimeTickAdvanced(
+                                        crate::thread::TimeTickAdvancedObject::Bus {
+                                            index: self.bus_index,
+                                        },
+                                    ));
                                     let FinishTimeTickAdvance =
                                         sync_affrim_timetick_receiver.recv().unwrap();
                                 }
@@ -444,6 +453,28 @@ impl Bus {
                             .unwrap_or_else(|error| {
                                 panic!("Error from bus {}: {}", self.bus_index, error)
                             });
+                        // When bus is unloaded, it is ready to move on to the loading time tick
+                        // Copied from code catching up on the time tick
+                        let incoming_message = sync_receiver.recv().unwrap();
+                        println!("Line 458 message");
+                        let time_tick_temp;
+                        //
+                        match incoming_message {
+                            SyncToBusMessages::AdvanceTimeStep(time_step) => {
+                                time_tick_temp = time_step;
+                                // Debug: I remember there being a reason for not unwrapping this instance
+                                time_tick_confirmation_sender.send(TimeTickAdvanced(
+                                    crate::thread::TimeTickAdvancedObject::Bus {
+                                        index: self.bus_index,
+                                    },
+                                ));
+                                let FinishTimeTickAdvance =
+                                    sync_affrim_timetick_receiver.recv().unwrap();
+                            }
+                            // So far, there are no other options
+                            _ => unreachable!(),
+                        };
+                        self.time_tick = time_tick_temp;
                     }
                     StationToBusMessages::StationRemovedBus => {
                         println!(
@@ -479,12 +510,14 @@ impl Bus {
                                 })
                                 .unwrap();
                             self.status.movement = MovementState::Finished;
+                            println!("Finished bus update Finished.");
                             return ControlFlow::Break(());
                         }
                         bus_departed = true;
                     }
                 }
             }
+            println!("Finished bus update main return");
             ControlFlow::Continue(())
         }
     }

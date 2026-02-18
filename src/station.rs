@@ -7,7 +7,7 @@ use crate::main_loop::{ConfigStruct, FinalPassengerLists};
 use crate::passenger::Passenger;
 use crate::passenger::PassengerOnboardingBusSchedule;
 use crate::thread::{
-    FinishTimeTickAdvance, StationEventMessages, StationToBusMessages, StationToDisplayMessages, StationToPassengersMessages, SyncToStationAndPassengerMessages, TimeTickAdvanced
+    FinishTimeTickAdvance, StationEventMessages, StationToBusMessages, StationToDisplayMessages, StationToPassengersMessages, SyncToStationAndPassengerMessages, TimeTickAdvanced,
 };
 use crate::{
     calculate_passenger_schedule_for_bus,
@@ -666,11 +666,11 @@ pub fn create_station_thread(
             let message_task = async |message_from_sync: SyncToStationAndPassengerMessages| {
               // All recevers in the task are from Tokio UnboundedReceivers, so overwriting TryRecvError to tokio instead of std should not be an issue
               // let message_from_sync = sync_to_stations_receiver.recv().await.unwrap();
-
+              println!("Beginning of message task in station loop");
               match message_from_sync {
                 SyncToStationAndPassengerMessages::AdvanceTimeStep(new_time_tick) =>  {
                   time_tick = new_time_tick;
-                  send_time_tick_confirmation.send(TimeTickAdvanced).unwrap();
+                  send_time_tick_confirmation.send(TimeTickAdvanced(crate::thread::TimeTickAdvancedObject::Station { index: station_index })).unwrap();
                   println!("Sent time tick advanced from station {} at time tick {}", current_station_update.location.index, time_tick);
                   // TODO: receive confirmation message from sync thread
                   let FinishTimeTickAdvance = station_affirm_timestep_channel_receiver.recv().await.unwrap();
@@ -678,6 +678,7 @@ pub fn create_station_thread(
                 
                 },
                 SyncToStationAndPassengerMessages::ProgramFinished(_) => {
+                  println!("Finished program");
                   return;
                 }
               }
@@ -756,6 +757,7 @@ pub fn create_station_thread(
             };
 
             let mut bus_task = |message_from_bus: StationEventMessages| {
+              println!("Beginning of stations bus task");
               match message_from_bus {
                 StationEventMessages::InitPassengerList(mut passengers) => {
                   
@@ -882,11 +884,14 @@ pub fn create_station_thread(
               },
 
               StationEventMessages::NoMessage => { 
+                println!("No message");
                 // This message is unneccesary now because the program is now using async threads instead of try_recv's
                 unimplemented!();
               }
 
               }
+
+              println!("End of stations bus task");
 
             };
 
@@ -894,9 +899,10 @@ pub fn create_station_thread(
               MessageThread,
               BusThread,
             }
-
+            println!("Before tokio select");
             tokio::select!(message_from_sync = sync_to_stations_receiver.recv() => {message_task(message_from_sync.unwrap()).await},
             message_from_bus = bus_message_receiver.recv() => {bus_task(message_from_bus.unwrap())});
+            println!("After tokio select");
             // time_tick = time_tick_update;
             current_station = updated_current_station_option.unwrap_or(current_station);
           }
