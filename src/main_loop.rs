@@ -777,21 +777,22 @@ pub fn run_simulation(
                 let passenger_message = stations_reader.recv().unwrap();
                 let message_station_index = passenger_message.station_index;
 
-                if let TerminalType::NoPassengerFromStation {
-                    station_index: index,
-                } = passenger_message.content
+                if let TerminalType::NoPassengerFromStation { station_index } =
+                    passenger_message.content
                 {
-                    station_has_passengers_list[index] = false;
+                    println!("Station with no passengers message received in display");
+                    station_has_passengers_list[station_index] = false;
 
+                    writeln!(writer, "{}", passenger_message).unwrap();
                     if station_has_passengers_list
                         .iter()
                         .all(|current_station_has_passengers| {
                             current_station_has_passengers == &false
                         })
                     {
-                        writeln!(writer, "{}", passenger_message).unwrap();
                         break;
                     } else {
+                        station_states[station_index] = StationState::NoPassengers;
                         continue;
                     }
                 }

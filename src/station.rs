@@ -700,6 +700,15 @@ pub fn create_station_thread(
 
                 },
                 TimeTickStage::BusLoadingPassengers => {
+
+                   if current_station_update.passengers.is_empty() {
+                    to_display_sender_clone.send(
+                      TerminalMessage {
+                        content: TerminalType::NoPassengerFromStation { station_index }, time_tick, station_index
+                      }
+                    ).unwrap();
+                  }
+
                    add_passengers_to_buses(
                     &mut current_station_update, 
                     num_of_buses,
@@ -726,6 +735,8 @@ pub fn create_station_thread(
                             })
                             .unwrap();
                     }
+
+                   
 
                     debug!("Time tick when buses are dismissed: {:?}", &time_tick);
                     // One station is doing this twice. why?

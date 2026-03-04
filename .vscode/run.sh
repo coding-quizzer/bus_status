@@ -1,0 +1,1 @@
+READ_DATA=1 cargo run > output.txt
