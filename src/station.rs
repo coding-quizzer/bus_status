@@ -326,7 +326,15 @@ fn receive_fresh_passengers(
     *bus_passengers_initialized = true;
 }
 
-fn add_passengers_to_buses(current_station: &mut Station, num_of_buses: usize, current_thread_id: &ThreadId, time_tick: TimeTick, to_display_sender_clone: &Sender<TerminalMessage>, send_to_bus_channels: &Arc<Vec<Sender<StationToBusMessages>>>, bus_route_list: &Arc<Mutex<Vec<Vec<BusLocation>>>>, station_thread_passenger_bus_route_list: &Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>, final_passenger_list_clone: &Arc<Mutex<FinalPassengerLists>>) {
+fn add_passengers_to_buses(
+  current_station: &mut Station, 
+  num_of_buses: usize, 
+  current_thread_id: &ThreadId, 
+  time_tick: TimeTick, 
+  to_display_sender_clone: &Sender<TerminalMessage>, 
+  send_to_bus_channels: &Arc<Vec<Sender<StationToBusMessages>>>, 
+  bus_route_list: &Arc<Mutex<Vec<Vec<BusLocation>>>>, station_thread_passenger_bus_route_list: &Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>, 
+  final_passenger_list_clone: &Arc<Mutex<FinalPassengerLists>>) {
   let  current_location = current_station.location;
   let station_index = current_location.index;
   // REFACTOR: figure out what is happening here
@@ -655,7 +663,7 @@ pub fn create_station_thread(
         rt.block_on(async {
 
 
-        'main: loop {            
+        'main: loop {
             
             let mut updated_current_station_option = None;
             let mut current_station_update = current_station.clone();
@@ -703,6 +711,7 @@ pub fn create_station_thread(
                     &station_thread_passenger_bus_route_list,
                     &final_passenger_list_clone
                   );
+
                     for passenger in current_station_update.passengers.iter() {
                         to_display_sender_clone
                             .send(TerminalMessage {
@@ -745,6 +754,14 @@ pub fn create_station_thread(
                       station_index: current_location.index,
                     }
                   ).unwrap();
+                  }
+
+                  if current_station_update.passengers.is_empty() {
+                    to_display_sender_clone.send(
+                      TerminalMessage {
+                        content: TerminalType::NoPassengerFromStation { station_index }, time_tick, station_index
+                      }
+                    ).unwrap();
                   }
 
                   // DEBUG: this should work because the value is updated according to which message was recieved. Confirm that it works

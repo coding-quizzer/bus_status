@@ -671,6 +671,7 @@ pub fn run_simulation(
             if let TerminalType::NoPassengerFromStation { station_index } =
                 passenger_message.content
             {
+                println!("Station {} had no passengers in it", message_station_index);
                 station_has_passengers_list[station_index] = false;
                 station_states[message_station_index] = StationState::NoPassengers;
 
@@ -776,9 +777,6 @@ pub fn run_simulation(
                 let passenger_message = stations_reader.recv().unwrap();
                 let message_station_index = passenger_message.station_index;
 
-                log::debug!("Passenger States: {passenger_states:?}");
-                log::debug!("Station States: {station_states:?}");
-
                 if let TerminalType::NoPassengerFromStation {
                     station_index: index,
                 } = passenger_message.content
@@ -835,6 +833,15 @@ pub fn run_simulation(
                 };
                 passenger_states[passenger_index] = new_state;
                 station_states[message_station_index] = StationState::Processed;
+
+                log::debug!(
+                    "Passenger States: {passenger_states:?} at  {}",
+                    current_time_tick
+                );
+                log::debug!(
+                    "Station States: {station_states:?} at {}",
+                    current_time_tick
+                );
 
                 writeln!(writer, "{passenger_message}").unwrap();
                 // TODO: Update passenger States to prevent an infinite loop
