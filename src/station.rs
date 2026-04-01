@@ -662,8 +662,8 @@ pub fn create_station_thread(
         let mut time_tick = station_time_tick;
         rt.block_on(async {
 
-
-        'main: loop {
+        let mut program_is_running = true;
+        'main: while (program_is_running) {
             
             let mut updated_current_station_option = None;
             let mut current_station_update = current_station.clone();
@@ -687,6 +687,7 @@ pub fn create_station_thread(
                 },
                 SyncToStationAndPassengerMessages::ProgramFinished(_) => {
                   println!("Finished program");
+                  program_is_running = false;
                   return;
                 }
               }

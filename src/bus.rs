@@ -481,14 +481,6 @@ impl Bus {
                             "StationRemovedBus message received from station. Bus number: {}",
                             self.bus_index
                         );
-                        sync_sender
-                            .send(BusMessages::AdvanceTimeStepForLoadedBus {
-                                //current_time_step: self.time_tick_num,
-                                bus_index: self.bus_index,
-                            })
-                            .unwrap_or_else(|error| {
-                                panic!("Error from bus {}: {}", self.bus_index, error)
-                            });
 
                         let leave_result = self.leave_for_next_location();
                         if leave_result.is_none() {
@@ -512,6 +504,15 @@ impl Bus {
                             self.status.movement = MovementState::Finished;
                             println!("Finished bus update Finished.");
                             return ControlFlow::Break(());
+                        } else {
+                            sync_sender
+                                .send(BusMessages::AdvanceTimeStepForLoadedBus {
+                                    //current_time_step: self.time_tick_num,
+                                    bus_index: self.bus_index,
+                                })
+                                .unwrap_or_else(|error| {
+                                    panic!("Error from bus {}: {}", self.bus_index, error)
+                                });
                         }
                         bus_departed = true;
                     }
