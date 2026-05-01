@@ -145,8 +145,10 @@ pub fn convert_bus_route_list_to_passenger_bus_route_list(
             index_increment += 1;
         }
 
+        let distance_to_location = bus_location.distance_to_location / 2; // This route list needs accurate distances, since it is used to calculate the actual passenger/bus schedule so this reverses doubling the distances
+
         // add time steps for the distance to the destination
-        index_increment += bus_location.distance_to_location;
+        index_increment += distance_to_location;
 
         time_tick += index_increment;
 

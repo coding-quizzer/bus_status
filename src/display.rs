@@ -219,6 +219,7 @@ pub enum PassengerState {
     Boarded,
     Processed,
     Finished,
+    Stranded,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]

@@ -64,9 +64,11 @@ pub struct Station {
 }
 
 impl Station {
-    pub fn new(location: Location, passenger_bus_routes: &Vec<Vec<PassengerBusLocation>>) -> Self {
+    pub fn new(location: Location) -> Self {
+        /* 
         let location_time_tick_hashmap =
-            get_station_buses_index_hash_map(location.index, passenger_bus_routes);
+            get_station_buses_index_hash_map(location.index, passenger_bus_routes); 
+        */
         // the passenger bus route may not have the bus route yet.
 
         // dbg!(&location_time_tick_hashmap);
@@ -527,7 +529,7 @@ for bus in docked_buses {
         passengers_overflowed.append(rejected_passengers.to_vec().as_mut());
         passengers_to_send.append(passengers_to_add.to_vec().as_mut());
         current_station.buses_unavailable.push(bus.bus_index);
-        for boarding_passenger in new_passenger_list.iter() {
+        for boarding_passenger in passengers_to_send.iter() {
             to_display_sender_clone
                 .send(TerminalMessage {
                     content: TerminalType::BoardedPassenger(
@@ -553,7 +555,7 @@ for bus in docked_buses {
                     time_tick,
                     station_index,
                 })
-                .unwrap()
+                .unwrap();
         }
     } else {
         passengers_to_send.append(&mut new_passenger_list);
@@ -609,6 +611,7 @@ for bus in docked_buses {
             )
             .unwrap_or_else(|passenger| {
                 error!("Passenger failed to find route.");
+                to_display_sender_clone.send(TerminalMessage { content: TerminalType::StrandedPassenger(StrandedPassengerInfo::new(passenger.id_for_display, station_index, passenger.destination_location.index)), time_tick, station_index }).unwrap();
                 final_passenger_list_clone
                     .lock()
                     .unwrap()
@@ -643,7 +646,7 @@ pub fn create_station_thread(
     let station_handle = thread::spawn(move || {
         let mut current_station = Station::new(
             current_location,
-            &station_thread_passenger_bus_route_list.lock().unwrap(),
+            //&station_thread_passenger_bus_route_list.lock().unwrap(),
         );
         let station_index = station_channel_receiver.index;
         debug!(
@@ -823,7 +826,8 @@ pub fn create_station_thread(
                   if is_last_location {
                     let passenger_display_id = passenger.id_for_display;
                     // add to the arrived passengers
-                    current_station.arrived_passengers.push(passenger);
+                    current_station.arrived_passengers.push(passenger.clone());
+                    final_passenger_list_clone.lock().unwrap().location_lists[station_index].push(passenger);
                     // send to display stream
                     to_display_sender_clone
                     .send(TerminalMessage {

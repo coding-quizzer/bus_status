@@ -61,6 +61,8 @@ pub fn run_simulation(
         .map(crate::convert_bus_route_list_to_passenger_bus_route_list)
         .collect();
 
+    log::debug!("Full bus route list: {:#?}", passenger_bus_route_list);
+
     let rejected_passengers_pointer = Arc::new(Mutex::new(Vec::<Passenger>::new()));
 
     let passenger_list_pointer: Arc<Mutex<Vec<Passenger>>> =
@@ -709,8 +711,8 @@ pub fn run_simulation(
                 }) => (PassengerState::Processed, passenger_index),
                 TerminalType::StrandedPassenger(StrandedPassengerInfo {
                     passenger_index, ..
-                })
-                | TerminalType::ArrivedPassenger(ArrivedPassengerInfo {
+                }) => (PassengerState::Stranded, passenger_index),
+                TerminalType::ArrivedPassenger(ArrivedPassengerInfo {
                     passenger_index,
                     final_location: true,
                     ..
@@ -731,6 +733,7 @@ pub fn run_simulation(
             *state = match state {
                 PassengerState::Finished => PassengerState::Finished,
                 PassengerState::Processed => PassengerState::Unprocessed,
+                PassengerState::Stranded => PassengerState::Stranded,
                 PassengerState::Unprocessed => {
                     error!("Unprocessed should be filtered out already");
                     PassengerState::Unprocessed
@@ -855,6 +858,7 @@ pub fn run_simulation(
                     PassengerState::Boarded => PassengerState::Boarded,
                     PassengerState::Finished => PassengerState::Finished,
                     PassengerState::Processed => PassengerState::Unprocessed,
+                    PassengerState::Stranded => PassengerState::Stranded,
                     PassengerState::Unprocessed => {
                         error!("Unprocessed should be filtered out already");
                         PassengerState::Unprocessed
