@@ -335,6 +335,7 @@ fn add_passengers_to_buses(
   time_tick: TimeTick, 
   to_display_sender_clone: &Sender<TerminalMessage>, 
   send_to_bus_channels: &Arc<Vec<Sender<StationToBusMessages>>>, 
+  rejected_passenger_clone: &Arc<Mutex<Vec<Passenger>>>,
   bus_route_list: &Arc<Mutex<Vec<Vec<BusLocation>>>>, station_thread_passenger_bus_route_list: &Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>, 
   final_passenger_list_clone: &Arc<Mutex<FinalPassengerLists>>) {
   let  current_location = current_station.location;
@@ -544,6 +545,7 @@ for bus in docked_buses {
                 .unwrap();
         }
         for rejected_passenger in passengers_overflowed.iter() {
+          
             to_display_sender_clone
                 .send(TerminalMessage {
                     content: TerminalType::RejectedPassenger(
@@ -556,6 +558,7 @@ for bus in docked_buses {
                     station_index,
                 })
                 .unwrap();
+                rejected_passenger_clone.lock().unwrap().push(rejected_passenger.clone());
         }
     } else {
         passengers_to_send.append(&mut new_passenger_list);
@@ -720,6 +723,7 @@ pub fn create_station_thread(
                     time_tick,
                     &to_display_sender_clone,
                     &send_to_bus_channels,
+                    &rejected_passenger_clone,
                     &bus_route_list,
                     &station_thread_passenger_bus_route_list,
                     &final_passenger_list_clone
