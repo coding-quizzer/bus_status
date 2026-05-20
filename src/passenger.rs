@@ -32,7 +32,8 @@ pub struct Passenger {
 impl std::fmt::Debug for Passenger {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         f.debug_struct("Passenger")
-            .field("id", &self.id)
+            .field("uuid", &self.id)
+            .field("id_for_display", &self.id_for_display)
             .field("destination_location", &self.destination_location)
             .field("current_location", &self.current_location)
             .field("passed_stops", &self.passed_stops)

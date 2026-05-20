@@ -146,6 +146,7 @@ impl Station {
             error!("New passenger route must be different from the original.");
         }
         new_passenger.bus_schedule_iterator = new_bus_schedule.clone().into_iter().peekable();
+        new_passenger.next_bus_num = new_bus_schedule[0].bus_num;
         new_passenger.bus_schedule = new_bus_schedule;
         self.passengers.push(new_passenger);
         Ok(())
@@ -511,11 +512,13 @@ for bus in docked_buses {
     // The index does not exist in the array - even though the index should be of a docked bus
 
     debug!(
-        "Next passengers for buses, {:?}. Bus index: {}",
-        next_passengers_for_buses_array, bus_index,
+        "Station {} Next passengers for buses, {:?}. Bus index: {}",
+        station_index, next_passengers_for_buses_array, bus_index,
     );
 
     // Usually time tick misfunction
+
+    // Bug: is next_passengers_for_buses_array ever updated for overflowed passengers?
     let mut new_passenger_list = next_passengers_for_buses_array[bus_index]
         .clone()
         .unwrap_or_else(|| {
@@ -622,7 +625,10 @@ for bus in docked_buses {
                     .push(passenger)
             });
     }
+
+    
   }
+  debug!("Passengers in station {} after recalculating: {:#?}", station_index, current_station.passengers);
 
     // drop(time_tick);
 
@@ -824,6 +830,8 @@ pub fn create_station_thread(
                   passenger.next_bus_num = passenger_location.bus_num;
                   passenger.archived_stop_list.push(passenger_location);
 
+                  println!("Passenger {} next location: {:#?}", passenger.id_for_display, passenger.clone().bus_schedule_iterator.next());
+
                   let is_last_location =
                       passenger.bus_schedule_iterator.clone().next().is_none();
                   let display_id = passenger.id_for_display;
@@ -848,6 +856,8 @@ pub fn create_station_thread(
                         debug!("Passenger {} arrived at station {} at time tick {}.", passenger_display_id, current_location.index, time_tick_update);
                   } else {
                       // add to the current station's passengers
+
+                      // FIXME: as far as I can tell, new_passengers is never actually read, so these passengers are lost in the system
                       current_station.new_passengers.push(passenger);
                       // send to display stream
                       to_display_sender_clone
