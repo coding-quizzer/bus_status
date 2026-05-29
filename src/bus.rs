@@ -146,7 +146,9 @@ impl Bus {
             !(&self
                 .passengers
                 .iter()
-                .any(|bus_passenger| bus_passenger == passenger))
+                .any(|bus_passenger| bus_passenger == passenger)),
+            "Passenger {} was duplicated",
+            passenger.id_for_display
         );
         self.passengers.push(passenger.clone());
     }

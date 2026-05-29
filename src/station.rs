@@ -116,6 +116,7 @@ impl Station {
         Ok(())
     }
 
+    // Updates passenger's new bus schedule with new bus schedule
     pub fn add_passenger_check_available_buses(
         &mut self,
         mut new_passenger: Passenger,
@@ -146,7 +147,11 @@ impl Station {
             error!("New passenger route must be different from the original.");
         }
         new_passenger.bus_schedule_iterator = new_bus_schedule.clone().into_iter().peekable();
-        new_passenger.next_bus_num = new_bus_schedule[0].bus_num;
+        let new_passenger_next_location = new_passenger
+        .bus_schedule_iterator
+        .next()
+        .unwrap();
+        new_passenger.next_bus_num = new_passenger_next_location.bus_num;
         new_passenger.bus_schedule = new_bus_schedule;
         self.passengers.push(new_passenger);
         Ok(())
@@ -339,41 +344,52 @@ fn add_passengers_to_buses(
   rejected_passenger_clone: &Arc<Mutex<Vec<Passenger>>>,
   bus_route_list: &Arc<Mutex<Vec<Vec<BusLocation>>>>, station_thread_passenger_bus_route_list: &Arc<Mutex<Vec<Vec<PassengerBusLocation>>>>, 
   final_passenger_list_clone: &Arc<Mutex<FinalPassengerLists>>) {
+
+  // reiterate through all passengers
+  let mut reparse_passengers = true;
+
+  
   let  current_location = current_station.location;
   let station_index = current_location.index;
-  // REFACTOR: figure out what is happening here
-  
-// An iterator containing tuples containing the bus_index of each docked bus and a list of passengers that will get on that bus
-// the corresponding vector looks like this:
-// [(`bus_index_1`, []), (`bus_index_2`, []), ...]
-let docked_bus_passenger_pairs_iter = current_station
+
+  let docked_bus_passenger_pairs_iter = current_station
     .docked_buses
     .iter()
     .map(|bus| (bus.bus_index, Vec::<Passenger>::new()));
 
 
-// Contains the next bus each waiting passenger will get on next
-let mut next_passengers_for_buses_array = Vec::new();
-next_passengers_for_buses_array.resize(num_of_buses, None);
+  // Contains the next bus each waiting passenger will get on next
+  let mut next_passengers_for_buses_array = Vec::new();
+
+  next_passengers_for_buses_array.resize(num_of_buses, None);
+  
+  
+  // REFACTOR: figure out what is happening here
+  
+  // An iterator containing tuples containing the bus_index of each docked bus and a list of passengers that will get on that bus
+// the corresponding vector looks like this:
+// [(`bus_index_1`, []), (`bus_index_2`, []), ...]
+
 
 debug!(
-    "Array with locations for station {:?}: {:?}",
-    &current_station.location.index, &docked_bus_passenger_pairs_iter
+  "Array with locations for station {:?}: {:?}",
+  &current_station.location.index, docked_bus_passenger_pairs_iter
 );
 
 // Create vector with bus_number/passengers boarding that bus pair
 let mut docked_bus_passenger_pairs_vec =
-    docked_bus_passenger_pairs_iter.collect::<Vec<_>>();
+docked_bus_passenger_pairs_iter.collect::<Vec<_>>();
 
 // TODO: Improve adding to the list so that it does not need to be sorted
 //
 // docked bus pairs sorted by bus number
 docked_bus_passenger_pairs_vec
     .sort_by(|bus_prev, bus_next| bus_prev.0.cmp(&bus_next.0));
-
-// New iter with bus number - bus passengers pairs, sorted by bus number
+  
+  while reparse_passengers { reparse_passengers = false;
+  // New iter with bus number - bus passengers pairs, sorted by bus number
 let mut docked_bus_passenger_pairs_iter =
-    docked_bus_passenger_pairs_vec.into_iter();
+    docked_bus_passenger_pairs_vec.clone().into_iter();
 
 let mut next_vec = docked_bus_passenger_pairs_iter.next();
 debug!("Station {} next vec: {:?}", station_index, next_vec);
@@ -509,6 +525,8 @@ for bus in docked_buses {
     let mut passengers_to_send = Vec::new();
     let bus_index = bus.bus_index;
     let remaining_capacity = bus.capacity_remaining;
+
+    passengers_overflowed.clear();
     // The index does not exist in the array - even though the index should be of a docked bus
 
     debug!(
@@ -518,7 +536,6 @@ for bus in docked_buses {
 
     // Usually time tick misfunction
 
-    // Bug: is next_passengers_for_buses_array ever updated for overflowed passengers?
     let mut new_passenger_list = next_passengers_for_buses_array[bus_index]
         .clone()
         .unwrap_or_else(|| {
@@ -527,6 +544,7 @@ for bus in docked_buses {
                 current_station.location.index
             )
         });
+        // DEBUG: bus index is incorrect?
     if new_passenger_list.len() > remaining_capacity {
         let (passengers_to_add, rejected_passengers) =
             new_passenger_list.split_at(remaining_capacity);
@@ -608,22 +626,26 @@ for bus in docked_buses {
     for passenger in passengers_overflowed.clone() {
         let unavailable_buses = current_station.buses_unavailable.clone();
         info!("Unavailable buses: {:?}", unavailable_buses);
-        current_station
+        let add_passenger_result = current_station
             .add_passenger_check_available_buses(
                 passenger,
                 &time_tick,
                 &mut station_thread_passenger_bus_route_list.lock().unwrap(),
                 unavailable_buses,
-            )
-            .unwrap_or_else(|passenger| {
+            );
+            
+            match add_passenger_result {
+              Ok(_) => reparse_passengers = true,
+              Err(passenger) => {
                 error!("Passenger failed to find route.");
                 to_display_sender_clone.send(TerminalMessage { content: TerminalType::StrandedPassenger(StrandedPassengerInfo::new(passenger.id_for_display, station_index, passenger.destination_location.index)), time_tick, station_index }).unwrap();
                 final_passenger_list_clone
-                    .lock()
-                    .unwrap()
-                    .remaining_passengers
-                    .push(passenger)
-            });
+                .lock()
+                .unwrap()
+                .remaining_passengers
+                .push(passenger)
+              }
+            }
     }
 
     
@@ -633,6 +655,7 @@ for bus in docked_buses {
     // drop(time_tick);
 
     info!("Pre-bus departure");
+}
 }
 
 
@@ -683,6 +706,7 @@ pub fn create_station_thread(
             // DEBUG: Does this introduce a race condition?
             let time_tick_update = time_tick.clone();
 
+            // Message task: 
             let message_task = async |message_from_sync: SyncToStationAndPassengerMessages| {
               // All recevers in the task are from Tokio UnboundedReceivers, so overwriting TryRecvError to tokio instead of std should not be an issue
               // let message_from_sync = sync_to_stations_receiver.recv().await.unwrap();
@@ -692,7 +716,6 @@ pub fn create_station_thread(
                   time_tick = new_time_tick;
                   send_time_tick_confirmation.send(TimeTickAdvanced(crate::thread::TimeTickAdvancedObject::Station { index: station_index })).unwrap();
                   println!("Sent time tick advanced from station {} at time tick {}", current_station_update.location.index, time_tick);
-                  // TODO: receive confirmation message from sync thread
                   let FinishTimeTickAdvance = station_affirm_timestep_channel_receiver.recv().await.unwrap();
                   println!("Recieved time tick advanced from station {} at time tick {}", current_station_update.location.index, time_tick);
                 
