@@ -90,11 +90,22 @@ impl Passenger {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
-pub struct PassengerOnboardingBusSchedule {
+pub struct ScheduleStartLocationInformation {
     pub time_tick: u32,
-    // the last destination will not include a bus number because the passenger will be at his destination
-    pub bus_num: Option<usize>,
-    pub stop_location: Location,
+    pub start_location: Location,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
+pub struct ScheduleEndLocationInformation {
+    pub time_tick: u32,
+    pub end_location: Location,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
+pub struct PassengerOnboardingBusSchedule {
+    pub location_start_info: ScheduleStartLocationInformation,
+    pub location_end_info: ScheduleEndLocationInformation,
+    pub bus_num: usize,
 }
 
 // #[derive(Clone, Debug)]

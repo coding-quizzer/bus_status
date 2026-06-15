@@ -1,5 +1,7 @@
 use crate::passenger::Passenger;
 use crate::passenger::PassengerOnboardingBusSchedule;
+use crate::passenger::ScheduleEndLocationInformation;
+use crate::passenger::ScheduleStartLocationInformation;
 use crate::station::Station;
 use crate::thread::FinishTimeTickAdvance;
 use crate::thread::SyncToBusMessages;
@@ -297,11 +299,15 @@ impl Bus {
                         .iter()
                         .enumerate()
                         // the schedules should only include any location once, so if this location comes up,
-                        .any(|(location_index, passenger_location)| {
+                        .any(|(location_index, current_passenger_schedule_entry)| {
                             // FIX: find a better way to get the list of location indeces that doesn't involve misusing any
                             current_passenger_location_index = location_index;
-                            passenger_location.stop_location == current_location
-                                && passenger_location.time_tick >= self.time_tick.number
+                            current_passenger_schedule_entry
+                                .location_end_info
+                                .end_location
+                                == current_location
+                                && current_passenger_schedule_entry.location_end_info.time_tick
+                                    >= self.time_tick.number
                         });
 
                     println!("Is Offboarding: {is_offboarding}");
@@ -537,8 +543,12 @@ impl Bus {
             //     || passenger.status != PassengerStatus::Waiting
 
             let PassengerOnboardingBusSchedule {
-                stop_location: _,
-                time_tick: onboarding_time_tick,
+                location_start_info:
+                    ScheduleStartLocationInformation {
+                        time_tick: onboarding_time_tick,
+                        ..
+                    },
+                location_end_info: _,
                 bus_num,
             } = passenger
                 .bus_schedule
@@ -547,15 +557,15 @@ impl Bus {
 
             println!("Onboarding time tick: {onboarding_time_tick}.");
             println!("Current time tick: {time_tick}");
-            if onboarding_time_tick == time_tick && bus_num.expect("At this point, this cannot be the last bus location, and thus the bus_num must exist") == self.bus_index {
-              println!("This is the correct time tick and bus");
-              if self.passengers.len() >= self.capacity {
-                  println!("Passenger Rejected. Bus Overfull");
-                  overflow_passengers.push(passenger.clone());
-              } else {
-                println!("Onboarded Passenger: {:#?}", passenger);
-                self.add_passenger(passenger);
-              }
+            if onboarding_time_tick == time_tick && *bus_num == self.bus_index {
+                println!("This is the correct time tick and bus");
+                if self.passengers.len() >= self.capacity {
+                    println!("Passenger Rejected. Bus Overfull");
+                    overflow_passengers.push(passenger.clone());
+                } else {
+                    println!("Onboarded Passenger: {:#?}", passenger);
+                    self.add_passenger(passenger);
+                }
             }
 
             // println!("Passengers on the bus: {:#?}", self.passengers);

@@ -29,10 +29,12 @@ use tokio::sync::mpsc::{Receiver as TokioReceiver, Sender as TokioSender};
 use tokio::task::JoinSet;
 // use tokio::sync::{recv, send};
 
+// Distance in this case is used for priority - the closest route, at this point measured by smallest last time tick
 pub struct PassengerScheduleWithDistance {
     pub passenger_schedule: VecDeque<PassengerOnboardingBusSchedule>,
     pub distance: u32,
 }
+
 
 impl From<VecDeque<PassengerOnboardingBusSchedule>> for PassengerScheduleWithDistance {
     fn from(
@@ -41,6 +43,7 @@ impl From<VecDeque<PassengerOnboardingBusSchedule>> for PassengerScheduleWithDis
         let distance = passenger_schedule
             .back()
             .expect("Passenger Schedule must not be empty")
+            .location_end_info
             .time_tick;
         PassengerScheduleWithDistance {
             passenger_schedule,
