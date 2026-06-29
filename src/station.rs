@@ -113,7 +113,7 @@ impl Station {
             .bus_schedule_iterator
             .next()
             .expect("If the passenger has a route, the passenger will a first location");
-        new_passenger.next_bus_num = first_passenger_location.bus_num;
+        new_passenger.next_bus_num = Some(first_passenger_location.bus_num);
         // The current location does not need setting because it is already set
         self.passengers.push(new_passenger);
         Ok(())
@@ -154,7 +154,7 @@ impl Station {
         .bus_schedule_iterator
         .next()
         .unwrap();
-        new_passenger.next_bus_num = new_passenger_next_location.bus_num;
+        new_passenger.next_bus_num = Some(new_passenger_next_location.bus_num);
         new_passenger.bus_schedule = new_bus_schedule;
         self.passengers.push(new_passenger);
         Ok(())
@@ -852,8 +852,8 @@ pub fn create_station_thread(
                   let passenger_location =
                       passenger.bus_schedule_iterator.next().unwrap();
 
-                  passenger.current_location = passenger_location.stop_location.into();
-                  passenger.next_bus_num = passenger_location.bus_num;
+                  passenger.current_location = Some(passenger_location.location_start_info.start_location);
+                  passenger.next_bus_num = Some(passenger_location.bus_num);
                   passenger.archived_stop_list.push(passenger_location);
 
                   println!("Passenger {} next location: {:#?}", passenger.id_for_display, passenger.clone().bus_schedule_iterator.next());

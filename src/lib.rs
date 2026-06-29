@@ -17,7 +17,10 @@ use location::{Location, PassengerBusLocation};
 use std::sync::mpsc::{self, Receiver, Sender};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
-use crate::consts::MAX_CHANNEL_SIZE;
+use crate::{
+    consts::MAX_CHANNEL_SIZE,
+    passenger::{ScheduleEndLocationInformation, ScheduleStartLocationInformation},
+};
 
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub enum TimeTickStage {
@@ -336,6 +339,7 @@ fn calculate_passenger_schedule_for_bus_with_recursion(
     let mut destination_list = Vec::new();
     // let mut bus_schedule: VecDeque<PassengerOnboardingBusSchedule> = VecDeque::new();
     // println!("bus route list: {:#?}", bus_route_list);
+    let prev_location = initial_location;
 
     // Find the index of the bus route containing the destination location and the bus location containting the location and the time tick
     for (bus_index, bus_route) in bus_route_list.iter().enumerate() {
@@ -360,6 +364,12 @@ fn calculate_passenger_schedule_for_bus_with_recursion(
         }
     }
 
+    struct PassengerOnboardingBusScheduleBuilder {
+        location_start_info: Option<ScheduleStartLocationInformation>,
+        location_end_info: ScheduleEndLocationInformation,
+        bus_num: usize,
+    }
+
     // println!("Destination list: {:?}", destination_list);
     for destination in destination_list.iter() {
         let mut bus_schedule = VecDeque::new();
@@ -375,11 +385,14 @@ fn calculate_passenger_schedule_for_bus_with_recursion(
         let (destination_bus_index, destination_passenger_bus_location) = destination;
         let trial_destination_time_tick = destination_passenger_bus_location.location_time_tick;
 
-        bus_schedule.push_front(PassengerOnboardingBusSchedule {
-            stop_location: destination_passenger_bus_location.location,
-            time_tick: trial_destination_time_tick,
-            bus_num: next_bus_index,
-        });
+        // bus_schedule.push_front(PassengerOnboardingBusScheduleBuilder {
+        //     location_start_info: None,
+        //     location_end_info: ScheduleEndLocationInformation {
+        //         time_tick: trial_destination_time_tick,
+        //         end_location: destination_passenger_bus_location.location,
+        //         bus_num: next_bus_index,
+        //     },
+        // });
         visited_locations.push(destination_passenger_bus_location.location);
         // Currently, current_bus_index and destination_bus_index mean the same thing
         // let current_bus_index = destination.0;
@@ -395,10 +408,13 @@ fn calculate_passenger_schedule_for_bus_with_recursion(
             {
                 let mut final_bus_schedule = bus_schedule.clone();
 
-                final_bus_schedule.push_front(PassengerOnboardingBusSchedule {
-                    time_tick: bus_location.location_time_tick,
-                    stop_location: bus_location.location,
-                    bus_num: Some(*destination_bus_index),
+                final_bus_schedule.push_front(PassengerOnboardingBusScheduleBuilder {
+                    location_start_info: None,
+                    location_end_info: ScheduleEndLocationInformation {
+                        time_tick: bus_location.location_time_tick,
+                        end_location: bus_location.location,
+                    },
+                    bus_num: *destination_bus_index,
                 });
 
                 valid_schedules.push(final_bus_schedule.into());
