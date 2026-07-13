@@ -111,6 +111,7 @@ impl From<SerializedIndexedPassenger> for Passenger {
             id_for_display: serialized_passenger_input.master_index,
             destination_location,
             current_location,
+            current_stop_info: None,
             passed_stops: 0,
             bus_schedule,
             archived_stop_list: Vec::new(),
@@ -132,6 +133,7 @@ impl From<Passenger> for SerializedPassenger {
             bus_schedule: _bus_schedule,
             archived_stop_list: _,
             bus_schedule_iterator: _,
+            current_stop_info: _,
             // TODO: transfer value from serialized passenger
             beginning_time_step,
             next_bus_num: _,

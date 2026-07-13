@@ -17,10 +17,7 @@ use location::{Location, PassengerBusLocation};
 use std::sync::mpsc::{self, Receiver, Sender};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
-use crate::{
-    consts::MAX_CHANNEL_SIZE,
-    passenger::{ScheduleEndLocationInformation, ScheduleStartLocationInformation},
-};
+use crate::{consts::MAX_CHANNEL_SIZE, passenger::ScheduleLocationInformation};
 
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub enum TimeTickStage {
@@ -76,6 +73,23 @@ impl std::fmt::Display for TimeTick {
             TimeTickStage::BusLoadingPassengers => "loading",
         };
         write!(f, "Time Tick: ({} - {})", self.number, message_remainder)
+    }
+}
+
+#[derive(Debug, Clone)]
+struct PassengerOnboardingBusScheduleBuilder {
+    location_start_info: Option<ScheduleLocationInformation>,
+    location_end_info: ScheduleLocationInformation,
+    bus_num: usize,
+}
+
+impl PassengerOnboardingBusScheduleBuilder {
+    fn convert(&self) -> Option<PassengerOnboardingBusSchedule> {
+        Some(PassengerOnboardingBusSchedule {
+            location_start_info: self.location_start_info?,
+            location_end_info: self.location_end_info,
+            bus_num: self.bus_num,
+        })
     }
 }
 
@@ -307,6 +321,7 @@ pub fn calculate_passenger_schedule_for_bus_check_available_buses(
     )
 }
 
+/*
 pub fn calculate_passenger_schedule_for_bus(
     passenger: &Passenger,
     current_time_tick: u32,
@@ -321,7 +336,12 @@ pub fn calculate_passenger_schedule_for_bus(
         Vec::new(),
         None,
     )
-    .map(|schedule| schedule.into())
+    .map(|schedule| {
+        schedule
+            .into_iter()
+            .map(|location_info| location_info.convert().expect("No start location info set"))
+            .collect()
+    })
     .ok_or(passenger.clone())
 }
 
@@ -333,7 +353,7 @@ fn calculate_passenger_schedule_for_bus_with_recursion(
     bus_route_list: &[Vec<PassengerBusLocation>],
     visited_locations: Vec<Location>,
     next_bus_index: Option<usize>,
-) -> Option<VecDeque<PassengerOnboardingBusSchedule>> {
+) -> Option<VecDeque<PassengerOnboardingBusScheduleBuilder>> {
     println!("next bus index: {:?}", next_bus_index);
     let mut valid_schedules: Vec<PassengerScheduleWithDistance> = Vec::new();
     let mut destination_list = Vec::new();
@@ -362,12 +382,6 @@ fn calculate_passenger_schedule_for_bus_with_recursion(
                 // });
             }
         }
-    }
-
-    struct PassengerOnboardingBusScheduleBuilder {
-        location_start_info: Option<ScheduleStartLocationInformation>,
-        location_end_info: ScheduleEndLocationInformation,
-        bus_num: usize,
     }
 
     // println!("Destination list: {:?}", destination_list);
@@ -410,9 +424,9 @@ fn calculate_passenger_schedule_for_bus_with_recursion(
 
                 final_bus_schedule.push_front(PassengerOnboardingBusScheduleBuilder {
                     location_start_info: None,
-                    location_end_info: ScheduleEndLocationInformation {
+                    location_end_info: ScheduleLocationInformation {
                         time_tick: bus_location.location_time_tick,
-                        end_location: bus_location.location,
+                        location: bus_location.location,
                     },
                     bus_num: *destination_bus_index,
                 });
@@ -441,10 +455,13 @@ fn calculate_passenger_schedule_for_bus_with_recursion(
                 match extension_bus_route {
                     Some(mut bus_route) => {
                         // Tack the destination location to the end of the returned list
-                        bus_route.push_back(PassengerOnboardingBusSchedule {
-                            time_tick: destination_passenger_bus_location.location_time_tick,
-                            stop_location: destination_passenger_bus_location.location,
-                            bus_num: next_bus_index,
+                        bus_route.push_back(PassengerOnboardingBusScheduleBuilder {
+                            location_start_info: None,
+                            location_end_info: ScheduleLocationInformation {
+                                time_tick: destination_passenger_bus_location.location_time_tick,
+                                location: destination_passenger_bus_location.location,
+                            },
+                            bus_num: next_bus_index.unwrap(),
                         });
                         valid_schedules.push(bus_route.into());
                         continue;
@@ -464,4 +481,79 @@ fn calculate_passenger_schedule_for_bus_with_recursion(
 
         Some(optimal_schedule.passenger_schedule)
     }
+}
+*/
+
+pub fn calculate_passenger_schedule_for_bus(
+    passenger: &Passenger,
+    current_time_tick: u32,
+    bus_route_list: &[Vec<PassengerBusLocation>],
+) -> Result<Vec<PassengerOnboardingBusSchedule>, Passenger> {
+    let start_loc = passenger.current_location.unwrap();
+    let end_loc = passenger.destination_location;
+
+    if start_loc == end_loc {
+        return Ok(Vec::new());
+    }
+
+    let mut queue: VecDeque<(Location, u32, VecDeque<PassengerOnboardingBusSchedule>)> =
+        VecDeque::new();
+    let mut visited_times: HashMap<Location, u32> = HashMap::new();
+
+    queue.push_back((start_loc, current_time_tick, VecDeque::new()));
+    visited_times.insert(start_loc, current_time_tick);
+
+    while let Some((current_loc, current_time, mut current_schedule)) = queue.pop_front() {
+        for (bus_idx, bus_route) in bus_route_list.iter().enumerate() {
+            // Find the boarding stop on this bus
+            if let Some(start_idx) = bus_route
+                .iter()
+                .position(|stop| stop.location == current_loc)
+            {
+                let board_time = bus_route[start_idx].location_time_tick;
+
+                // Can we board?
+                if board_time >= current_time {
+                    // Try alighting at every subsequent stop
+                    for stop in bus_route.iter().skip(start_idx + 1) {
+                        // Create schedule for this leg
+                        let schedule_entry = PassengerOnboardingBusSchedule {
+                            location_start_info: crate::passenger::ScheduleLocationInformation {
+                                time_tick: board_time,
+                                location: current_loc,
+                            },
+                            location_end_info: ScheduleLocationInformation {
+                                time_tick: stop.location_time_tick,
+                                location: stop.location,
+                            },
+                            bus_num: bus_idx,
+                        };
+
+                        let mut new_schedule = current_schedule.clone();
+                        new_schedule.push_back(schedule_entry);
+
+                        // Check destination
+                        if stop.location == end_loc {
+                            return Ok(new_schedule.into());
+                        }
+
+                        let next_loc = stop.location;
+                        let next_time = stop.location_time_tick;
+
+                        // Prune if we've been here earlier or at the same time
+                        if let Some(&earlier_time) = visited_times.get(&next_loc) {
+                            if next_time >= earlier_time {
+                                continue;
+                            }
+                        }
+                        visited_times.insert(next_loc, next_time);
+
+                        queue.push_back((next_loc, next_time, new_schedule));
+                    }
+                }
+            }
+        }
+    }
+
+    Err(passenger.clone())
 }

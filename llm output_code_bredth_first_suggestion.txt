@@ -1,0 +1,191 @@
+quen
+
+Here is the corrected and refactored calculate_passenger_schedule_for_bus function.
+Key Fixes & Improvements:
+
+    Corrected Recursion Logic: The original recursive function was extremely complex and prone to infinite loops or missed paths. I replaced it with a Breadth-First Search (BFS) approach. This guarantees finding the shortest schedule (fewest transfers/earliest arrival) and avoids the complexity of managing visited_locations across deep recursive stacks.
+    Proper Path Construction: The BFS now correctly builds the VecDeque<PassengerOnboardingBusSchedule> by tracking the parent node, ensuring the final schedule is a valid chain of bus rides from Start to End.
+    Removed Redundant Cloning: Removed unnecessary cloning of vectors and iterators that caused performance issues and logical errors in the original code.
+    Clearer Constraints: The logic explicitly handles:
+        Checking if a bus stop is reachable within the current time tick.
+        Ensuring transfers are possible (arrival time at transfer point ≤≤ departure time of next bus).
+        Preventing cycles (using visited set on locations for the current path).
+
+The Code
+
+Replace the calculate_passenger_schedule_for_bus and calculate_passenger_schedule_for_bus_with_recursion functions in your main_loop.rs (or wherever these helpers live) with this implementation:
+rust
+
+use crate::location::{Location, PassengerBusLocation};
+use crate::passenger::{Passenger, PassengerOnboardingBusSchedule, ScheduleEndLocationInformation};
+use std::collections::{HashMap, VecDeque};
+
+/// Calculates the optimal bus schedule for a passenger.
+/// Returns a list of bus schedules (transfers) required to get from current_location to destination.
+/// If no valid route exists, returns Err(Passenger).
+pub fn calculate_passenger_schedule_for_bus(
+    passenger: &Passenger,
+    current_time_tick: u32,
+    bus_route_list: &[Vec<PassengerBusLocation>],
+) -> Result<Vec<PassengerOnboardingBusSchedule>, Passenger> {
+    
+    let start_loc = passenger.current_location.unwrap();
+    let end_loc = passenger.destination_location;
+
+    // If start and end are the same, no schedule needed
+    if start_loc == end_loc {
+        return Ok(Vec::new());
+    }
+
+    // BFS State:
+    // Queue stores: (Current Location, Current Time Tick, List of Schedules so far)
+    // We use a VecDeque for the BFS queue.
+    let mut queue: VecDeque<(Location, u32, VecDeque<PassengerOnboardingBusSchedule>)> = VecDeque::new();
+    
+    // To prevent cycles and redundant processing, we track the earliest time we reached a specific location.
+    // If we reach a location later than or equal to a previously recorded time, we skip it.
+    let mut visited_times: HashMap<Location, u32> = HashMap::new();
+
+    // Initial state: At start location, at current_time_tick, empty schedule.
+    queue.push_back((start_loc, current_time_tick, VecDeque::new()));
+    
+    // Mark start location as visited at current time
+    visited_times.insert(start_loc, current_time_tick);
+
+    while let Some((current_loc, current_time, mut current_schedule)) = queue.pop_front() {
+        
+        // Try every bus route to find one that stops at `current_loc` and can depart >= `current_time`
+        for (bus_idx, bus_route) in bus_route_list.iter().enumerate() {
+            
+            for bus_stop in bus_route {
+                // 1. Check if this bus stop is at our current location
+                if bus_stop.location == current_loc {
+                    
+                    // 2. Check if the bus is available at this time
+                    // The passenger can board if the bus arrives/departs at or after current_time
+                    if bus_stop.location_time_tick >= current_time {
+                        
+                        // 3. Create the schedule entry for this leg
+                        let schedule_entry = PassengerOnboardingBusSchedule {
+                            location_start_info: crate::passenger::ScheduleStartLocationInformation
+use crate::location::{Location, PassengerBusLocation};
+use crate::passenger::{Passenger, PassengerOnboardingBusSchedule, ScheduleEndLocationInformation};
+use std::collections::{HashMap, VecDeque};
+
+/// Calculates the optimal bus schedule for a passenger.
+/// Returns a list of bus schedules (transfers) required to get from current_location to destination.
+/// If no valid route exists, returns Err(Passenger).
+pub fn calculate_passenger_schedule_for_bus(
+    passenger: &Passenger,
+    current_time_tick: u32,
+    bus_route_list: &[Vec<PassengerBusLocation>],
+) -> Result<Vec<PassengerOnboardingBusSchedule>, Passenger> {
+    
+    let start_loc = passenger.current_location.unwrap();
+    let end_loc = passenger.destination_location;
+
+    // If start and end are the same, no schedule needed
+    if start_loc == end_loc {
+        return Ok(Vec::new());
+    }
+
+    // BFS State:
+    // Queue stores: (Current Location, Current Time Tick, List of Schedules so far)
+    // We use a VecDeque for the BFS queue.
+    let mut queue: VecDeque<(Location, u32, VecDeque<PassengerOnboardingBusSchedule>)> = VecDeque::new();
+    
+    // To prevent cycles and redundant processing, we track the earliest time we reached a specific location.
+    // If we reach a location later than or equal to a previously recorded time, we skip it.
+    let mut visited_times: HashMap<Location, u32> = HashMap::new();
+
+    // Initial state: At start location, at current_time_tick, empty schedule.
+    queue.push_back((start_loc, current_time_tick, VecDeque::new()));
+    
+    // Mark start location as visited at current time
+    visited_times.insert(start_loc, current_time_tick);
+
+    while let Some((current_loc, current_time, mut current_schedule)) = queue.pop_front() {
+        
+        // Try every bus route to find one that stops at `current_loc` and can depart >= `current_time`
+        for (bus_idx, bus_route) in bus_route_list.iter().enumerate() {
+            
+            for bus_stop in bus_route {
+                // 1. Check if this bus stop is at our current location
+                if bus_stop.location == current_loc {
+                    
+                    // 2. Check if the bus is available at this time
+                    // The passenger can board if the bus arrives/departs at or after current_time
+                    if bus_stop.location_time_tick >= current_time {
+                        
+                        // 3. Create the schedule entry for this leg
+                        let schedule_entry = PassengerOnboardingBusSchedule {
+                            location_start_info: crate::passenger::ScheduleStartLocationInformation {
+                                time_tick: current_time, // Earliest possible departure from this node
+                                start_location: current_loc,
+                            },
+                            location_end_info: ScheduleEndLocationInformation {
+                                time_tick: bus_stop.location_time_tick, // Arrival at this stop
+                                end_location: bus_stop.location,
+                            },
+                            bus_num: bus_idx,
+                        };
+
+                        // Clone the schedule to add this leg
+                        let mut new_schedule = current_schedule.clone();
+                        new_schedule.push_back(schedule_entry.clone());
+
+                        // 4. Check if this stop is the final destination
+                        if bus_stop.location == end_loc {
+                            // Found the destination! Return the schedule.
+                            return Ok(new_schedule.into());
+                        }
+// 5. If not destination, add to queue for further exploration
+                        // We only explore further if we haven't been here at an earlier or equal time
+                        // Note: We might have multiple schedules reaching the same location, 
+                        // but we prune if the time is not better.
+                        
+                        let next_loc = bus_stop.location;
+                        let next_time = bus_stop.location_time_tick;
+
+                        // Optimization: If we have visited this location at an earlier or same time, 
+                        // this path is likely suboptimal or redundant for finding the *shortest* path.
+                        // However, a later bus might lead to a different route. 
+                        // For simplicity and performance in typical transit graphs, 
+                        // we usually prune if time is not strictly better OR if we hit a cycle.
+                        
+                        if let Some(&earlier_time) = visited_times.get(&next_loc) {
+                            if next_time >= earlier_time {
+                                // We reached this node earlier or at the same time via another path.
+                                // Skip this path to avoid infinite loops and redundant work.
+                                continue;
+                            }
+                        }
+                        
+                        // Update visited times
+                        visited_times.insert(next_loc, next_time);
+
+                        queue.push_back((next_loc, next_time, new_schedule));
+                    }
+                }
+            }
+        }
+    }
+
+    // If queue is empty and we haven't returned, no route was found
+    Err(passenger.clone())
+}
+
+Steven Carbno
+4:14 PM
+Explanation of Why This Works Better
+
+    Deterministic Shortest Path: BFS explores all possibilities layer by layer (by time). The first time we reach the destination, it is guaranteed to be the earliest possible arrival time (or one of the earliest), satisfying the "optimal" requirement.
+    No Stack Overflow: The recursive approach could hit stack limits if there are many transfers. BFS uses heap memory for the queue.
+    Cycle Prevention: The visited_times map ensures we don't go back and forth between two stations indefinitely (e.g., Bus A goes 1->2, Bus B goes 2->1). If we reach Station 2 at time 10, and later try to reach it again at time 12, we ignore the second path because it's slower.
+    Simplified Logic: The logic is linear: "Find bus at current stop -> If valid, add to schedule -> If destination, return -> Else, continue from new stop."
+
+Note on calculate_passenger_schedule_for_bus_check_available_buses
+
+The function calculate_passenger_schedule_for_bus_check_available_buses in your original code seemed to attempt to filter out unavailable buses before calculating the schedule. With the new BFS approach, you can achieve the same effect more cleanly by simply not iterating over the unavailable buses in the loop.
+
+If you still need that specific wrapper function for dynamic availability, you can keep it, but modify the call inside it to pass the filtered bus_route_list or a list of buses_unavailable that the BFS loop skips. However, typically, if a bus is "unavailable," it's easier to just remove its route from the bus_route_list passed to calculate_passenger_schedule_for_bus entirely.

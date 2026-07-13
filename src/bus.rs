@@ -1,7 +1,6 @@
 use crate::passenger::Passenger;
 use crate::passenger::PassengerOnboardingBusSchedule;
-use crate::passenger::ScheduleEndLocationInformation;
-use crate::passenger::ScheduleStartLocationInformation;
+use crate::passenger::ScheduleLocationInformation;
 use crate::station::Station;
 use crate::thread::FinishTimeTickAdvance;
 use crate::thread::SyncToBusMessages;
@@ -302,9 +301,7 @@ impl Bus {
                         .any(|(location_index, current_passenger_schedule_entry)| {
                             // FIX: find a better way to get the list of location indeces that doesn't involve misusing any
                             current_passenger_location_index = location_index;
-                            current_passenger_schedule_entry
-                                .location_end_info
-                                .end_location
+                            current_passenger_schedule_entry.location_end_info.location
                                 == current_location
                                 && current_passenger_schedule_entry.location_end_info.time_tick
                                     >= self.time_tick.number
@@ -544,7 +541,7 @@ impl Bus {
 
             let PassengerOnboardingBusSchedule {
                 location_start_info:
-                    ScheduleStartLocationInformation {
+                    ScheduleLocationInformation {
                         time_tick: onboarding_time_tick,
                         ..
                     },

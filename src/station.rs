@@ -27,18 +27,19 @@ use tokio::runtime::{self, Runtime};
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::mpsc::{Receiver as TokioReceiver, Sender as TokioSender};
 use tokio::task::JoinSet;
+use crate::PassengerOnboardingBusScheduleBuilder;
 // use tokio::sync::{recv, send};
 
 // Distance in this case is used for priority - the closest route, at this point measured by smallest last time tick
 pub struct PassengerScheduleWithDistance {
-    pub passenger_schedule: VecDeque<PassengerOnboardingBusSchedule>,
+    pub passenger_schedule: VecDeque<PassengerOnboardingBusScheduleBuilder>,
     pub distance: u32,
 }
 
 
-impl From<VecDeque<PassengerOnboardingBusSchedule>> for PassengerScheduleWithDistance {
+impl From<VecDeque<PassengerOnboardingBusScheduleBuilder>> for PassengerScheduleWithDistance {
     fn from(
-        passenger_schedule: VecDeque<PassengerOnboardingBusSchedule>,
+        passenger_schedule: VecDeque<PassengerOnboardingBusScheduleBuilder>,
     ) -> PassengerScheduleWithDistance {
         let distance = passenger_schedule
             .back()
@@ -106,12 +107,13 @@ impl Station {
             thread::current().id(),
             new_bus_schedule,
         );
+        
         new_passenger.bus_schedule_iterator = new_bus_schedule.clone().into_iter().peekable();
+        new_passenger.current_stop_info = new_passenger.bus_schedule_iterator.next();
         new_passenger.bus_schedule = new_bus_schedule;
 
         let first_passenger_location = new_passenger
-            .bus_schedule_iterator
-            .next()
+            .current_stop_info
             .expect("If the passenger has a route, the passenger will a first location");
         new_passenger.next_bus_num = Some(first_passenger_location.bus_num);
         // The current location does not need setting because it is already set
@@ -440,6 +442,8 @@ debug!(
 // I feel like there may not be enough cases taken in consideration
 // Some passengers that are arrived and have this as the final destination are still listed under passengers_for_next_destination, This filter is not working correctly
 
+
+// FIXME: This depends on the previous structure, which has completely changed, so update for new structure
 // NOTE: remove this I've done this already now, so this is redundant
 let (passengers_for_next_destination, arrived_passengers): (Vec<_>, Vec<_>) =
     current_station
@@ -457,7 +461,7 @@ let (passengers_for_next_destination, arrived_passengers): (Vec<_>, Vec<_>) =
             trace!("Station {station_index} Thread ID: {current_thread_id:?}Next location {:#?}", next_location);
             trace!("Station {station_index} Thread ID: {current_thread_id:?}Time tick: {:?}", time_tick);
 
-            next_location.is_some()
+            passenger.destination_location == current_location
         });
 trace!(
     "Time_tick: {}, Station {} Arrived Passengers: {:#?}",
@@ -465,10 +469,36 @@ trace!(
     station_index,
     arrived_passengers
 );
+
+println!( "Time_tick: {}, Station {} Arrived Passengers: {:#?}",
+    time_tick.number,
+    station_index,
+    arrived_passengers);
+    
+// The assert_eq is redundant, since it is the same test I am already using
+/*
+    
 // ensure this is actually arrived passengers have actually arrived at the correct destination
+// Value is arbitrary, since it is overwriten anyways
+let mut test_passenger = &&mut Passenger{
+    id: Default::default(),
+    id_for_display: 0,
+    destination_location: Default::default(),
+    current_location: Default::default(),
+    current_stop_info: Default::default(),
+    passed_stops: Default::default(),
+    beginning_time_step: Default::default(),
+    bus_schedule: Default::default(),
+    archived_stop_list: Default::default(),
+    next_bus_num: Default::default(),
+    bus_schedule_iterator: Vec::new().into_iter().peekable(),
+};
 assert!(arrived_passengers
-    .iter()
-    .all(|passenger| passenger.destination_location == current_location));
+.iter()
+.all(|passenger| {test_passenger = passenger; test_passenger.destination_location == current_location}), "Current Location: {current_location}, Failed Passenger: {test_passenger:#?}");
+*/
+
+
 // use std::ops::DerefMut;
 // Put arrived passengers into current_station.arrived_passengers
 let mut newly_arrived_passengers: Vec<_> = arrived_passengers
@@ -849,14 +879,15 @@ pub fn create_station_thread(
               );
               for mut passenger in passengers_offboarding.into_iter() {
                   // TODO: These opperations might be redundant, or should be done with Station::add_passenger. Explore this further
+                  passenger.current_stop_info = passenger.bus_schedule_iterator.next();
                   let passenger_location =
-                      passenger.bus_schedule_iterator.next().unwrap();
+                      passenger.current_stop_info.unwrap();
 
-                  passenger.current_location = Some(passenger_location.location_start_info.start_location);
+                  passenger.current_location = Some(passenger_location.location_start_info.location);
                   passenger.next_bus_num = Some(passenger_location.bus_num);
                   passenger.archived_stop_list.push(passenger_location);
 
-                  println!("Passenger {} next location: {:#?}", passenger.id_for_display, passenger.clone().bus_schedule_iterator.next());
+                  println!("Passenger {} next location: {:#?}", passenger.id_for_display, passenger.current_stop_info);
 
                   let is_last_location =
                       passenger.bus_schedule_iterator.clone().next().is_none();

@@ -20,15 +20,16 @@ pub struct Passenger {
     pub id_for_display: usize,
     pub destination_location: Location,
     pub current_location: Option<Location>,
+    pub current_stop_info: Option<PassengerOnboardingBusSchedule>,
     pub passed_stops: u32,
     pub beginning_time_step: u32,
     pub bus_schedule: Vec<PassengerOnboardingBusSchedule>,
     // Add a peekable iterator for the current location
     pub archived_stop_list: Vec<PassengerOnboardingBusSchedule>,
     pub next_bus_num: Option<usize>,
-
     pub bus_schedule_iterator: std::iter::Peekable<vec::IntoIter<PassengerOnboardingBusSchedule>>,
 }
+
 impl std::fmt::Debug for Passenger {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         f.debug_struct("Passenger")
@@ -36,6 +37,7 @@ impl std::fmt::Debug for Passenger {
             .field("id_for_display", &self.id_for_display)
             .field("destination_location", &self.destination_location)
             .field("current_location", &self.current_location)
+            .field("current_stop_info", &self.current_stop_info)
             .field("passed_stops", &self.passed_stops)
             .field("bus_schedule", &self.bus_schedule)
             .field("archived_stop_list", &self.archived_stop_list)
@@ -78,6 +80,7 @@ impl Passenger {
             id: Uuid::new_v4(),
             id_for_display: index,
             current_location: Some(current_location),
+            current_stop_info: None,
             destination_location,
             passed_stops: 0,
             beginning_time_step,
@@ -90,21 +93,15 @@ impl Passenger {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
-pub struct ScheduleStartLocationInformation {
+pub struct ScheduleLocationInformation {
     pub time_tick: u32,
-    pub start_location: Location,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
-pub struct ScheduleEndLocationInformation {
-    pub time_tick: u32,
-    pub end_location: Location,
+    pub location: Location,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
 pub struct PassengerOnboardingBusSchedule {
-    pub location_start_info: ScheduleStartLocationInformation,
-    pub location_end_info: ScheduleEndLocationInformation,
+    pub location_start_info: ScheduleLocationInformation,
+    pub location_end_info: ScheduleLocationInformation,
     pub bus_num: usize,
 }
 
