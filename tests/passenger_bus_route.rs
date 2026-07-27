@@ -1,5 +1,7 @@
 use bus_system::location::{Location, PassengerBusLocation};
-use bus_system::passenger::{Passenger, PassengerOnboardingBusSchedule};
+use bus_system::passenger::{
+    Passenger, PassengerOnboardingBusSchedule, ScheduleLocationInformation,
+};
 use bus_system::{
     calculate_passenger_schedule_for_bus, convert_bus_route_list_to_passenger_bus_route_list,
 };
@@ -28,18 +30,17 @@ fn can_find_basic_route() {
     let test_passenger: Passenger = Passenger::new(location_list[3], location_list[2], 0, 0);
     let calculated_passenger_bus_route =
         calculate_passenger_schedule_for_bus(&test_passenger, 0, &passenger_facing_bus_routes);
-    let expected_passenger_bus_route = vec![
-        PassengerOnboardingBusSchedule {
+    let expected_passenger_bus_route = vec![PassengerOnboardingBusSchedule {
+        bus_num: 0,
+        location_start_info: ScheduleLocationInformation {
             time_tick: 2,
-            bus_num: Some(0),
-            stop_location: location_list[3],
+            location: location_list[3],
         },
-        PassengerOnboardingBusSchedule {
+        location_end_info: ScheduleLocationInformation {
             time_tick: 4,
-            bus_num: None,
-            stop_location: location_list[2],
+            location: location_list[2],
         },
-    ];
+    }];
     assert_eq!(
         calculated_passenger_bus_route,
         Ok(expected_passenger_bus_route),
@@ -56,19 +57,26 @@ fn can_find_bus_route_with_transfer() {
 
     let expected_passenger_route = vec![
         PassengerOnboardingBusSchedule {
-            time_tick: 2,
-            bus_num: Some(1),
-            stop_location: location_list[0],
+            bus_num: 1,
+            location_start_info: ScheduleLocationInformation {
+                time_tick: 2,
+                location: location_list[0],
+            },
+            location_end_info: ScheduleLocationInformation {
+                time_tick: 4,
+                location: location_list[3],
+            },
         },
         PassengerOnboardingBusSchedule {
-            time_tick: 4,
-            bus_num: Some(2),
-            stop_location: location_list[3],
-        },
-        PassengerOnboardingBusSchedule {
-            time_tick: 6,
-            bus_num: None,
-            stop_location: location_list[2],
+            bus_num: 3,
+            location_start_info: ScheduleLocationInformation {
+                time_tick: 4,
+                location: location_list[3],
+            },
+            location_end_info: ScheduleLocationInformation {
+                time_tick: 6,
+                location: location_list[2],
+            },
         },
     ];
 
@@ -85,20 +93,27 @@ fn finds_shortest_route() {
 
     let expected_passenger_route = vec![
         PassengerOnboardingBusSchedule {
-            time_tick: 3,
-            bus_num: Some(2),
-            stop_location: location_list[1],
+            bus_num: 2,
+            location_start_info: ScheduleLocationInformation {
+                time_tick: 3,
+                location: location_list[1],
+            },
+            location_end_info: ScheduleLocationInformation {
+                time_tick: 7,
+                location: location_list[3],
+            },
         },
         PassengerOnboardingBusSchedule {
+            bus_num: 0,
             // time tick represents time tick when bus 3 drops the passenger off, rather than when  bus 0 picks passenger up
-            time_tick: 7,
-            bus_num: Some(0),
-            stop_location: location_list[3],
-        },
-        PassengerOnboardingBusSchedule {
-            time_tick: 11,
-            bus_num: None,
-            stop_location: location_list[2],
+            location_start_info: ScheduleLocationInformation {
+                time_tick: 7,
+                location: location_list[3],
+            },
+            location_end_info: ScheduleLocationInformation {
+                time_tick: 11,
+                location: location_list[2],
+            },
         },
     ];
 
@@ -118,19 +133,17 @@ fn special_route_removing_some_bus_locations() {
         vec![0],
     );
 
-    let expected_passenger_route = vec![
-        PassengerOnboardingBusSchedule {
+    let expected_passenger_route = vec![PassengerOnboardingBusSchedule {
+        bus_num: 2,
+        location_start_info: ScheduleLocationInformation {
             time_tick: 4,
-            bus_num: Some(2),
-            stop_location: location_list[3],
+            location: location_list[3],
         },
-        PassengerOnboardingBusSchedule {
-            // time tick represents time tick when bus 3 drops the passenger off, rather than when  bus 0 picks passenger up
+        location_end_info: ScheduleLocationInformation {
             time_tick: 6,
-            bus_num: None,
-            stop_location: location_list[2],
+            location: location_list[2],
         },
-    ];
+    }];
 
     assert_eq!(calculated_passenger_bus_route, Ok(expected_passenger_route),);
 }

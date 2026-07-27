@@ -378,7 +378,7 @@ fn add_passengers_to_buses(
 
 debug!(
   "Array with locations for station {:?}: {:?}",
-  &current_station.location.index, docked_bus_passenger_pairs_iter
+  &current_station.location.index, docked_bus_passenger_pairs_iter.clone().collect::<Vec<_>>()
 );
 
 // Create vector with bus_number/passengers boarding that bus pair
@@ -391,16 +391,17 @@ docked_bus_passenger_pairs_iter.collect::<Vec<_>>();
 docked_bus_passenger_pairs_vec
     .sort_by(|bus_prev, bus_next| bus_prev.0.cmp(&bus_next.0));
   
-  while reparse_passengers { reparse_passengers = false;
+  while reparse_passengers { 
+    reparse_passengers = false;
   // New iter with bus number - bus passengers pairs, sorted by bus number
-let mut docked_bus_passenger_pairs_iter =
+  let mut docked_bus_passenger_pairs_iter =
     docked_bus_passenger_pairs_vec.clone().into_iter();
 
-let mut next_vec = docked_bus_passenger_pairs_iter.next();
-debug!("Station {} next vec: {:?}", station_index, next_vec);
+  let mut next_vec = docked_bus_passenger_pairs_iter.next();
+  debug!("Station {} next vec: {:?}", station_index, next_vec);
 
 // Add empty arrays at the indeces of buses docked at the station
-next_passengers_for_buses_array = next_passengers_for_buses_array
+  next_passengers_for_buses_array = next_passengers_for_buses_array
     .into_iter()
     .enumerate()
     .map(|(current_index, _)| {
@@ -419,10 +420,10 @@ next_passengers_for_buses_array = next_passengers_for_buses_array
     .collect::<Vec<_>>();
     
 
-debug!(
+  debug!(
     "station {} next passengers for buses array: {:?}",
     station_index, next_passengers_for_buses_array
-);
+  );
 
 // dbg!(&next_passengers_for_buses_array);
 
@@ -445,7 +446,7 @@ debug!(
 
 // FIXME: This depends on the previous structure, which has completely changed, so update for new structure
 // NOTE: remove this I've done this already now, so this is redundant
-let (passengers_for_next_destination, arrived_passengers): (Vec<_>, Vec<_>) =
+let (passengers_for_next_destination, finally_arrived_passengers): (Vec<_>, Vec<_>) =
     current_station
         .passengers
         .iter_mut()
@@ -461,19 +462,19 @@ let (passengers_for_next_destination, arrived_passengers): (Vec<_>, Vec<_>) =
             trace!("Station {station_index} Thread ID: {current_thread_id:?}Next location {:#?}", next_location);
             trace!("Station {station_index} Thread ID: {current_thread_id:?}Time tick: {:?}", time_tick);
 
-            passenger.destination_location == current_location
+            passenger.destination_location != current_location
         });
 trace!(
     "Time_tick: {}, Station {} Arrived Passengers: {:#?}",
     time_tick.number,
     station_index,
-    arrived_passengers
+    finally_arrived_passengers
 );
 
 println!( "Time_tick: {}, Station {} Arrived Passengers: {:#?}",
     time_tick.number,
     station_index,
-    arrived_passengers);
+    finally_arrived_passengers);
     
 // The assert_eq is redundant, since it is the same test I am already using
 /*
@@ -501,7 +502,7 @@ assert!(arrived_passengers
 
 // use std::ops::DerefMut;
 // Put arrived passengers into current_station.arrived_passengers
-let mut newly_arrived_passengers: Vec<_> = arrived_passengers
+let mut newly_arrived_passengers: Vec<_> = finally_arrived_passengers
     .into_iter()
     .map(|passenger| passenger.clone())
     .collect();
@@ -879,19 +880,25 @@ pub fn create_station_thread(
               );
               for mut passenger in passengers_offboarding.into_iter() {
                   // TODO: These opperations might be redundant, or should be done with Station::add_passenger. Explore this further
-                  passenger.current_stop_info = passenger.bus_schedule_iterator.next();
-                  let passenger_location =
+                  let is_last_location =
+                      passenger.bus_schedule_iterator.clone().next().is_none();
+
+                  let passenger_prev_location =
                       passenger.current_stop_info.unwrap();
+
+                  let display_id = passenger.id_for_display;
+                  if !is_last_location {
+                    passenger.current_stop_info = passenger.bus_schedule_iterator.next();
+                    let passenger_location = passenger.current_stop_info.unwrap();
+                  
 
                   passenger.current_location = Some(passenger_location.location_start_info.location);
                   passenger.next_bus_num = Some(passenger_location.bus_num);
                   passenger.archived_stop_list.push(passenger_location);
 
                   println!("Passenger {} next location: {:#?}", passenger.id_for_display, passenger.current_stop_info);
+                  }
 
-                  let is_last_location =
-                      passenger.bus_schedule_iterator.clone().next().is_none();
-                  let display_id = passenger.id_for_display;
                   if is_last_location {
                     let passenger_display_id = passenger.id_for_display;
                     // add to the arrived passengers
