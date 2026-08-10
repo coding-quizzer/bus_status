@@ -18,6 +18,15 @@ fn get_passenger_bus_routes_from_input_data(
     let bus_routes = input_data.bus_routes;
     let passenger_facing_bus_route = bus_routes
         .into_iter()
+        .map(|bus_route_list| {
+            bus_route_list
+                .into_iter()
+                .map(|mut location| {
+                    location.distance_to_location *= 2;
+                    location
+                })
+                .collect()
+        })
         .map(convert_bus_route_list_to_passenger_bus_route_list)
         .collect::<Vec<_>>();
     (passenger_facing_bus_route, input_data.location_vector)
@@ -27,6 +36,7 @@ fn get_passenger_bus_routes_from_input_data(
 fn can_find_basic_route() {
     let (passenger_facing_bus_routes, location_list) =
         get_passenger_bus_routes_from_input_data(Path::new("simple_data.json"));
+    println!("passenger_facing_bus_routes: {passenger_facing_bus_routes:#?}");
     let test_passenger: Passenger = Passenger::new(location_list[3], location_list[2], 0, 0);
     let calculated_passenger_bus_route =
         calculate_passenger_schedule_for_bus(&test_passenger, 0, &passenger_facing_bus_routes);
@@ -68,7 +78,7 @@ fn can_find_bus_route_with_transfer() {
             },
         },
         PassengerOnboardingBusSchedule {
-            bus_num: 3,
+            bus_num: 2,
             location_start_info: ScheduleLocationInformation {
                 time_tick: 4,
                 location: location_list[3],
@@ -95,11 +105,11 @@ fn finds_shortest_route() {
         PassengerOnboardingBusSchedule {
             bus_num: 2,
             location_start_info: ScheduleLocationInformation {
-                time_tick: 3,
+                time_tick: 2,
                 location: location_list[1],
             },
             location_end_info: ScheduleLocationInformation {
-                time_tick: 7,
+                time_tick: 6,
                 location: location_list[3],
             },
         },
@@ -107,11 +117,11 @@ fn finds_shortest_route() {
             bus_num: 0,
             // time tick represents time tick when bus 3 drops the passenger off, rather than when  bus 0 picks passenger up
             location_start_info: ScheduleLocationInformation {
-                time_tick: 7,
+                time_tick: 6,
                 location: location_list[3],
             },
             location_end_info: ScheduleLocationInformation {
-                time_tick: 11,
+                time_tick: 10,
                 location: location_list[2],
             },
         },
@@ -136,11 +146,11 @@ fn special_route_removing_some_bus_locations() {
     let expected_passenger_route = vec![PassengerOnboardingBusSchedule {
         bus_num: 2,
         location_start_info: ScheduleLocationInformation {
-            time_tick: 4,
+            time_tick: 3,
             location: location_list[3],
         },
         location_end_info: ScheduleLocationInformation {
-            time_tick: 6,
+            time_tick: 5,
             location: location_list[2],
         },
     }];

@@ -496,6 +496,8 @@ pub fn calculate_passenger_schedule_for_bus(
         return Ok(Vec::new());
     }
 
+    println!("Start and end are not equal");
+
     let mut queue: VecDeque<(Location, u32, VecDeque<PassengerOnboardingBusSchedule>)> =
         VecDeque::new();
     let mut visited_times: HashMap<Location, u32> = HashMap::new();
@@ -504,6 +506,7 @@ pub fn calculate_passenger_schedule_for_bus(
     visited_times.insert(start_loc, current_time_tick);
 
     while let Some((current_loc, current_time, mut current_schedule)) = queue.pop_front() {
+        println!("visited_times: {:?}", visited_times);
         for (bus_idx, bus_route) in bus_route_list.iter().enumerate() {
             // Find the boarding stop on this bus
             if let Some(start_idx) = bus_route
@@ -511,11 +514,13 @@ pub fn calculate_passenger_schedule_for_bus(
                 .position(|stop| stop.location == current_loc)
             {
                 let board_time = bus_route[start_idx].location_time_tick;
+                println!("board time: {:?}", board_time);
 
                 // Can we board?
                 if board_time >= current_time {
                     // Try alighting at every subsequent stop
                     for stop in bus_route.iter().skip(start_idx + 1) {
+                        println!("stop: {:#?}", stop);
                         // Create schedule for this leg
                         let schedule_entry = PassengerOnboardingBusSchedule {
                             location_start_info: crate::passenger::ScheduleLocationInformation {

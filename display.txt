@@ -23,6 +23,8 @@ Passenger 0 initiated in station 0 - Time Tick: (0 - init)
 
 Current Time Tick: TimeTick { number: 1, stage: BusUnloadingPassengers }
 Passenger 19 waiting in station 0 - Time Tick: (1 - unloading)
+Station 2 processes no passengers in the current time tick - Time Tick: (1 - unloading)
+Station 1 processes no passengers in the current time tick - Time Tick: (1 - unloading)
 Passenger 18 waiting in station 0 - Time Tick: (1 - unloading)
 Passenger 17 waiting in station 0 - Time Tick: (1 - unloading)
 Passenger 16 waiting in station 0 - Time Tick: (1 - unloading)
@@ -41,11 +43,8 @@ Passenger 4 waiting in station 0 - Time Tick: (1 - unloading)
 Passenger 3 waiting in station 0 - Time Tick: (1 - unloading)
 Passenger 2 waiting in station 0 - Time Tick: (1 - unloading)
 Passenger 1 waiting in station 0 - Time Tick: (1 - unloading)
-Passenger 0 waiting in station 0 - Time Tick: (1 - unloading)
-Station 2 processes no passengers in the current time tick - Time Tick: (1 - unloading)
-Station 1 processes no passengers in the current time tick - Time Tick: Station 1 processes no passengers in the current time tick - Time Tick: (1 - loading)
+Passenger 0 waiting in station 0 - Time Tick: Station 1 processes no passengers in the current time tick - Time Tick: (1 - loading)
 PaStation 2 processes no passengers in the current time tick - Time Tick: (1 - loading)
-Station 1 processes no passengers in the current time tick - Time Tick: (1 - loading)
 Passenger 19 waiting in station 0 - Time Tick: (1 - loading)
 Passenger 18 waiting in station 0 - Time Tick: (1 - loading)
 Passenger 17 waiting in station 0 - Time Tick: (1 - loading)
@@ -64,8 +63,10 @@ Passenger 5 waiting in station 0 - Time Tick: (1 - loading)
 Passenger 4 waiting in station 0 - Time Tick: (1 - loading)
 Passenger 3 waiting in station 0 - Time Tick: (1 - loading)
 Passenger 2 waiting in station 0 - Time Tick: (1 - loading)
-Passenger 1 waiting Passenger 19 waiting in station 0 - Time Tick: (2 - unloading)
-Station 1 processes no passengers in the current time tick - Time Tick: (2 - unloading)
+Passenger 1 waiting in station 0 - Time Tick: (1 - loading)
+Passenger 0 waiting in station 0 - Time Tick: Station 1 processes no passengers in the current time tick - Time Tick: (2 - unloading)
+Passenger 19 waiting in station 0 - Time Tick: (2 - unloading)
+Passenger 18 waiting inPassenger 19 waiting in station 0 - Time Tick: (2 - unloading)
 Passenger 18 waiting in station 0 - Time Tick: (2 - unloading)
 Passenger 17 waiting in station 0 - Time Tick: (2 - unloading)
 Passenger 16 waiting in station 0 - Time Tick: (2 - unloading)
@@ -84,10 +85,7 @@ Passenger 4 waiting in station 0 - Time Tick: (2 - unloading)
 Passenger 3 waiting in station 0 - Time Tick: (2 - unloading)
 Passenger 2 waiting in station 0 - Time Tick: (2 - unloading)
 Passenger 1 waiting in station 0 - Time Tick: (2 - unloading)
-Passenger 0 waiting in station 0 - Time Tick: (2 - unloading)
-
-Current Time Tick: TimeTick { number: 2, stage: BusLoadingPassengers }
-Station 1 processes no passengers in the current time tick - Time Tick: (2 - loading)
+Passenger 0 waiting in station 0 - Time Tick: (2Station 1 processes no passengers in the current time tick - Time Tick: (2 - loading)
 Passenger 19 boarded bus 0 - Time Tick: (2 - loading)
 Passenger 18 boarded bus 0 - Time Tick: (2 - loading)
 Passenger 17 boarded bus 0 - Time Tick: (2 - loading)
@@ -114,14 +112,14 @@ Station 0 processes no passengers in the current time tick - Time Tick: (3 - unl
 Station 1 processes no passengers in the current time tick - Time Tick: (3 - unloading)
 
 Current Time Tick: TimeTick { number: 3, stage: BusLoadingPassengers }
-Station 1 processes no passengers in the current time tick - Time Tick: (3 - loading)
 Station 2 processes no passengers in the current time tick - Time Tick: (3 - loading)
+Station 1 processes no passengers in the current time tick - Time Tick: (3 - loading)
 Station 0 processes no passengers in the current time tick - Time Tick: (3 - loading)
 
 Current Time Tick: TimeTick { number: 4, stage: BusUnloadingPassengers }
 Station 0 processes no passengers in the current time tick - Time Tick: (4 - unloading)
-Station 1 processes no passengers in the current time tick - Time Tick: (4 - unloading)
 Station 2 processes no passengers in the current time tick - Time Tick: (4 - unloading)
+Station 1 processes no passengers in the current time tick - Time Tick: (4 - unloading)
 
 Current Time Tick: TimeTick { number: 4, stage: BusLoadingPassengers }
 Passenger 18 arrived at destination location: Location Location 1 - Time Tick: (4 - unloading)
@@ -144,9 +142,9 @@ Station 1 processes no passengers in the current time tick - Time Tick: (5 - unl
 Station 2 processes no passengers in the current time tick - Time Tick: (5 - unloading)
 
 Current Time Tick: TimeTick { number: 5, stage: BusLoadingPassengers }
-Station 0 processes no passengers in the current time tick - Time Tick: (5 - loading)
 Station 1 processes no passengers in the current time tick - Time Tick: (5 - loading)
 Station 2 processes no passengers in the current time tick - Time Tick: (5 - loading)
+Station 0 processes no passengers in the current time tick - Time Tick: (5 - loading)
 
 Current Time Tick: TimeTick { number: 6, stage: BusUnloadingPassengers }
 Station 0 processes no passengers in the current time tick - Time Tick: (6 - unloading)
@@ -164,6 +162,5 @@ Passenger 7 arrived at destination location: Location Location 2 - Time Tick: (6
 Passenger 5 arrived at destination location: Location Location 2 - Time Tick: (6 - unloading)
 Passenger 3 arrived at destination location: Location Location 2 - Time Tick: (6 - unloading)
 Passenger 1 arrived at destination location: Location Location 2 - Time Tick: (6 - unloading)
-Station 0 processes no passengers in the current time tick - Time Tick: (6 - loading)
-Station 2 processes no passengers in the current time tick - Time Tick: (6 - loading)
 Station 1 processes no passengers in the current time tick - Time Tick: (6 - loading)
+Station 0 processes no passengers in the current time tick - Time Tick: (6 - loading)

@@ -1,0 +1,208 @@
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 2 tests
+test rejected_passengers_and_arrived_passengers_are_accounted_for ... ok
+test passengers_from_all_timeticks_are_accounted_for ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+
+running 4 tests
+test finds_shortest_route ... FAILED
+test can_find_basic_route ... FAILED
+test can_find_bus_route_with_transfer ... FAILED
+test special_route_removing_some_bus_locations ... FAILED
+
+failures:
+
+---- finds_shortest_route stdout ----
+
+thread 'finds_shortest_route' panicked at tests/passenger_bus_route.rs:120:5:
+assertion `left == right` failed
+  left: Ok([PassengerOnboardingBusSchedule { location_start_info: ScheduleLocationInformation { time_tick: 2, location: Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 } }, location_end_info: ScheduleLocationInformation { time_tick: 7, location: Location { index: 2, id: cc1ad5ba-7a26-4127-969d-d52492776375 } }, bus_num: 2 }])
+ right: Ok([PassengerOnboardingBusSchedule { location_start_info: ScheduleLocationInformation { time_tick: 2, location: Location { index: 1, id: 0adf8f60-3748-4af0-a985-5eb0de081d70 } }, location_end_info: ScheduleLocationInformation { time_tick: 6, location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 } }, bus_num: 2 }, PassengerOnboardingBusSchedule { location_start_info: ScheduleLocationInformation { time_tick: 6, location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 } }, location_end_info: ScheduleLocationInformation { time_tick: 10, location: Location { index: 2, id: cc1ad5ba-7a26-4127-969d-d52492776375 } }, bus_num: 0 }])
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- can_find_basic_route stdout ----
+
+thread 'can_find_basic_route' panicked at tests/passenger_bus_route.rs:44:5:
+assertion `left == right` failed
+  left: Ok([PassengerOnboardingBusSchedule { location_start_info: ScheduleLocationInformation { time_tick: 1, location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 } }, location_end_info: ScheduleLocationInformation { time_tick: 1, location: Location { index: 2, id: cc1ad5ba-7a26-4127-969d-d52492776375 } }, bus_num: 0 }])
+ right: Ok([PassengerOnboardingBusSchedule { location_start_info: ScheduleLocationInformation { time_tick: 1, location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 } }, location_end_info: ScheduleLocationInformation { time_tick: 3, location: Location { index: 2, id: cc1ad5ba-7a26-4127-969d-d52492776375 } }, bus_num: 0 }])
+
+---- can_find_bus_route_with_transfer stdout ----
+
+thread 'can_find_bus_route_with_transfer' panicked at tests/passenger_bus_route.rs:83:5:
+assertion `left == right` failed
+  left: Ok([PassengerOnboardingBusSchedule { location_start_info: ScheduleLocationInformation { time_tick: 1, location: Location { index: 0, id: 21eaac51-b4e9-4338-99f0-869fe2e31d55 } }, location_end_info: ScheduleLocationInformation { time_tick: 1, location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 } }, bus_num: 1 }, PassengerOnboardingBusSchedule { location_start_info: ScheduleLocationInformation { time_tick: 1, location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 } }, location_end_info: ScheduleLocationInformation { time_tick: 1, location: Location { index: 2, id: cc1ad5ba-7a26-4127-969d-d52492776375 } }, bus_num: 0 }])
+ right: Ok([PassengerOnboardingBusSchedule { location_start_info: ScheduleLocationInformation { time_tick: 1, location: Location { index: 0, id: 21eaac51-b4e9-4338-99f0-869fe2e31d55 } }, location_end_info: ScheduleLocationInformation { time_tick: 3, location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 } }, bus_num: 1 }, PassengerOnboardingBusSchedule { location_start_info: ScheduleLocationInformation { time_tick: 3, location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 } }, location_end_info: ScheduleLocationInformation { time_tick: 5, location: Location { index: 2, id: cc1ad5ba-7a26-4127-969d-d52492776375 } }, bus_num: 3 }])
+
+---- special_route_removing_some_bus_locations stdout ----
+Buses Unavailable: [0]
+Original bus route list: [
+    [
+        PassengerBusLocation {
+            location: Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+            location_time_tick: 1,
+        },
+        PassengerBusLocation {
+            location: Location {
+                index: 2,
+                id: cc1ad5ba-7a26-4127-969d-d52492776375,
+            },
+            location_time_tick: 1,
+        },
+        PassengerBusLocation {
+            location: Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+            location_time_tick: 1,
+        },
+    ],
+    [
+        PassengerBusLocation {
+            location: Location {
+                index: 0,
+                id: 21eaac51-b4e9-4338-99f0-869fe2e31d55,
+            },
+            location_time_tick: 1,
+        },
+        PassengerBusLocation {
+            location: Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+            location_time_tick: 1,
+        },
+        PassengerBusLocation {
+            location: Location {
+                index: 1,
+                id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+            },
+            location_time_tick: 1,
+        },
+    ],
+    [
+        PassengerBusLocation {
+            location: Location {
+                index: 1,
+                id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+            },
+            location_time_tick: 1,
+        },
+        PassengerBusLocation {
+            location: Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+            location_time_tick: 1,
+        },
+        PassengerBusLocation {
+            location: Location {
+                index: 2,
+                id: cc1ad5ba-7a26-4127-969d-d52492776375,
+            },
+            location_time_tick: 1,
+        },
+    ],
+]
+Current time tick: 4
+New Bus Route List: [
+    [
+        PassengerBusLocation {
+            location: Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+            location_time_tick: 1,
+        },
+        PassengerBusLocation {
+            location: Location {
+                index: 2,
+                id: cc1ad5ba-7a26-4127-969d-d52492776375,
+            },
+            location_time_tick: 1,
+        },
+        PassengerBusLocation {
+            location: Location {
+                index: 4,
+                id: 350abfe3-49e0-4019-8507-a376cb602ff7,
+            },
+            location_time_tick: 1,
+        },
+    ],
+    [
+        PassengerBusLocation {
+            location: Location {
+                index: 0,
+                id: 21eaac51-b4e9-4338-99f0-869fe2e31d55,
+            },
+            location_time_tick: 1,
+        },
+        PassengerBusLocation {
+            location: Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+            location_time_tick: 1,
+        },
+        PassengerBusLocation {
+            location: Location {
+                index: 1,
+                id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+            },
+            location_time_tick: 1,
+        },
+    ],
+    [
+        PassengerBusLocation {
+            location: Location {
+                index: 1,
+                id: 0adf8f60-3748-4af0-a985-5eb0de081d70,
+            },
+            location_time_tick: 1,
+        },
+        PassengerBusLocation {
+            location: Location {
+                index: 3,
+                id: 135f70d1-0f07-4a0f-a996-3412019ea584,
+            },
+            location_time_tick: 1,
+        },
+        PassengerBusLocation {
+            location: Location {
+                index: 2,
+                id: cc1ad5ba-7a26-4127-969d-d52492776375,
+            },
+            location_time_tick: 1,
+        },
+    ],
+]
+
+thread 'special_route_removing_some_bus_locations' panicked at tests/passenger_bus_route.rs:148:5:
+assertion `left == right` failed
+  left: Err(Passenger { uuid: 6b673fa1-f47d-42dd-9dd8-ccd9f5e2ae04, id_for_display: 0, destination_location: Location { index: 2, id: cc1ad5ba-7a26-4127-969d-d52492776375 }, current_location: Some(Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 }), current_stop_info: None, passed_stops: 0, bus_schedule: [], archived_stop_list: [], next_bus_num: None })
+ right: Ok([PassengerOnboardingBusSchedule { location_start_info: ScheduleLocationInformation { time_tick: 3, location: Location { index: 3, id: 135f70d1-0f07-4a0f-a996-3412019ea584 } }, location_end_info: ScheduleLocationInformation { time_tick: 5, location: Location { index: 2, id: cc1ad5ba-7a26-4127-969d-d52492776375 } }, bus_num: 2 }])
+
+
+failures:
+    can_find_basic_route
+    can_find_bus_route_with_transfer
+    finds_shortest_route
+    special_route_removing_some_bus_locations
+
+test result: FAILED. 0 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
