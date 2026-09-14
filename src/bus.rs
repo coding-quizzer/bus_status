@@ -82,7 +82,7 @@ where
 #[derive(Clone, Debug)]
 pub struct Bus {
     status: BusStatus,
-    passengers: Vec<Passenger>,
+    pub passengers: Vec<Passenger>,
     current_location: Option<Location>,
     bus_route_iter: vec::IntoIter<BusLocation>,
     bus_route_vec: Vec<BusLocation>,
@@ -622,6 +622,32 @@ impl Bus {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn can_add_passenger_to_bus() {
+        // let (passenger_facing_bus_routes, location_list) =
+        //     get_passenger_bus_routes_from_input_data(Path::new("simple_data.json"));
+        let locations = [Location::new(0), Location::new(1)];
+        let bus_route = vec![
+            BusLocation {
+                distance_to_location: 1,
+                location: locations[0],
+            },
+            BusLocation {
+                distance_to_location: 1,
+                location: locations[1],
+            },
+        ];
+        let mut new_bus = Bus::try_new(bus_route, 10, 0).unwrap();
+
+        let passenger = Passenger::new(locations[0], locations[1], 0, 0);
+        new_bus.add_passenger(&passenger);
+
+        assert_eq!(new_bus.passengers, vec![passenger]);
+    }
+}
 /* #[derive(Debug, Serialize, Deserialize)]
 struct SerializableBus {
     id: u32,

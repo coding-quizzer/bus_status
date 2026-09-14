@@ -502,6 +502,8 @@ pub fn calculate_passenger_schedule_for_bus(
         VecDeque::new();
     let mut visited_times: HashMap<Location, u32> = HashMap::new();
 
+    let mut best_schedule: Option<VecDeque<PassengerOnboardingBusSchedule>> = None;
+
     queue.push_back((start_loc, current_time_tick, VecDeque::new()));
     visited_times.insert(start_loc, current_time_tick);
 
@@ -538,9 +540,6 @@ pub fn calculate_passenger_schedule_for_bus(
                         new_schedule.push_back(schedule_entry);
 
                         // Check destination
-                        if stop.location == end_loc {
-                            return Ok(new_schedule.into());
-                        }
 
                         let next_loc = stop.location;
                         let next_time = stop.location_time_tick;
@@ -552,13 +551,19 @@ pub fn calculate_passenger_schedule_for_bus(
                             }
                         }
                         visited_times.insert(next_loc, next_time);
-
-                        queue.push_back((next_loc, next_time, new_schedule));
+                        if stop.location == end_loc {
+                            best_schedule = Some(new_schedule);
+                        } else {
+                            queue.push_back((next_loc, next_time, new_schedule));
+                        }
                     }
                 }
             }
         }
     }
 
-    Err(passenger.clone())
+    match best_schedule {
+        Some(schedule) => Ok(schedule.into()),
+        None => Err(passenger.clone()),
+    }
 }

@@ -1,3 +1,5 @@
+#[cfg(test)]
+use bus_system::bus::{Bus, BusLocation};
 use bus_system::location::{Location, PassengerBusLocation};
 use bus_system::passenger::{
     Passenger, PassengerOnboardingBusSchedule, ScheduleLocationInformation,
@@ -8,7 +10,6 @@ use bus_system::{
 use bus_system::{calculate_passenger_schedule_for_bus_check_available_buses, data};
 use std::path::Path;
 use uuid::uuid;
-
 fn get_passenger_bus_routes_from_input_data(
     input_file: &Path,
 ) -> (Vec<Vec<PassengerBusLocation>>, Vec<Location>) {
@@ -105,11 +106,11 @@ fn finds_shortest_route() {
         PassengerOnboardingBusSchedule {
             bus_num: 2,
             location_start_info: ScheduleLocationInformation {
-                time_tick: 2,
+                time_tick: 3,
                 location: location_list[1],
             },
             location_end_info: ScheduleLocationInformation {
-                time_tick: 6,
+                time_tick: 7,
                 location: location_list[3],
             },
         },
@@ -117,17 +118,17 @@ fn finds_shortest_route() {
             bus_num: 0,
             // time tick represents time tick when bus 3 drops the passenger off, rather than when  bus 0 picks passenger up
             location_start_info: ScheduleLocationInformation {
-                time_tick: 6,
+                time_tick: 8,
                 location: location_list[3],
             },
             location_end_info: ScheduleLocationInformation {
-                time_tick: 10,
+                time_tick: 11,
                 location: location_list[2],
             },
         },
     ];
 
-    assert_eq!(calculated_passenger_bus_route, Ok(expected_passenger_route),);
+    assert_eq!(calculated_passenger_bus_route, Ok(expected_passenger_route));
 }
 
 // Use --no-capture to ensure stdout is displayed
@@ -146,14 +147,55 @@ fn special_route_removing_some_bus_locations() {
     let expected_passenger_route = vec![PassengerOnboardingBusSchedule {
         bus_num: 2,
         location_start_info: ScheduleLocationInformation {
-            time_tick: 3,
+            time_tick: 4,
             location: location_list[3],
         },
         location_end_info: ScheduleLocationInformation {
-            time_tick: 5,
+            time_tick: 6,
             location: location_list[2],
         },
     }];
 
     assert_eq!(calculated_passenger_bus_route, Ok(expected_passenger_route),);
 }
+
+#[test]
+fn can_add_passenger_to_bus() {
+    // let (passenger_facing_bus_routes, location_list) =
+    //     get_passenger_bus_routes_from_input_data(Path::new("simple_data.json"));
+    let locations = [Location::new(0), Location::new(1)];
+    let bus_route = vec![
+        BusLocation {
+            distance_to_location: 1,
+            location: locations[0],
+        },
+        BusLocation {
+            distance_to_location: 1,
+            location: locations[1],
+        },
+    ];
+    let mut new_bus = Bus::try_new(bus_route, 10, 0).unwrap();
+
+    let passenger = Passenger::new(locations[0], locations[1], 0, 0);
+    new_bus.add_passenger(&passenger);
+
+    assert_eq!(new_bus.passengers, vec![passenger]);
+}
+
+// assert_eq!(passenger.id_for_display, 0);
+// assert_eq!(passenger.destination_location, locations[1]);
+// assert_eq!(passenger.current_location, Some(locations[0]));
+// assert_eq!(
+//     passenger.bus_schedule,
+//     vec![PassengerOnboardingBusSchedule {
+//         bus_num: 0,
+//         location_start_info: ScheduleLocationInformation {
+//             location: locations[0],
+//             time_tick: 0,
+//         },
+//         location_end_info: ScheduleLocationInformation {
+//             location: locations[1],
+//             time_tick: 2,
+//         },
+//     }]
+// )

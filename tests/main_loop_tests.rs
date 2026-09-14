@@ -115,3 +115,67 @@ fn passengers_from_all_timeticks_are_accounted_for() {
         TEST_PASSENGER_COUNT
     );
 }
+
+#[test]
+fn passengers_exceed_bus_capacity_two_buses() {
+    const TEST_PASSENGER_COUNT: usize = 30;
+
+    let location_vector = vec![Location::new(0), Location::new(1)];
+    let mut passenger_list = vec![];
+    for index in 0..TEST_PASSENGER_COUNT {
+        let passenger = Passenger::new(location_vector[0], location_vector[1], 0, index);
+        passenger_list.push(passenger);
+    }
+
+    // distance_to_location must be a multiple of 2
+    let first_bus_route = vec![
+        BusLocation {
+            location: location_vector[0],
+            distance_to_location: 2,
+        },
+        BusLocation {
+            location: location_vector[1],
+            distance_to_location: 2,
+        },
+    ];
+
+    let second_bus_route = vec![
+        BusLocation {
+            location: location_vector[0],
+            distance_to_location: 2,
+        },
+        BusLocation {
+            location: location_vector[1],
+            distance_to_location: 2,
+        },
+    ];
+
+    let all_bus_routes = vec![first_bus_route, second_bus_route];
+
+    let config_struct = ConfigStruct {
+        num_of_buses: 2,
+        num_of_passengers: TEST_PASSENGER_COUNT,
+        num_of_locations: 2,
+        bus_capacity: 10,
+    };
+
+    let final_passengers_list = run_simulation(
+        location_vector,
+        passenger_list,
+        all_bus_routes,
+        config_struct,
+    );
+
+    let passenger_count_at_station = final_passengers_list
+        .location_lists
+        .iter()
+        .flatten()
+        .count();
+    let remaining_passengers_count = final_passengers_list.remaining_passengers.len();
+    assert_eq!(remaining_passengers_count, 10);
+    assert_eq!(passenger_count_at_station, 20);
+    // assert_eq!(
+    //     passenger_count_at_station + remaining_passengers_count,
+    //     TEST_PASSENGER_COUNT
+    // );
+}
