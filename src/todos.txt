@@ -2,3 +2,6 @@
 write overflow tests
 
 write tests for each function
+
+09/14/2026
+- investigate bus schedule (how are buses running when the schedules do not terminate on the same time tick?)
