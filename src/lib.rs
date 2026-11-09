@@ -510,13 +510,15 @@ pub fn calculate_passenger_schedule_for_bus(
     while let Some((current_loc, current_time, mut current_schedule)) = queue.pop_front() {
         println!("visited_times: {:?}", visited_times);
         for (bus_idx, bus_route) in bus_route_list.iter().enumerate() {
+            println!("Bus id: {}", bus_idx);
+
             // Find the boarding stop on this bus
-            if let Some(start_idx) = bus_route
-                .iter()
-                .position(|stop| stop.location == current_loc)
-            {
+            if let Some(start_idx) = bus_route.iter().position(|stop| {
+                stop.location == current_loc && stop.location_time_tick >= current_time
+            }) {
                 let board_time = bus_route[start_idx].location_time_tick;
                 println!("board time: {:?}", board_time);
+                println!("current time  {:?}", current_time);
 
                 // Can we board?
                 if board_time >= current_time {

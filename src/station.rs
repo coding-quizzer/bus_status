@@ -921,8 +921,9 @@ pub fn create_station_thread(
                   } else {
                       // add to the current station's passengers
 
-                      // FIXME: as far as I can tell, new_passengers is never actually read, so these passengers are lost in the system
-                      current_station.new_passengers.push(passenger);
+                      // current_station.new_passengers.push(passenger);
+                      current_station.passengers.push(passenger);
+
                       // send to display stream
                       to_display_sender_clone
                           .send(TerminalMessage {

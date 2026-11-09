@@ -5,3 +5,6 @@ write tests for each function
 
 09/14/2026
 - investigate bus schedule (how are buses running when the schedules do not terminate on the same time tick?)
+
+10/12/2026
+- Are timetick schedules aligning with reality? Do passengers believe buses start one time tick early?
