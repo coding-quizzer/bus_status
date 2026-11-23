@@ -923,7 +923,7 @@ pub fn create_station_thread(
 
                       // current_station.new_passengers.push(passenger);
                       current_station.passengers.push(passenger);
-
+                      
                       // send to display stream
                       to_display_sender_clone
                           .send(TerminalMessage {

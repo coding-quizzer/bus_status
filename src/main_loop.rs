@@ -4,7 +4,8 @@ use crate::data;
 use crate::data::InputDataStructure;
 use crate::display::{
     ArrivedPassengerInfo, BoardedPassengerInfo, InitiatedPassengerInfo, PassengerState,
-    RejectedPassengerInfo, StationState, StrandedPassengerInfo, TerminalType, WaitingPassengerInfo,
+    RejectedPassengerInfo, StationState, StrandedPassengerInfo, TerminalMessage, TerminalType,
+    WaitingPassengerInfo,
 };
 use crate::location::{BusLocation, PassengerBusLocation};
 use crate::station;
@@ -752,6 +753,7 @@ pub fn run_simulation(
                 current_time_tick = new_time_tick;
                 writeln!(writer, "\nCurrent Time Tick: {:?}", new_time_tick).unwrap();
             } else {
+                // remaining message is ProgramFinished
                 break;
             }
             println!("Display loop received new Time tick");
@@ -777,7 +779,13 @@ pub fn run_simulation(
                 // }
 
                 // TODO: I want to impliment this with a vector and write the messages in numerical order
-                let passenger_message = stations_reader.recv().unwrap();
+                let passenger_message_result = stations_reader.recv();
+                if passenger_message_result.is_err() {
+                    log::debug!("No connected station.");
+                    break;
+                }
+                let passenger_message: TerminalMessage = passenger_message_result.unwrap();
+
                 let message_station_index = passenger_message.station_index;
 
                 if let TerminalType::NoPassengerFromStation { station_index } =
